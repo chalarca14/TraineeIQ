@@ -4,7 +4,7 @@
         <!-- ===== COLUMNA IZQUIERDA ===== -->
         <div class="login-info">
             <div>
-                <h1 class="login-logo">🧠 TRAINEEIQ</h1>
+                <h1 class="login-logo"><img src="@/assets/icons/cerebro.png" alt="descripcion" width="50" /> TRAINEEIQ</h1>
                 <p class="login-slogan">Plataforma inteligente de acompañamiento académico</p>
             </div>
 
@@ -22,22 +22,22 @@
 
             <ul class="login-features">
                 <li class="feature-card">
-                    <div class="feature-icon">🤖</div>
+                    <div class="feature-icon"><img src="@/assets/icons/robot.png" alt="descripcion" width="50" /></div>
                     <h4>Recomendaciones IA</h4>
                     <p>Obtén sugerencias personalizadas de temas según tu avance.</p>
                 </li>
                 <li class="feature-card">
-                    <div class="feature-icon">📋</div>
+                    <div class="feature-icon"><img src="@/assets/icons/proyecto.png" alt="descripcion" width="50" /></div>
                     <h4>Mini proyectos</h4>
                     <p>Desarrolla mini proyectos prácticos alineados a tu aprendizaje.</p>
                 </li>
                 <li class="feature-card">
-                    <div class="feature-icon">🔄</div>
+                    <div class="feature-icon"><img src="@/assets/icons/sincronizacion.png" alt="descripcion" width="50" /></div>
                     <h4>Sincronización con guía</h4>
                     <p>Conecta tus guías del SENA y accede a contenido relevante por semana.</p>
                 </li>
                 <li class="feature-card">
-                    <div class="feature-icon">📊</div>
+                    <div class="feature-icon"><img src="@/assets/icons/grafico.png" alt="descripcion" width="50" /></div>
                     <h4>Seguimiento del progreso</h4>
                     <p>Monitorea tu avance y alcanza tus metas académicas.</p>
                 </li>
@@ -188,7 +188,9 @@ export default {
             }
         }
     }
+
 }
+
 </script>
 
 <style scoped>
@@ -196,6 +198,7 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Puritan:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 /* Aplicar fuente a toda la vista */
+
 .login-page {
     font-family: 'Puritan', sans-serif;
     display: flex;
@@ -227,7 +230,7 @@ export default {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 1.4rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #ffffff;
 }
@@ -278,13 +281,14 @@ export default {
 }
 
 .feature-icon {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
+    /* background-color: red; */
 }
 
 .feature-card h4 {
@@ -550,4 +554,5 @@ export default {
     border-top: 1px solid #1e2235;
     margin-top: auto;
 }
+
 </style>

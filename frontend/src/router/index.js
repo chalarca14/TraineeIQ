@@ -3,13 +3,6 @@ import { useAuthStore } from '../stores/auth'
 
 // Definimos todas las rutas de la aplicacion
 const routes = [
-  // Ruta raiz — redirige al login
-  {
-    path: '/',
-    redirect: '/login'
-  },
-
-  // Rutas de autenticacion — accesibles sin token
   {
     path: '/login',
     name: 'Login',
