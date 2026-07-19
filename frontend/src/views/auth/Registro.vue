@@ -250,7 +250,7 @@ export default {
 
             try {
                 // Enviamos los datos al backend
-                await api.post('/registro', {
+                await api.post('/register', {
                     name: this.form.nombre,
                     email: this.form.correo,
                     password: this.form.contrasena,
@@ -260,7 +260,7 @@ export default {
                 // Si el registro fue exitoso, mostramos mensaje y redirigimos al registro
                 this.exito = '¡Cuenta creada exitosamente! Redirigiendo...'
                 setTimeout(() => {
-                    this.$router.push('/registro')
+                    this.$router.push('/register')
                 }, 2000)
 
             } catch (err) {

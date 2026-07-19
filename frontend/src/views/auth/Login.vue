@@ -158,35 +158,47 @@ export default {
 
     methods: {
         async iniciarSesion() {
-            this.error = ''
-            this.cargando = true
+    this.error = ''
+    this.cargando = true
 
-            try {
-                const respuesta = await api.post('/login', {
-                    email: this.form.correo,
-                    password: this.form.contrasena,
-                    rol: this.rolSeleccionado
-                })
+    try {
+        const respuesta = await api.post('/login', {
+            email: this.form.correo,
+            password: this.form.contrasena,
+            rol: this.rolSeleccionado
+        })
 
-                const authStore = useAuthStore()
-                authStore.iniciarSesion(respuesta.data.token, respuesta.data.usuario)
+        console.log(respuesta.data)
 
-                if (this.rolSeleccionado === 'administrador') {
-                    this.$router.push('/admin/dashboard')
-                } else {
-                    this.$router.push('/login')
-                }
+        const authStore = useAuthStore()
 
-            } catch (err) {
-                if (err.response?.status === 401) {
-                    this.error = 'Correo, contraseña o rol incorrecto.'
-                } else {
-                    this.error = 'Ocurrió un error. Intenta de nuevo.'
-                }
-            } finally {
-                this.cargando = false
-            }
+        authStore.iniciarSesion(
+            respuesta.data.token,
+            respuesta.data.user
+        )
+
+        const rol = respuesta.data.user.rol
+
+        if (rol === 'administrador') {
+            this.$router.push('/admin/dashboard')
+        } else if (rol === 'instructor') {
+            this.$router.push('/instructor/dashboard')
+        } else {
+            this.$router.push('/estudiante/dashboard')
         }
+
+    } catch (err) {
+        console.error(err)
+
+        if (err.response?.status === 401) {
+            this.error = 'Correo o contraseña incorrectos.'
+        } else {
+            this.error = 'Ocurrió un error.'
+        }
+    } finally {
+        this.cargando = false
+    }
+}
     }
 
 }
