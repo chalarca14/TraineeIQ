@@ -372,7 +372,7 @@ export default {
 
 /* ===== COLUMNA DERECHA ===== */
 .registro-form-container {
-    width: 560px;
+    width: 45%;
     background-color: #0f1117;
     padding: 48px;
     display: flex;
