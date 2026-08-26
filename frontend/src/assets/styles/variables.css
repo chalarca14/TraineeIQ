@@ -6,11 +6,10 @@
     box-sizing: border-box;
 }
 
-#app{
-    width: 100vw;
+#app {
+    width: 100%;
     min-height: 100vh;
 }
-
 :root {
 
     --color-primary: #7C3AED;

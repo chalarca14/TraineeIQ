@@ -14,19 +14,6 @@ const routes = [
     component: () => import('../views/auth/Registro.vue')
   },
 
-  // Rutas del administrador — solo rol administrador
-  {
-    path: '/admin/dashboard',
-    name: 'AdminDashboard',
-    component: () => import('../views/admin/Dashboard.vue'),
-    meta: { requiereAuth: true, rol: 'administrador' }
-  },
-  {
-    path: '/admin/usuarios',
-    name: 'GestionUsuarios',
-    component: () => import('../views/admin/GestionUsuarios.vue'),
-    meta: { requiereAuth: true, rol: 'administrador' }
-  },
 
   // Ruta para paginas no encontradas
   {

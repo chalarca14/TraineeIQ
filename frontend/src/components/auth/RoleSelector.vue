@@ -2,58 +2,83 @@
 
     <div class="role-selector">
 
-        <button class="role-btn-active">
-            Aprendiz
+        <button v-for="role in roles" :key="role.name" type="button" :class="{ active: selectedRole === role.name }"
+            @click="selectedRole = role.name">
+
+            <component :is="role.icon" :size="18" :stroke-width="1.8" />
+
+            <span>{{ role.name }}</span>
+
         </button>
 
-        <button class="role-btn">
-            Instructor
-        </button>
-
-        <button class="role-btn">
-            Admin
-        </button>
     </div>
 
 </template>
 
 <script setup>
+
+import { ref } from 'vue'
+import { GraduationCap, Users } from 'lucide-vue-next'
+
+const selectedRole = ref('Aprendiz')
+
+const roles = [
+    {
+        name: 'Aprendiz',
+        icon: GraduationCap
+    },
+    {
+        name: 'Instructor',
+        icon: Users
+    }
+]
+
 </script>
 
 <style scoped>
+.role-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .8rem;
+}
 
+.role-selector button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: .75rem .8rem;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    color: var(--color-text-secondary);
+    font-family: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+    transition: .25s;
+}
+
+.role-selector button:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.role-selector button.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+}
+
+@media (min-width: 413px) {
     .role-selector{
-        display: flex;
-        gap: .8rem;
-        margin-bottom: 2rem;
+        margin-bottom: 12px;
     }
+}
 
-    .role-btn{
-        flex: 1;
-        padding: .9rem;
-        border-radius: 12px;
-        border: 1px solid var(--color-card);
-        background: transparent;
-        color: var(--color-text-secondary);
-        cursor: pointer;
-        transition: all .25s ease;
+@media (max-width: 700px){
+    .role-selector{
+        margin-bottom: 17px;
+        margin-right: 3px;
     }
-
-    .role-btn:hover{
-        border-color:var(--color-primary) ;
-    }
-
-
-    .role-btn-active{
-        background: var(--color-primary);
-        color: white;
-        transform: translateY(-2px);
-        flex: 1;
-        padding: .9rem;
-        border-radius: 12px;
-        border: 1px solid var(--color-card);
-        cursor: pointer;
-        transition: all .25s ease;
-    }
-
+}
 </style>

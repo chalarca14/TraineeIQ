@@ -26,7 +26,7 @@
             <BaseInput v-model="correo" label="Correo electrónico" placeholder="Ingresa tu correo">
 
                 <template #icon>
-                    <Mail :size="18" />
+                    <Mail :size="18" stroke="white" />
                 </template>
 
             </BaseInput>
@@ -152,6 +152,7 @@ import {
     EyeOff
 } from 'lucide-vue-next'
 
+
 const correo = ref('')
 const password = ref('')
 const mostrarPassword = ref(false)
@@ -213,7 +214,9 @@ const iniciarSesion = async () => {
 form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.4rem;
+    width: 100%;
+    max-width: 480px;
 }
 
 .login-form {
@@ -224,11 +227,39 @@ form {
     background: var(--color-surface);
     animation: slideRight .6s ease;
     font-family: Puritan;
+    min-width: 0;
 }
 
-@media (max-width:1100px) {
+@media (max-width: 1100px) {
     .login-form {
         padding: 3rem 2rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .login-form {
+        padding: 2rem 1.5rem;
+    }
+
+    .form-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-header h2 {
+        font-size: 2rem;
+    }
+
+    .role-selector {
+        gap: .5rem;
+    }
+
+    .role-selector button {
+        padding: .65rem .4rem;
+        font-size: .8rem;
+    }
+
+    .social-login {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -245,7 +276,6 @@ form {
     }
 
 }
-
 
 .form-header {
     margin-bottom: 1.2rem;
@@ -363,5 +393,71 @@ form {
     color: var(--color-danger);
     font-size: .82rem;
     font-weight: 500;
+}
+
+@media (max-height: 800px) {
+    .login-form {
+        padding: 3rem;
+        gap: 1.2rem;
+    }
+
+    .form-header h2 {
+        font-size: 1.8rem;
+    }
+
+    .form-header p {
+        font-size: .85rem;
+    }
+
+    .forgot-password a {
+        font-size: .8rem;
+    }
+
+    .register-footer {
+        font-size: .8rem;
+    }
+}
+
+@media (min-width: 413px) {
+
+
+    .login-form {
+        padding: 2rem;
+        gap: 1.5rem;
+    }
+
+    .form-header p {
+        font-size: 1rem;
+    }
+
+    .form-header h2 {
+        font-size: 2.1rem;
+    }
+
+}
+
+@media (max-width: 700px) {
+
+    .login-form {
+        padding: 2rem 1.5rem;
+    }
+
+    .form-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-header h2 {
+        font-size: 2rem;
+    }
+
+    .role-container,
+    form {
+        max-width: 100%;
+    }
+
+    .social-login {
+        grid-template-columns: 1fr;
+    }
+
 }
 </style>
