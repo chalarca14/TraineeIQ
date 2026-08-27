@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\VerificaAccesoAGuia;
 use App\Services\GeminiService;
 use App\Models\Recomendacion;
-use App\Models\Guia;
+use App\Models\GuiaTema;
 use Illuminate\Http\Request;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
 
 class RecomendacionController extends Controller
 {
+    use VerificaAccesoAGuia;
+
     private GeminiService $geminiService;
 
     /**
@@ -21,43 +25,53 @@ class RecomendacionController extends Controller
     }
 
     /**
-     * Genera recomendaciones personalizadas para el estudiante
-     * segun la guia de su grupo y su semana actual.
+     * Genera recomendaciones personalizadas para UN tema especifico de una guia.
+     * CAMBIO v3: ya no recibe guia_id + parsea el PDF completo. Ahora recibe tema_id
+     * (guia_temas), cuyo contenido ya fue segmentado por Integrante 3 al subir la guia.
+     * semana_actual es opcional porque en Modo Personal no existe semana asignada.
      */
     public function generarRecomendacion(Request $request)
     {
         try {
-            // Validar que lleguen los datos necesarios
             $request->validate([
-                'guia_id'       => 'required|integer|exists:guias,id',
-                'semana_actual' => 'required|integer|min:1',
+                'tema_id'       => 'required|integer|exists:guia_temas,id',
+                'semana_actual' => 'nullable|integer|min:1',
             ]);
 
-            // Buscar la guia en la base de datos
-            $guia = Guia::findOrFail($request->guia_id);
+            $tema = GuiaTema::with('guia')->findOrFail($request->tema_id);
 
-            // Extraer el contenido de texto del PDF de la guia
-            $contenidoGuia = $this->extraerContenidoPdf($guia->archivo_pdf);
+            // Verifica que el estudiante puede ver la guia dueña de este tema:
+            // o es su guia personal, o pertenece a un grupo del que es miembro.
+            $this->verificarAccesoAGuia($tema->guia);
 
-            // Pedirle a Gemini que genere las recomendaciones
             $recomendaciones = $this->geminiService->generarRecomendaciones(
-                $contenidoGuia,
+                $tema->nombre_tema,
+                $tema->descripcion,
                 $request->semana_actual
             );
 
-            // Guardar las recomendaciones en la base de datos
-            $recomendacion = Recomendacion::create([
-                'estudiante_id' => auth()->id(),
-                'guia_id'       => $request->guia_id,
-                'semana'        => $request->semana_actual,
-                'contenido'     => json_encode($recomendaciones),
-            ]);
+            $guardadas = [];
+            foreach ($recomendaciones as $item) {
+                $guardadas[] = Recomendacion::create([
+                    'estudiante_id' => auth()->id(),
+                    'guia_id'       => $tema->guia_id,
+                    'tema_id'       => $tema->id,
+                    'semana'        => $request->semana_actual,
+                    'nivel'         => $item['nivel'] ?? 'recomendado',
+                    'contenido'     => json_encode([
+                        'titulo'      => $item['titulo'] ?? '',
+                        'descripcion' => $item['descripcion'] ?? '',
+                    ]),
+                ]);
+            }
 
             return response()->json([
-                'message'        => 'Recomendaciones generadas correctamente',
-                'recomendacion'  => $recomendaciones,
+                'message'         => 'Recomendaciones generadas correctamente',
+                'recomendaciones' => $guardadas,
             ], 201);
 
+        } catch (AuthorizationException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
         } catch (\Exception $e) {
             Log::error('Error en RecomendacionController', ['mensaje' => $e->getMessage()]);
             return response()->json([
@@ -67,7 +81,7 @@ class RecomendacionController extends Controller
     }
 
     /**
-     * Retorna el historial de recomendaciones recibidas por el estudiante autenticado.
+     * Retorna el historial de recomendaciones del estudiante autenticado.
      */
     public function historial()
     {
@@ -85,33 +99,6 @@ class RecomendacionController extends Controller
             return response()->json([
                 'message' => 'Error al obtener el historial',
             ], 500);
-        }
-    }
-
-    /**
-     * Extrae el contenido de texto de un archivo PDF de la guia.
-     */
-    private function extraerContenidoPdf(string $rutaPdf): string
-    {
-        try {
-            $rutaCompleta = storage_path('app/public/' . $rutaPdf);
-
-            // Verificar que el archivo existe antes de leerlo
-            if (!file_exists($rutaCompleta)) {
-                Log::error('PDF no encontrado', ['ruta' => $rutaCompleta]);
-                return '';
-            }
-
-            // Usar smalot/pdfparser para extraer el texto del PDF
-            $parser  = new \Smalot\PdfParser\Parser();
-            $pdf     = $parser->parseFile($rutaCompleta);
-            $texto   = $pdf->getText();
-
-            return $texto;
-
-        } catch (\Exception $e) {
-            Log::error('Error extrayendo PDF', ['mensaje' => $e->getMessage()]);
-            return '';
         }
     }
 }
