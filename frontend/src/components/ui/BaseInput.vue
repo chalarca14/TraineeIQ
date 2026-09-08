@@ -1,31 +1,40 @@
 <template>
-    <div class="input-wrapper">
+    <div class="input-group">
 
-        <slot name="icon"></slot>
+        <label v-if="label" :for="inputId">{{ label }}</label>
 
-        <input :type="type" :placeholder="placeholder" :value="modelValue"
-            @input="$emit('update:modelValue', $event.target.value)" />
+        <div class="input-wrapper">
+            <slot name="icon"></slot>
 
-        <slot name="action"></slot>
+            <input
+                :id="inputId"
+                :type="type"
+                :placeholder="placeholder"
+                :value="modelValue"
+                @input="$emit('update:modelValue', $event.target.value)"
+            />
+
+            <slot name="action"></slot>
+        </div>
 
     </div>
 </template>
 
-
 <script setup>
+import { useId } from 'vue'
 
 defineProps({
     label: String,
-    type: {
-        type: String,
-        default: 'text'
-    },
-
+    type: { type: String, default: 'text' },
     placeholder: String,
     modelValue: String
 })
 
 defineEmits(['update:modelValue'])
+
+// Genera un id único automáticamente para enlazar <label for="..."> con el <input id="...">
+// sin que tengas que pasarlo a mano cada vez que uses este componente
+const inputId = useId()
 </script>
 
 <style scoped>
@@ -94,19 +103,24 @@ input::placeholder {
     }
 
     input {
+        width: 100%;
         padding: .8rem;
     }
 }
 
-@media (max-width: 700px){
-    .input-wrapper{
-        padding: 0 .7rem;
-        gap: 1rem;
-    }
+/* Autocompletado del navegador — forzamos que respete tu tema oscuro */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    /* Truco: un box-shadow interno del tamaño del input, del color de tu fondo,
+       "tapa" el fondo blanco que el navegador quiere forzar */
+    box-shadow: 0 0 0 1000px var(--color-background) inset;
 
-    input{
-        width: 100px;
-        padding: .8rem;
-    }
+    /* Fuerza el color del texto (el navegador también fuerza esto por su cuenta) */
+    -webkit-text-fill-color: var(--color-text);
+
+    /* Retrasa la transición de color del navegador casi al infinito,
+       para que nunca alcances a ver el parpadeo del amarillo/blanco original */
+    transition: background-color 9999s ease-in-out 0s;
 }
 </style>

@@ -38,7 +38,7 @@
             <article class="feature-card">
                 <img src="@/assets/icons/robot.png" alt="Robot" class="feature-icon">
 
-                <div class="prueba">
+                <div class="|">
                     <h3>Recomendaciones IA</h3>
 
                     <p>
@@ -50,7 +50,7 @@
             <article class="feature-card">
                 <img src="@/assets/icons/proyecto.png" alt="Proyecto" class="feature-icon">
 
-                <div class="prueba">
+                <div class="feature-text">
                     <h3>Mini proyectos</h3>
 
                     <p>
@@ -62,7 +62,7 @@
             <article class="feature-card">
                 <img src="@/assets/icons/sincronizacion.png" alt="Sincrinizacion" class="feature-icon">
 
-                <div class="prueba">
+                <div class="feature-text">
                     <h3>Sincronización</h3>
 
                     <p>
@@ -74,7 +74,7 @@
             <article class="feature-card">
                 <img src="@/assets/icons/grafico.png" alt="" class="feature-icon">
 
-                <div class="prueba">
+                <div class="feature-text">
                     <h3>Seguimiento</h3>
 
                     <p>
@@ -105,14 +105,15 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 3rem;
+    padding: clamp(1.5rem, 4vh, 3rem) 3rem;
+    /* vertical se achica en pantallas bajas, horizontal se mantiene */
     background: var(--color-background);
     color: var(--color-text);
     font-family: Puritan;
     animation: slideLeft .6s ease;
     min-width: 0;
+    overflow-y: auto;
 }
-
 
 
 @keyframes slideLeft {
@@ -156,11 +157,10 @@
 .hero {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: clamp(.8rem, 2vh, 1.5rem);
     max-width: 580px;
-    margin: 1.5rem 0;
+    margin: clamp(.8rem, 2vh, 1.5rem) 0;
     text-align: center;
-    /*max-width significa: Puedes medir hasta 520px, pero si no cabes, hazme mas pequeño*/
 }
 
 .hero h2 {
@@ -191,17 +191,17 @@
 .features {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
+    gap: clamp(.6rem, 1.5vh, 1rem);
 }
 
 .feature-card {
     background: var(--color-surface);
     border: 1px solid var(--color-card);
     border-radius: 18px;
-    padding: 1.4rem;
+    padding: clamp(1rem, 2vh, 1.4rem);
     transition: .25s;
     cursor: pointer;
-    min-height: 120px;
+    min-height: clamp(90px, 12vh, 120px);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -237,14 +237,14 @@
 }
 
 .login-footer {
-    margin-top: 2rem;
+    margin-top: clamp(.8rem, 2vh, 2rem);
     display: flex;
     justify-content: space-between;
     align-items: center;
     color: var(--color-text-secondary);
     font-size: .85rem;
     border-top: 1px solid var(--color-card);
-    padding-top: 1rem;
+    padding-top: clamp(.5rem, 1vh, 1rem);
 }
 
 /* Pantallas con poca altura */
@@ -255,31 +255,35 @@
     }
 
     .hero {
-        gap: 1.2rem;
+        gap: 1rem;
         display: flex;
         flex-direction: column;
         text-align: left;
         align-items: left;
+        /* position: relative;
+        bottom: 50px; */
 
     }
 
     .hero h2 {
-        font-size: 1.2rem;
+        font-size: 2rem;
         text-align: left;
     }
 
     .gradient-text {
-        font-size: 1.2rem;
+        font-size: .5rem;
 
     }
 
     .hero p {
-        font-size: 1rem;
+        font-size: 1.5rem;
         line-height: 1.5;
     }
 
     .features {
         gap: .8rem;
+        /* position: relative;
+        bottom: 90px; */
     }
 
     .feature-card {
@@ -363,7 +367,6 @@
         padding: 1rem;
     }
 
-    
     .feature-icon {
         width: 40px;
         height: 40px;
@@ -380,95 +383,98 @@
         line-height: 1.4;
     }
 
-    .prueba {
-        position: relative;
-        bottom: 20px;
-    }
-
     .login-footer {
         display: none;
     }
 }
 
-@media (max-width: 413px) and (min-height: 700px) {
 
-    .login-info {
-        padding: 1.5rem;
+
+
+
+@media (min-width: 1101px) and (max-width: 2040px) {
+    .hero h2 {
+        font-size: 2rem;
+        text-align: left;
+        /* background-color: rgb(255, 72, 0); */
     }
 
-    .hero {
-        margin: 1rem 0;
-        gap: 2rem;
-        max-width: 400px;
-        display: flex;
-        flex-direction: column;
+    .gradient-text {
+        font-size: 2.3rem;
     }
+
+    .hero p {
+        font-size: 1.5rem;
+        line-height: 1.4;
+        text-align: left;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--color-primary);
+        box-shadow: 0 12px 30px rgba(124, 58, 237, .20);
+    }
+}
+
+@media (min-width: 1849px) {
+
+    .brand h1 {
+        font-size: 2.5rem;
+    }
+
 
     .hero h2 {
         font-size: 2rem;
     }
 
     .gradient-text {
-        font-size: 1.5rem;
-    }
-
-    .hero p {
-        font-size: 1rem;
-        line-height: 1.4;
-    }
-
-}
-
-@media (max-width: 1100px) {
-    .login-info {
-        padding: 2rem;
-    }
-
-    .hero {
-        max-width: 100%;
-    }
-}
-
-@media (max-width: 600px) {
-    .login-info {
-        padding: 1.5rem;
-    }
-
-    .brand-logo {
-        width: 45px;
-        height: 45px;
-    }
-
-    .brand h1 {
-        font-size: 1.5rem;
-    }
-
-    .hero {
-        margin: 2rem 0;
-        gap: 1rem;
-    }
-
-    .hero h2 {
         font-size: 2rem;
     }
 
     .hero p {
-        font-size: .9rem;
-        line-height: 1.6;
+        font-size: 1.2rem;
+        line-height: 1.4;
     }
 
     .features {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.2rem;
     }
 
     .feature-card {
-        min-height: auto;
+        min-height: 200px;
+        padding: 1.5rem;
+        width: 100%;
+
     }
 
-    .login-footer {
-        flex-direction: column;
-        gap: .5rem;
-        text-align: center;
+    .feature-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--color-primary);
+        box-shadow: 0 12px 30px rgba(124, 58, 237, .20);
     }
+
+    .feature-icon {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 1rem;
+        transition: .25s;
+    }
+
+    .feature-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: .6rem;
+    }
+
+    .feature-card p {
+        font-size: 1.2rem;
+        line-height: 1.6;
+    }
+
+    .feature-card:hover .feature-icon {
+        transform: scale(1.08);
+    }
+
 }
 </style>

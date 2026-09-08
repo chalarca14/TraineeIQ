@@ -28,13 +28,9 @@ defineProps({
 
 <style scoped>
 .base-link {
-
     color: var(--color-primary);
-
     text-decoration: none;
-
     font-weight: 600;
-
     transition:
         color .25s ease,
         text-decoration-color .25s ease;
@@ -42,12 +38,8 @@ defineProps({
 }
 
 .base-link:hover {
-
-    color: red;
-
+    color: var(--color-primary-light);
     text-decoration: underline;
-
     text-underline-offset: 4px;
-
 }
 </style>

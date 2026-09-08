@@ -11,6 +11,8 @@ const api = axios.create({
     }
 })
 
+
+
 // Interceptor de peticion — se ejecuta antes de cada llamada al backend
 // Su trabajo es agregar el token de autenticacion automaticamente
 api.interceptors.request.use((config) => {
@@ -27,20 +29,24 @@ api.interceptors.request.use((config) => {
 
 // Interceptor de respuesta — se ejecuta cuando el backend responde
 // Su trabajo es manejar errores globales como token vencido
+// services/api.js — solo cambia el interceptor de respuesta
+
 api.interceptors.response.use(
-    // Si la respuesta es exitosa, la dejamos pasar normal
     (response) => response,
 
-    // Si hay un error, lo analizamos
     (error) => {
-        // Si el backend responde 401, el token vencio o no es valido
-        // Limpiamos el token y redirigimos al login
-        if (error.response?.status === 401) {
+        // Si la petición que falló NO era el propio login,
+        // significa que el token expiró en medio de la sesión.
+        // Ahí sí tiene sentido limpiar todo y mandar al login.
+        const esPeticionDeLogin = error.config?.url?.includes('/login')
+
+        if (error.response?.status === 401 && !esPeticionDeLogin) {
             localStorage.removeItem('token')
             window.location.href = '/login'
         }
 
-        // Retornamos el error para que cada llamada lo maneje tambien
+        // Si SÍ era el login (credenciales incorrectas), no hacemos nada aquí:
+        // dejamos que LoginForm.vue reciba el error y lo muestre en pantalla
         return Promise.reject(error)
     }
 )

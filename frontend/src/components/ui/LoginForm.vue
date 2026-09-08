@@ -23,40 +23,31 @@
 
         <form @submit.prevent="iniciarSesion">
 
-            <BaseInput v-model="correo" label="Correo electrónico" placeholder="Ingresa tu correo">
+            <div class="field-group">
+                <BaseInput v-model="correo" label="Correo electrónico" placeholder="Ingresa tu correo">
+                    <template #icon>
+                        <Mail :size="18" stroke="white" />
+                    </template>
+                </BaseInput>
+                <p class="input-error">{{ errores.correo }}</p>
+            </div>
 
-                <template #icon>
-                    <Mail :size="18" stroke="white" />
-                </template>
+            <div class="field-group">
+                <BaseInput v-model="password" :type="mostrarPassword ? 'text' : 'password'" label="Contraseña"
+                    placeholder="Ingresa tu contraseña">
+                    <template #icon>
+                        <Lock :size="18" />
+                    </template>
+                    <template #action>
+                        <button type="button" class="toggle-password" @click="mostrarPassword = !mostrarPassword">
+                            <Eye v-if="!mostrarPassword" :size="18" />
+                            <EyeOff v-else :size="18" />
+                        </button>
+                    </template>
+                </BaseInput>
+                <p class="input-error">{{ errores.password }}</p>
+            </div>
 
-            </BaseInput>
-
-            <!-- ALERTA -->
-
-            <p v-if="errores.correo" class="input-error">
-                {{ errores.correo }}
-            </p>
-
-            <BaseInput v-model="password" :type="mostrarPassword ? 'text' : 'password'" label="Contraseña"
-                placeholder="Ingresa tu contraseña">
-
-                <template #icon>
-                    <Lock :size="18" />
-                </template>
-
-                <template #action>
-                    <button type="button" class="toggle-password" @click="mostrarPassword = !mostrarPassword">
-                        <Eye v-if="!mostrarPassword" :size="18" />
-                        <EyeOff v-else :size="18" />
-                    </button>
-                </template>
-
-            </BaseInput>
-
-            <!-- ALERTA -->
-            <p v-if="errores.password" class="input-error">
-                {{ errores.password }}
-            </p>
 
             <!-- MENSAJE DE ERROR -->
 
@@ -83,13 +74,8 @@
 
         </form>
 
-        <div class="divider">
 
-            <span>o continúa con</span>
-
-        </div>
-
-        <div class="social-login">
+        <!-- <div class="social-login">
 
             <SocialButton>
 
@@ -115,7 +101,7 @@
 
             </SocialButton>
 
-        </div>
+        </div> -->
 
         <footer class="register-footer">
 
@@ -139,73 +125,92 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { login } from '@/services/authService'
+
 import RoleSelector from '../auth/RoleSelector.vue'
 import BaseInput from './BaseInput.vue'
 import BaseButton from './BaseButton.vue'
 import SocialButton from './SocialButton.vue'
 import BaseLink from './BaseLink.vue'
 
-import {
-    Mail,
-    Lock,
-    Eye,
-    EyeOff
-} from 'lucide-vue-next'
+import { Mail, Lock, Eye, EyeOff } from 'lucide-vue-next'
 
+const router = useRouter()
+const authStore = useAuthStore()
 
 const correo = ref('')
 const password = ref('')
 const mostrarPassword = ref(false)
 const cargando = ref(false)
+
+// Error general del backend (credenciales incorrectas, servidor caído, etc.)
+// Antes se usaba en el template pero nunca se declaró — por eso no aparecía
+const error = ref('')
+
 const errores = ref({
     correo: '',
     password: ''
 })
 
 const validarCorreo = (correo) => {
-
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
-
 }
 
 const iniciarSesion = async () => {
+    // Limpiamos errores previos antes de validar de nuevo
+    error.value = ''
+    errores.value = { correo: '', password: '' }
 
     let formularioValido = true
 
     if (!correo.value) {
         errores.value.correo = 'El correo es obligatorio.'
         formularioValido = false
-    }
-    else if (!validarCorreo(correo.value)) {
-
-        errores.value.correo = "Ingresa un correo válido."
+    } else if (!validarCorreo(correo.value)) {
+        errores.value.correo = 'Ingresa un correo válido.'
         formularioValido = false
     }
 
     if (!password.value) {
         errores.value.password = 'La contraseña es obligatoria.'
         formularioValido = false
-    }
-    else if (password.value.length < 8) {
-
-        errores.value.password = "La contraseña debe tener al menos 8 caracteres."
+    } else if (password.value.length < 8) {
+        errores.value.password = 'La contraseña debe tener al menos 8 caracteres.'
         formularioValido = false
-
     }
 
     if (!formularioValido) return
 
     cargando.value = true
 
-    console.log("Correo:", correo.value)
-    console.log("Password:", password.value)
+    try {
+        // Llamamos al servicio, que ya sabe cómo hablar con el backend
+        const data = await login(correo.value, password.value)
 
-    setTimeout(() => {
+        // Guardamos el token y el usuario en el store (y en localStorage)
+        authStore.iniciarSesion(data.token, data.user)
+
+        // Redirigimos según el rol que devolvió el backend,
+        // no según lo que haya elegido el RoleSelector visualmente
+        if (data.user.rol === 'instructor') {
+            router.push('/instructor/dashboard')
+        } else {
+            router.push('/estudiante/dashboard')
+        }
+
+    } catch (err) {
+        // Si el backend respondió con un mensaje (credenciales incorrectas, validación, etc.)
+        // lo mostramos; si no, damos un mensaje genérico
+        error.value = err.response?.data?.message || 'No se pudo iniciar sesión. Intenta de nuevo.'
+
+    } finally {
+        // Se ejecuta siempre, haya éxito o error — evita que el botón
+        // se quede en "Iniciando sesión..." para siempre si algo falla
         cargando.value = false
-    }, 2000)
-
+    }
 }
-
 </script>
 
 <style scoped>
@@ -214,9 +219,15 @@ const iniciarSesion = async () => {
 form {
     display: flex;
     flex-direction: column;
-    gap: 1.4rem;
+    gap: 1rem;
     width: 100%;
     max-width: 480px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;         /* espacio chico entre el input y su propio mensaje de error */
 }
 
 .login-form {
@@ -242,11 +253,11 @@ form {
     }
 
     .form-header {
-        margin-bottom: 1.5rem;
+        margin-bottom: clamp(.8rem, 2vh, 1.5rem);
     }
 
     .form-header h2 {
-        font-size: 2rem;
+        font-size: clamp(1.5rem, 3vh, 2rem);
     }
 
     .role-selector {
@@ -314,7 +325,7 @@ form {
 .forgot-password {
     display: flex;
     justify-content: flex-end;
-    margin-top: -.3rem;
+    margin-top: -.6rem;
     margin-bottom: .2rem;
 }
 
@@ -384,12 +395,12 @@ form {
 .error-message {
     color: var(--color-danger);
     font-size: .9rem;
-    margin-top: -.5rem;
-    margin-bottom: .5rem;
+    margin-bottom: .2rem;
 }
 
 .input-error {
-    margin-top: .45rem;
+    margin-top: 0;        /* ya no hace falta, el gap del field-group lo maneja */
+    min-height: 1rem;     /* un poco más compacto que antes */
     color: var(--color-danger);
     font-size: .82rem;
     font-weight: 500;
