@@ -388,10 +388,6 @@
     }
 }
 
-
-
-
-
 @media (min-width: 1101px) and (max-width: 2040px) {
     .hero h2 {
         font-size: 2rem;

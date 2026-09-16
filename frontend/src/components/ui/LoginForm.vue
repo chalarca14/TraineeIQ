@@ -74,35 +74,6 @@
 
         </form>
 
-
-        <!-- <div class="social-login">
-
-            <SocialButton>
-
-                <template #icon>
-
-                    <img src="@/assets/icons/google.png" alt="Google" class="social-icon">
-
-                </template>
-
-                Google
-
-            </SocialButton>
-
-            <SocialButton>
-
-                <template #icon>
-
-                    <img src="@/assets/icons/microsoft.png" alt="Microsoft" class="social-icon">
-
-                </template>
-
-                Microsoft
-
-            </SocialButton>
-
-        </div> -->
-
         <footer class="register-footer">
 
             <span>
@@ -128,11 +99,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { login } from '@/services/authService'
-
 import RoleSelector from '../auth/RoleSelector.vue'
 import BaseInput from './BaseInput.vue'
 import BaseButton from './BaseButton.vue'
-import SocialButton from './SocialButton.vue'
 import BaseLink from './BaseLink.vue'
 
 import { Mail, Lock, Eye, EyeOff } from 'lucide-vue-next'
