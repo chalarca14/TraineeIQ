@@ -20,3 +20,18 @@ export async function login(correo, password) {
     // Solo nos interesa devolver eso hacia quien llamó la función
     return data
 }
+
+/**
+ * Registra un nuevo usuario en el backend.
+ * Igual que login(), traduce los nombres de campo al formato que espera Laravel.
+ */
+export async function registro(nombre, correo, password, rol) {
+    const { data } = await api.post('/register', {
+        name: nombre,
+        email: correo,
+        password: password,
+        rol: rol
+    })
+
+    return data
+}
