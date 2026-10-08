@@ -15,6 +15,20 @@ class EsEstudiante
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (! $request->user()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No has iniciado sesión.',
+            ], 401);
+        }
+
+        if ($request->user()->rol !== 'estudiante') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para acceder a este recurso.',
+            ], 403);
+        }
+
         return $next($request);
     }
 }

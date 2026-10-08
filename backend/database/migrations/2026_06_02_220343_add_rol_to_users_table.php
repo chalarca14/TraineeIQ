@@ -12,13 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-
             $table->enum('rol', [
-                'administrador',
                 'instructor',
-                'estudiante'
+                'estudiante',
             ])->default('estudiante')->after('email');
 
+            $table->enum('modo_preferido', [
+                'grupo',
+                'personal',
+            ])->nullable()->after('rol')
+                ->comment('Preferencia de interfaz del estudiante; no representa un rol ni un permiso.');
         });
     }
 
@@ -28,9 +31,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-
-            $table->dropColumn('rol');
-
+            $table->dropColumn(['rol', 'modo_preferido']);
         });
     }
 };
