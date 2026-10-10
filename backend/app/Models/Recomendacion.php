@@ -2,34 +2,42 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Recomendacion extends Model
 {
-    //Campos que se pueden llenar masivamente
+    use HasFactory;
+
+    protected $table = 'recomendaciones';
 
     protected $fillable = [
         'estudiante_id',
         'guia_id',
+        'tema_id',
         'semana',
+        'nivel', // 'basico', 'recomendado', 'importante', 'avanzado'
         'contenido',
     ];
 
-    //Convierte el campo contenido de JSON a array automaticamente
+    //Una recomendación va dirigida a un estudiante específico.
 
-    protected $casts = [
-        'contenido' => 'array',
-    ];
-
-    //Relacion: pertenece a un estudiante (usuario)
-
-    public function estudiante(){
-        return $this->belongsTo(User:: class, 'estudiante_id');
+    public function estudiante()
+    {
+        return $this->belongsTo(User::class, 'estudiante_id');
     }
 
-    //Relacion: pertenece a una guia
+    //Pertenece a una guía de estudio.
 
-    public function guia(){
-        return $this->belongsTo(Guia::class);
+    public function guia()
+    {
+        return $this->belongsTo(Guia::class, 'guia_id');
+    }
+
+    //Opcionalmente puede estar vinculada a un tema específico.
+
+    public function tema()
+    {
+        return $this->belongsTo(GuiaTema::class, 'tema_id');
     }
 }

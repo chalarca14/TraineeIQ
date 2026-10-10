@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class EstudianteGrupo extends Model
+class EstudianteGrupo extends Pivot
 {
-    //Campos que se pueden llenar masivamente
+    protected $table = 'estudiante_grupo';
 
     protected $fillable = [
         'estudiante_id',
@@ -14,15 +14,17 @@ class EstudianteGrupo extends Model
         'semana_actual',
     ];
 
-    //Relacion:Pertenece a un estudiante(usuario)
+    //Pertenece a un estudiante (usuario).
 
-    public function estuddiante(){
+    public function estudiante()
+    {
         return $this->belongsTo(User::class, 'estudiante_id');
     }
 
-    //Relacion: Pertenece a un grupo
+    //Pertenece a un grupo.
 
-    public function grupo(){
-        return $this->belongsTo(Grupo::class);
+    public function grupo()
+    {
+        return $this->belongsTo(Grupo::class, 'grupo_id');
     }
 }
