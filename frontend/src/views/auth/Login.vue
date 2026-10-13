@@ -5,6 +5,7 @@
     </main>
 </template>
 
+
 <script setup >
 import LoginInfo from '@/components/auth/LoginInfo.vue';
 import LoginForm from '@/components/ui/LoginForm.vue';

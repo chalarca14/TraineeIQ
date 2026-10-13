@@ -8,7 +8,21 @@ export const useAuthStore = defineStore('auth', {
         token: localStorage.getItem('token') || null,
 
         // Datos del usuario autenticado
-        usuario: JSON.parse(localStorage.getItem('usuario')) || null,
+        state: () => {
+    let usuario = null;
+
+    try {
+        const guardado = localStorage.getItem('usuario');
+        usuario = guardado ? JSON.parse(guardado) : null;
+    } catch (e) {
+        localStorage.removeItem('usuario');
+    }
+
+    return {
+        token: localStorage.getItem('token'),
+        usuario
+    };
+},
     }),
 
     // Getters — datos derivados del state (como computed en componentes)
