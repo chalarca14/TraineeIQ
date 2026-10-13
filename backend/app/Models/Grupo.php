@@ -2,34 +2,42 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Grupo extends Model
 {
-    // campos que se pueden llenar masivamente
+    use HasFactory;
+
+    protected $table = 'grupos';
 
     protected $fillable = [
         'nombre',
         'descripcion',
         'instructor_id',
-        'codido_acceso',
+        'codigo_acceso',
     ];
 
-    //Relacion: un grupo pertenece a un instructor (Usuario)
+    //Un grupo pertenece a un instructor (usuario).
 
-    public function instructor(){
+    public function instructor()
+    {
         return $this->belongsTo(User::class, 'instructor_id');
     }
 
-    //Relacion: Un grupo tiene muchas guias
+    //Relación muchos a muchos con estudiantes a través de la tabla pivote 'estudiante_grupo'.
 
-    public function guias(){
-        return $this->hasMany(Guia::class);
+    public function estudiantes()
+    {
+        return $this->belongsToMany(User::class, 'estudiante_grupo', 'grupo_id', 'estudiante_id')
+                    ->withPivot('semana_actual')
+                    ->withTimestamps();
     }
 
-    //Relacion: un grupo tiene muchos estudiantes
+    //Un grupo tiene asociadas varias guías de estudio grupales.
 
-    public function estudiantes(){
-        return $this->hasMany(EstudianteGrupo::class);
+    public function guias()
+    {
+        return $this->hasMany(Guia::class, 'grupo_id');
     }
 }
