@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use Illuminate\Support\Facades\Auth;
 use App\Models\Guia;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -15,10 +16,10 @@ trait VerificaAccesoAGuia
 {
     protected function verificarAccesoAGuia(Guia $guia): void
     {
-        $esGuiaPersonalDelEstudiante = $guia->usuario_id === auth()->id();
+        $esGuiaPersonalDelEstudiante = $guia->usuario_id === Auth::id();
 
         $esGuiaDeUnGrupoDelEstudiante = $guia->grupo_id !== null
-            && auth()->user()->grupos()->where('grupos.id', $guia->grupo_id)->exists();
+            && Auth::user()->gruposinscritos()->where('grupos.id', $guia->grupo_id)->exists();
 
         if (!$esGuiaPersonalDelEstudiante && !$esGuiaDeUnGrupoDelEstudiante) {
             throw new AuthorizationException('No tienes acceso a esta guia.');

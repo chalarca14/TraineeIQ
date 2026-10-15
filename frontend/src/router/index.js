@@ -25,6 +25,17 @@ const routes = [
     }
   },
 
+  
+  // TEMPORAL: chat de prueba para el estudiante (se reemplaza por ChatLibre/ChatGuia)
+  {
+    path: '/estudiante/chat-prueba',
+    name: 'ChatPrueba',
+    component: () => import('../views/estudiante/ChatPrueba.vue'),
+    meta: { requiereAuth: true, rol: 'estudiante' } // mismo guard que ya usas
+  },
+
+
+
   // Ruta para paginas no encontradas
   {
     path: '/:pathMatch(.*)*',

@@ -6,11 +6,16 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void{
-        Schema::create('mensaje_chat', function (Blueprint $table){
+    public function up(): void
+    {
+        Schema::create('mensajes_ia', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('recomendacion_id')->constrained('recomendaciones')->onDelete('cascade');
-            $table->enum('rol', ['estudiante', 'ia']);
+            // Clave foránea que conecta directamente con la tabla conversaciones_ia
+            $table->foreignId('conversacion_id')->constrained('conversaciones_ia')->onDelete('cascade');
+            
+            // Emisor de la interacción (coincide con tu frontend y lógica de servicio)
+            $table->enum('emisor', ['usuario', 'ia']);
+            
             $table->text('contenido');
             $table->timestamps();
         });

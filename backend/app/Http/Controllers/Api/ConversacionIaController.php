@@ -7,6 +7,8 @@ use App\Models\ConversacionIa;
 use App\Models\MensajeIa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ConversacionIaController extends Controller
 {
@@ -71,7 +73,7 @@ class ConversacionIaController extends Controller
     }
 
     /**
-     * Enviar un mensaje dentro de una conversación y registrar la respuesta.
+     * Enviar un mensaje dentro de una conversación y registrar la respuesta de Gemini.
      */
     public function enviarMensaje(Request $request, int $id)
     {
@@ -88,18 +90,28 @@ class ConversacionIaController extends Controller
             'contenido' => $request->contenido,
         ]);
 
-        // TODO: Aquí integraras la llamada a tu servicio de IA (ej: OpenAI o Gemini)
-        // Por ahora, simularemos una respuesta automática de la IA para probar el flujo:
-        $respuestaTexto = "Esta es una respuesta simulada de la IA para tu mensaje: \"" . $request->contenido . "\".";
+        // 2. Determinar la estrategia según el tipo de conversación (Guiada o Libre)
+        // y generar la respuesta usando tu GeminiService centralizado
+        try {
+            if ($conversacion->tipo === 'guiada') {
+                $estrategia = new \App\Services\Chat\GuiadaStrategy();
+            } else {
+                $estrategia = new \App\Services\Chat\LibreStrategy();
+            }
 
-        // 2. Guardar la respuesta generada por la IA
+            $respuestaTexto = $estrategia->generarRespuesta($conversacion, $request->contenido);
+        } catch (\Exception $e) {
+            Log::error('Error en estrategia de chat IA: ' . $e->getMessage());
+            $respuestaTexto = 'Ocurrió un error al procesar tu solicitud con la IA.';
+        }
+
+        // 3. Guardar la respuesta real generada
         $mensajeIa = MensajeIa::create([
             'conversacion_id' => $conversacion->id,
             'emisor' => 'ia',
             'contenido' => $respuestaTexto,
         ]);
 
-        // Actualizar la fecha de modificación de la conversación
         $conversacion->touch();
 
         return response()->json([
@@ -114,7 +126,7 @@ class ConversacionIaController extends Controller
     /**
      * Eliminar una conversación y sus mensajes en cascada.
      */
-    public function destroy( int $id)
+    public function destroy(int $id)
     {
         $conversacion = ConversacionIa::where('estudiante_id', Auth::id())->findOrFail($id);
         $conversacion->delete();

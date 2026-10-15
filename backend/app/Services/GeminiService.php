@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -13,20 +14,26 @@ use Illuminate\Support\Facades\Log;
  *   (mini_proyectos) con su propio campo de dificultad.
  * - Se agrega generarRespuestaChat(), metodo generico que usaran las estrategias del chat
  *   (GuiadaStrategy y LibreStrategy) para no duplicar la logica HTTP.
+ * CAMBIOS v4:
+ * - El modelo de Gemini ya no esta escrito en el codigo: se lee de config/services.php (.env).
+ * - llamarApi() reintenta si Gemini esta saturado (429/503) y usa un modelo de respaldo.
  */
 class GeminiService
 {
     private static ?GeminiService $instancia = null;
     private string $apiKey;
-    private string $urlBase;
+    private string $modelo;
+    private string $modeloRespaldo;
 
     /**
      * Constructor privado para aplicar el patron Singleton.
+     * Lee la configuracion desde config/services.php (que a su vez lee el .env).
      */
     private function __construct()
     {
-        $this->apiKey = env('GEMINI_API_KEY');
-        $this->urlBase = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+        $this->apiKey = (string) config('services.gemini.key');
+        $this->modelo = (string) config('services.gemini.model');
+        $this->modeloRespaldo = (string) config('services.gemini.fallback_model');
     }
 
     /**
@@ -90,32 +97,57 @@ class GeminiService
 
     /**
      * Llama a la API REST de Gemini con un prompt ya construido.
+     * Reintenta si Gemini esta saturado y usa un modelo de respaldo si el principal falla.
      * Centraliza el manejo de errores HTTP para no repetir try-catch en cada metodo publico.
      */
     private function llamarApi(string $prompt): ?string
     {
-        try {
-            $respuesta = Http::post("{$this->urlBase}?key={$this->apiKey}", [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $prompt]
-                        ]
-                    ]
-                ]
-            ]);
+        // Orden de intento: primero el modelo principal, luego el de respaldo
+        $modelos = [$this->modelo, $this->modeloRespaldo];
 
-            if ($respuesta->failed()) {
-                Log::error('Error al llamar a Gemini API', ['status' => $respuesta->status()]);
-                return null;
+        foreach ($modelos as $modelo) {
+            try {
+                $respuesta = Http::withHeaders([
+                    'x-goog-api-key' => $this->apiKey, // La clave va por cabecera, no en la URL
+                ])
+                    ->timeout(60)
+                    ->retry(
+                        2,
+                        1000,
+                        fn ($excepcion) => $excepcion instanceof RequestException
+                            && in_array($excepcion->response->status(), [429, 503]),
+                        throw: false
+                    )
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => $prompt],
+                                ],
+                            ],
+                        ],
+                    ]);
+
+                if ($respuesta->failed()) {
+                    Log::warning('Gemini fallo con este modelo', [
+                        'modelo' => $modelo,
+                        'status' => $respuesta->status(),
+                        'body'   => $respuesta->body(),
+                    ]);
+                    continue; // Pasa al siguiente modelo de la lista
+                }
+
+                return $respuesta->json('candidates.0.content.parts.0.text');
+            } catch (\Exception $e) {
+                Log::error('Excepcion en GeminiService', [
+                    'modelo'  => $modelo,
+                    'mensaje' => $e->getMessage(),
+                ]);
             }
-
-            return $respuesta->json('candidates.0.content.parts.0.text');
-
-        } catch (\Exception $e) {
-            Log::error('Excepcion en GeminiService', ['mensaje' => $e->getMessage()]);
-            return null;
         }
+
+        // Ningun modelo respondio: los metodos publicos ya manejan el null
+        return null;
     }
 
     /**
@@ -145,7 +177,7 @@ class GeminiService
         ]";
     }
 
-        /**
+    /**
      * Prompt para mini proyectos: exige clasificacion segun el ENUM real de
      * mini_proyectos.dificultad, y separa descripcion (resumen) de contenido
      * (instrucciones completas), tal como lo define la tabla mini_proyectos.

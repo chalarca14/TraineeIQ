@@ -33,7 +33,7 @@ class LibreStrategy implements ChatStrategy
 
         if ($temaRelacionado) {
             $respuesta .= "\n\n(Esto tambien lo puedes profundizar en tu guia \"{$temaRelacionado->guia->nombre}\", tema \"{$temaRelacionado->nombre_tema}\".)";
-        }
+        }   
 
         return $respuesta;
     }
@@ -62,7 +62,7 @@ class LibreStrategy implements ChatStrategy
             return null;
         }
 
-        $idsGuiasDelEstudiante = Guia::where('usuario_id', $estudianteId)
+        $idsGuiasDelEstudiante = Guia::where('usuario_id', $estudianteId) 
             ->orWhereHas('grupo.estudiantes', fn ($q) => $q->where('users.id', $estudianteId))
             ->pluck('id');
 

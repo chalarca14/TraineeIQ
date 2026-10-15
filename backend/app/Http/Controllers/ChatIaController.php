@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use App\Models\ConversacionIa;
 use App\Models\Guia;
 use App\Models\MensajeIa;
@@ -12,6 +13,7 @@ use App\Traits\VerificaAccesoAGuia;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
+
 
 class ChatIaController extends Controller
 {
@@ -35,7 +37,7 @@ class ChatIaController extends Controller
             }
 
             $conversacion = ConversacionIa::create([
-                'estudiante_id' => auth()->id(),
+                'estudiante_id' => Auth::id(),
                 'guia_id'       => $request->tipo === 'guiada' ? $request->guia_id : null,
                 'tipo'          => $request->tipo,
                 'titulo'        => $request->tipo === 'guiada'
@@ -59,7 +61,7 @@ class ChatIaController extends Controller
     public function index()
     {
         try {
-            $conversaciones = ConversacionIa::where('estudiante_id', auth()->id())
+            $conversaciones = ConversacionIa::where('estudiante_id', auth::id())
                 ->orderBy('updated_at', 'desc')
                 ->paginate(15);
 
@@ -174,7 +176,7 @@ class ChatIaController extends Controller
      */
     private function verificarPropietario(ConversacionIa $conversacion): void
     {
-        if ($conversacion->estudiante_id !== auth()->id()) {
+        if ($conversacion->estudiante_id !== Auth::id()) {
             throw new AuthorizationException('No tienes acceso a esta conversacion.');
         }
     }
