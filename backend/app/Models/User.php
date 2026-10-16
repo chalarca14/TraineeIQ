@@ -2,13 +2,23 @@
 
 namespace App\Models;
 
+
+use Database\Factories\UserFactory;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+
 use Laravel\Sanctum\HasApiTokens;
+
+// use Laravel\Sanctum\HasApiTokens; // Asegúrate de mantener esto si usas tokens de API (Sanctum)
+
 
 class User extends Authenticatable
 {
+
     /**
      * HasApiTokens:
      * Permite generar tokens con Laravel Sanctum.
@@ -17,6 +27,14 @@ class User extends Authenticatable
 
     /**
      * Campos permitidos para asignación masiva.
+
+    use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+
      */
     protected $fillable = [
         'name',
@@ -27,7 +45,13 @@ class User extends Authenticatable
     ];
 
     /**
+
      * Campos ocultos en respuestas JSON.
+
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+
      */
     protected $hidden = [
         'password',
@@ -44,4 +68,56 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
 }
+
+
+
+
+    // RELACIONES DE TRAINEEIQ (Documento Maestro v3)
+
+    /**
+     * Grupos en los que el usuario actúa como instructor.
+     */
+    public function gruposComoInstructor()
+    {
+        return $this->hasMany(Grupo::class, 'instructor_id');
+    }
+
+    /**
+     * Grupos a los que el usuario está inscrito como estudiante.
+     */
+    public function gruposInscritos()
+    {
+        return $this->belongsToMany(Grupo::class, 'estudiante_grupo', 'estudiante_id', 'grupo_id')
+                    ->using(EstudianteGrupo::class)
+                    ->withPivot('semana_actual')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Guías de estudio personales creadas por el usuario.
+     */
+    public function guiasPersonales()
+    {
+        return $this->hasMany(Guia::class, 'usuario_id');
+    }
+
+    /**
+     * Conversaciones con la IA iniciadas por el estudiante.
+     */
+    public function conversacionesIa()
+    {
+        return $this->hasMany(ConversacionIa::class, 'estudiante_id');
+    }
+
+    /**
+     * Recomendaciones emitidas para el estudiante.
+     */
+    public function recomendaciones()
+    {
+        return $this->hasMany(Recomendacion::class, 'estudiante_id');
+    }
+
+}
+
