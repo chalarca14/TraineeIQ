@@ -1,0 +1,96 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+
+// Definimos todas las rutas de la aplicacion
+const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/auth/Login.vue')
+  },
+  {
+    path: '/registro',
+    name: 'Registro',
+    component: () => import('../views/auth/Registro.vue')
+  },
+
+  // Ruta dashboard para el rol de estudiante
+  {
+    path: '/estudiante/dashboard',
+    name: 'EstudianteDashboard',
+    component: () => import('../views/estudiante/Dashboard.vue'),
+    meta: {
+      requiereAuth: true,
+      rol: 'estudiante'
+    }
+  },
+
+  
+  // TEMPORAL: chat de prueba para el estudiante (se reemplaza por ChatLibre/ChatGuia)
+  {
+    path: '/estudiante/chat-prueba',
+    name: 'ChatPrueba',
+    component: () => import('../views/estudiante/ChatPrueba.vue'),
+    meta: { requiereAuth: true, rol: 'estudiante' } // mismo guard que ya usas
+  },
+
+
+
+  // Ruta para paginas no encontradas
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/login'
+  },
+  // Instructor
+{
+  path: '/instructor/dashboard',
+  name: 'InstructorDashboard',
+  component: () => import('../views/instructor/Dashboard.vue'),
+  meta: {
+    requiereAuth: true,
+    rol: 'instructor'
+  }
+},
+
+// Estudiante
+{
+  path: '/estudiante/dashboard',
+  name: 'EstudianteDashboard',
+  component: () => import('../views/estudiante/Dashboard.vue'),
+  meta: {
+    requiereAuth: true,
+    rol: 'estudiante'
+  }
+},
+  
+]
+
+// Creamos el router con el historial del navegador
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// Guard de navegacion — se ejecuta antes de entrar a cualquier ruta
+// Su trabajo es verificar autenticacion y rol del usuario
+router.beforeEach((to, from, next) => {
+  // Obtenemos el store de autenticacion
+  const authStore = useAuthStore()
+
+  // Si la ruta requiere autenticacion y no hay token, vamos al login
+  if (to.meta.requiereAuth && !authStore.estaAutenticado) {
+    next('/login')
+    return
+  }
+
+  // Si la ruta requiere un rol especifico y el usuario no lo tiene
+  if (to.meta.rol && authStore.rolUsuario !== to.meta.rol) {
+    next('/login')
+    return
+  }
+
+  // Todo bien, dejamos pasar
+  next()
+})
+
+export default router

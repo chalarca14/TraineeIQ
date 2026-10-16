@@ -2,32 +2,56 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+
 use Database\Factories\UserFactory;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+use Laravel\Sanctum\HasApiTokens;
+
+// use Laravel\Sanctum\HasApiTokens; // Asegúrate de mantener esto si usas tokens de API (Sanctum)
+
+
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+
+    /**
+     * HasApiTokens:
+     * Permite generar tokens con Laravel Sanctum.
+     */
+    use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * Campos permitidos para asignación masiva.
+
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
+
      */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'rol',
+        'modo_preferido',
     ];
 
     /**
+
+     * Campos ocultos en respuestas JSON.
+
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
+
      */
     protected $hidden = [
         'password',
@@ -35,9 +59,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Conversión automática de tipos.
      */
     protected function casts(): array
     {
@@ -46,4 +68,56 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
 }
+
+
+
+
+    // RELACIONES DE TRAINEEIQ (Documento Maestro v3)
+
+    /**
+     * Grupos en los que el usuario actúa como instructor.
+     */
+    public function gruposComoInstructor()
+    {
+        return $this->hasMany(Grupo::class, 'instructor_id');
+    }
+
+    /**
+     * Grupos a los que el usuario está inscrito como estudiante.
+     */
+    public function gruposInscritos()
+    {
+        return $this->belongsToMany(Grupo::class, 'estudiante_grupo', 'estudiante_id', 'grupo_id')
+                    ->using(EstudianteGrupo::class)
+                    ->withPivot('semana_actual')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Guías de estudio personales creadas por el usuario.
+     */
+    public function guiasPersonales()
+    {
+        return $this->hasMany(Guia::class, 'usuario_id');
+    }
+
+    /**
+     * Conversaciones con la IA iniciadas por el estudiante.
+     */
+    public function conversacionesIa()
+    {
+        return $this->hasMany(ConversacionIa::class, 'estudiante_id');
+    }
+
+    /**
+     * Recomendaciones emitidas para el estudiante.
+     */
+    public function recomendaciones()
+    {
+        return $this->hasMany(Recomendacion::class, 'estudiante_id');
+    }
+
+}
+
