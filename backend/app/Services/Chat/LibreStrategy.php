@@ -7,6 +7,9 @@ use App\Models\Guia;
 use App\Models\GuiaTema;
 use App\Models\MensajeIa;
 use App\Services\GeminiService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+
 
 /**
  * Estrategia para el modo LIBRE: sin restriccion de contenido. Ademas,
@@ -29,11 +32,19 @@ class LibreStrategy implements ChatStrategy
 
         $respuesta = $this->geminiService->generarRespuestaChat($prompt);
 
-        $temaRelacionado = $this->buscarTemaRelacionado($conversacion->estudiante_id, $mensajeUsuario);
+        // La sugerencia de temas es opcional: nunca debe tumbar la respuesta de Gemini.
+        try {
+            $temaRelacionado = $this->buscarTemaRelacionado($conversacion->estudiante_id, $mensajeUsuario);
+        } catch (\Throwable $e) {
+            Log::warning('LibreStrategy: no se pudo buscar tema relacionado', [
+                'mensaje' => $e->getMessage(),
+            ]);
+            $temaRelacionado = null;
+        }
 
         if ($temaRelacionado) {
             $respuesta .= "\n\n(Esto tambien lo puedes profundizar en tu guia \"{$temaRelacionado->guia->nombre}\", tema \"{$temaRelacionado->nombre_tema}\".)";
-        }   
+        }
 
         return $respuesta;
     }
@@ -52,19 +63,37 @@ class LibreStrategy implements ChatStrategy
     /**
      * Busca, entre las guias del estudiante (personales y de sus grupos), un
      * tema cuyas palabras clave coincidan con la pregunta. Retorna el primer
-     * match o null si no hay ninguno.
+     * match o null si no hay ninguno / el esquema aun no soporta temas.
      */
     private function buscarTemaRelacionado(int $estudianteId, string $mensajeUsuario): ?GuiaTema
     {
+        if (! Schema::hasTable('guia_temas')) {
+            return null;
+        }
+
         $palabrasPregunta = $this->extraerPalabrasClave($mensajeUsuario);
 
         if (empty($palabrasPregunta)) {
             return null;
         }
 
-        $idsGuiasDelEstudiante = Guia::where('usuario_id', $estudianteId) 
-            ->orWhereHas('grupo.estudiantes', fn ($q) => $q->where('users.id', $estudianteId))
-            ->pluck('id');
+        $query = Guia::query();
+
+        if (Schema::hasColumn('guias', 'usuario_id')) {
+            $query->where(function ($q) use ($estudianteId) {
+                $q->where('usuario_id', $estudianteId)
+                    ->orWhereHas('grupo.estudiantes', fn ($sub) => $sub->where('users.id', $estudianteId));
+            });
+        } else {
+            // Esquema actual: solo guias de grupos a los que pertenece el estudiante.
+            $query->whereHas('grupo.estudiantes', fn ($q) => $q->where('users.id', $estudianteId));
+        }
+
+        $idsGuiasDelEstudiante = $query->pluck('id');
+
+        if ($idsGuiasDelEstudiante->isEmpty()) {
+            return null;
+        }
 
         $temas = GuiaTema::with('guia')
             ->whereIn('guia_id', $idsGuiasDelEstudiante)
