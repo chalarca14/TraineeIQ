@@ -53,7 +53,7 @@ class RecomendacionController extends Controller
             $guardadas = [];
             foreach ($recomendaciones as $item) {
                 $guardadas[] = Recomendacion::create([
-                    'estudiante_id' => auth()->id(),
+                    'estudiante_id' => $request->user()->id,
                     'guia_id'       => $tema->guia_id,
                     'tema_id'       => $tema->id,
                     'semana'        => $request->semana_actual,
@@ -83,10 +83,10 @@ class RecomendacionController extends Controller
     /**
      * Retorna el historial de recomendaciones del estudiante autenticado.
      */
-    public function historial()
+    public function historial(Request $request)
     {
         try {
-            $historial = Recomendacion::where('estudiante_id', auth()->id())
+            $historial = Recomendacion::where('estudiante_id', $request->user()->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
