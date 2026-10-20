@@ -1,92 +1,87 @@
 <template>
-    <div class="dashboard-page">
-        <NavBar />
+    <main class="dashboard-content">
+        <h1>Bienvenido a tu panel de aprendizaje</h1>
+        <p class="subtitulo">Aquí puedes ver tus grupos, tu guía activa, y acceder a tus recomendaciones.</p>
 
-        <main class="dashboard-content">
-            <h1>Bienvenido a tu panel de aprendizaje</h1>
-            <p class="subtitulo">Aquí puedes ver tus grupos, tu guía activa, y acceder a tus recomendaciones.</p>
+        <section class="dashboard-section">
+            <div class="section-header">
+                <h2>Tus grupos</h2>
+                <button class="btn-secundario" disabled title="Próximamente">
+                    <Plus :size="16" />
+                    Unirse a un grupo
+                </button>
+            </div>
 
-            <section class="dashboard-section">
-                <div class="section-header">
-                    <h2>Tus grupos</h2>
-                    <button class="btn-secundario" disabled title="Próximamente">
-                        <Plus :size="16" />
-                        Unirse a un grupo
-                    </button>
-                </div>
+            <div v-if="grupos.length === 0" class="empty-state">
+                <Users :size="32" />
+                <p>Aún no perteneces a ningún grupo.</p>
+                <span>Pídele a tu instructor el código de acceso para unirte.</span>
+            </div>
 
-                <div v-if="grupos.length === 0" class="empty-state">
-                    <Users :size="32" />
-                    <p>Aún no perteneces a ningún grupo.</p>
-                    <span>Pídele a tu instructor el código de acceso para unirte.</span>
-                </div>
-
-                <div v-else class="grupos-grid">
-                    <div v-for="grupo in grupos" :key="grupo.id" class="grupo-card">
-                        <h3>{{ grupo.nombre }}</h3>
-                        <p class="grupo-descripcion">{{ grupo.descripcion }}</p>
-                        <div class="grupo-meta">
-                            <span>Semana {{ grupo.semanaActual }}</span>
-                            <span class="codigo">{{ grupo.codigoAcceso }}</span>
-                        </div>
+            <div v-else class="grupos-grid">
+                <div v-for="grupo in grupos" :key="grupo.id" class="grupo-card">
+                    <h3>{{ grupo.nombre }}</h3>
+                    <p class="grupo-descripcion">{{ grupo.descripcion }}</p>
+                    <div class="grupo-meta">
+                        <span>Semana {{ grupo.semanaActual }}</span>
+                        <span class="codigo">{{ grupo.codigoAcceso }}</span>
                     </div>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <section class="dashboard-section">
-                <h2>Guía activa de la semana</h2>
+        <section class="dashboard-section">
+            <h2>Guía activa de la semana</h2>
 
-                <div v-if="guiaActiva" class="guia-card">
-                    <div class="guia-info">
-                        <span class="guia-grupo">{{ guiaActiva.grupoNombre }}</span>
-                        <h3>{{ guiaActiva.nombre }}</h3>
+            <div v-if="guiaActiva" class="guia-card">
+                <div class="guia-info">
+                    <span class="guia-grupo">{{ guiaActiva.grupoNombre }}</span>
+                    <h3>{{ guiaActiva.nombre }}</h3>
 
-                        <div class="progreso-wrapper">
-                            <div class="progreso-barra">
-                                <div class="progreso-relleno" :style="{ width: porcentajeProgreso + '%' }"></div>
-                            </div>
-                            <span class="progreso-texto">Semana {{ guiaActiva.semanaActual }} de {{
-                                guiaActiva.semanasTotales }}</span>
+                    <div class="progreso-wrapper">
+                        <div class="progreso-barra">
+                            <div class="progreso-relleno" :style="{ width: porcentajeProgreso + '%' }"></div>
                         </div>
-                    </div>
-
-                    <button class="btn-primario" disabled title="Próximamente">
-                        <FileText :size="16" />
-                        Ver guía
-                    </button>
-                </div>
-
-                <div v-else class="empty-state">
-                    <BookOpen :size="32" />
-                    <p>No tienes una guía activa esta semana.</p>
-                </div>
-            </section>
-
-
-            <section class="dashboard-section">
-                <h2>Accesos rápidos</h2>
-
-                <div class="accesos-grid">
-                    <div v-for="acceso in accesosRapidos" :key="acceso.titulo" class="acceso-card">
-                        <div class="acceso-icon">
-                            <component :is="acceso.icono" :size="24" />
-                        </div>
-                        <div>
-                            <h3>{{ acceso.titulo }}</h3>
-                            <p>{{ acceso.descripcion }}</p>
-                        </div>
-                        <span class="badge-proximamente">Próximamente</span>
+                        <span class="progreso-texto">Semana {{ guiaActiva.semanaActual }} de {{
+                            guiaActiva.semanasTotales }}</span>
                     </div>
                 </div>
-            </section>
-        </main>
-    </div>
+
+                <button class="btn-primario" disabled title="Próximamente">
+                    <FileText :size="16" />
+                    Ver guía
+                </button>
+            </div>
+
+            <div v-else class="empty-state">
+                <BookOpen :size="32" />
+                <p>No tienes una guía activa esta semana.</p>
+            </div>
+        </section>
+
+
+        <section class="dashboard-section">
+            <h2>Accesos rápidos</h2>
+
+            <div class="accesos-grid">
+                <div v-for="acceso in accesosRapidos" :key="acceso.titulo" class="acceso-card">
+                    <div class="acceso-icon">
+                        <component :is="acceso.icono" :size="24" />
+                    </div>
+                    <div>
+                        <h3>{{ acceso.titulo }}</h3>
+                        <p>{{ acceso.descripcion }}</p>
+                    </div>
+                    <span class="badge-proximamente">Próximamente</span>
+                </div>
+            </div>
+        </section>
+    </main>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { Plus, Users, FileText, BookOpen, Sparkles, Rocket } from 'lucide-vue-next'
-import NavBar from '@/components/NavBar.vue'
 
 
 // DATOS DE PRUEBA
@@ -403,5 +398,4 @@ function salir() {
         justify-content: center;
     }
 }
-
 </style>
