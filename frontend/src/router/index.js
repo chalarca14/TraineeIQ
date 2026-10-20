@@ -16,13 +16,21 @@ const routes = [
 
   // Ruta dashboard para el rol de estudiante
   {
-    path: '/estudiante/dashboard',
-    name: 'EstudianteDashboard',
-    component: () => import('../views/estudiante/Dashboard.vue'),
+    path: '/estudiante',
+    component: () => import('../layouts/AppLayout.vue'),
+    redirect: '/estudiante/dashboard',
     meta: {
       requiereAuth: true,
       rol: 'estudiante'
-    }
+    },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'EstudianteDashboard',
+        component: () => import('../views/estudiante/Dashboard.vue')
+      }
+      // Aquí se irán sumando mi-guia, mini-proyectos, perfil...
+    ]
   },
 
   // Ruta para paginas no encontradas
