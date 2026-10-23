@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'estudiante' => EsEstudiante::class,
             'instructor' => EsInstructor::class,
+            'EsInstructor' => EsInstructor::class,
+            'EsEstudiante' => EsEstudiante::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
