@@ -66,12 +66,13 @@ const menuPersonal = [
     { etiqueta: 'Mis guías', icono: BookOpen, ruta: null, descripcion: 'Guías que tú has cargado, organizadas por temas.' },
     { etiqueta: 'Mini proyectos', icono: Rocket, ruta: null, descripcion: 'Proyectos prácticos adecuados a tu nivel.' },
     { etiqueta: 'IA', icono: Bot, ruta: null, descripcion: 'Recomendaciones sobre tus guías y chat libre para resolver dudas.' },
-    { etiqueta: 'Historial · Perfil', icono: History, ruta: null, descripcion: 'Actividad personal anterior y datos de la cuenta.' }
+    { etiqueta: 'Historial · Perfil', icono: History, ruta: null, descripcion: 'Actividad personal anterior y datos de la cuenta.' },
+    { etiqueta: 'Mis guías', icono: BookOpen, ruta: '/estudiante/guias', descripcion: 'Guías que tú has cargado, organizadas por temas.' }
 ]
 
 // El instructor no tiene modos, así que su menú no cambia
 const menuInstructor = [
-    { etiqueta: 'Inicio', icono: Home, ruta: null, descripcion: 'Resumen de tus grupos.' },
+    { etiqueta: 'Inicio', icono: Home, ruta: '/instructor/dashboard', descripcion: 'Resumen de tus grupos.' },
     { etiqueta: 'Mis Grupos', icono: Users, ruta: null, descripcion: 'Grupos que administras.' },
     { etiqueta: 'Subir Guía', icono: Upload, ruta: null, descripcion: 'Carga guías en PDF para tus grupos.' },
     { etiqueta: 'Perfil', icono: User, ruta: null, descripcion: 'Datos de tu cuenta.' }

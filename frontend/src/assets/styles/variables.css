@@ -1,7 +1,8 @@
 /* Colores principales */
 
 @import url('https://fonts.googleapis.com/css2?family=Puritan:wght@400;700&display=swap');
-*{
+
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -12,6 +13,7 @@
     width: 100%;
     min-height: 100vh;
 }
+
 :root {
 
     --color-primary: #7C3AED;
@@ -27,5 +29,8 @@
     --color-success: #22C55E;
     --color-warning: #F59E0B;
     --color-danger: #EF4444;
+
+    --color-primary-light: #A855F7;
+    --color-border: #1E2235;
 
 }

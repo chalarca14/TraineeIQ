@@ -269,6 +269,16 @@ onBeforeUnmount(() => document.removeEventListener('click', cerrarSiClickFuera))
     color: var(--color-primary);
 }
 
+.icon-btn.menu-btn {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .icon-btn.menu-btn {
+        display: flex;
+    }
+}
+
 /* TABLET Y CELULAR: aparece la hamburguesa, desaparece el buscador */
 @media (max-width: 900px) {
     .menu-btn {
