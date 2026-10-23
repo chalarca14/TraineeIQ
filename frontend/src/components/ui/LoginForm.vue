@@ -17,7 +17,7 @@
 
         <div class="role-container">
 
-            <RoleSelector />
+            <RoleSelector v-model="rol" />
 
         </div>
 
@@ -111,6 +111,7 @@ const authStore = useAuthStore()
 
 const correo = ref('')
 const password = ref('')
+const rol = ref('estudiante')
 const mostrarPassword = ref(false)
 const cargando = ref(false)
 
@@ -156,7 +157,7 @@ const iniciarSesion = async () => {
 
     try {
         // Llamamos al servicio, que ya sabe cómo hablar con el backend
-        const data = await login(correo.value, password.value)
+        const data = await login(correo.value, password.value, rol.value)
 
         // Guardamos el token y el usuario en el store (y en localStorage)
         authStore.iniciarSesion(data.token, data.user)

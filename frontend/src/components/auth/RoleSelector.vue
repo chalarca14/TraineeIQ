@@ -2,12 +2,18 @@
 
     <div class="role-selector">
 
-        <button v-for="role in roles" :key="role.name" type="button" :class="{ active: selectedRole === role.name }"
-            @click="selectedRole = role.name">
+        <button
+            v-for="role in roles"
+            :key="role.value"
+            type="button"
+            :class="{ active: selectedRole === role.value }"
+            :aria-pressed="selectedRole === role.value"
+            @click="selectedRole = role.value"
+        >
 
-            <component :is="role.icon" :size="18" :stroke-width="1.8" />
+        <component :is="role.icon" :size="18" :stroke-width="1.8" />
 
-            <span>{{ role.name }}</span>
+        <span>{{ role.label }}</span>
 
         </button>
 
@@ -17,18 +23,19 @@
 
 <script setup>
 
-import { ref } from 'vue'
 import { GraduationCap, Users } from 'lucide-vue-next'
 
-const selectedRole = ref('Aprendiz')
+const selectedRole = defineModel({ default: 'estudiante' })
 
 const roles = [
     {
-        name: 'Aprendiz',
+        value: 'estudiante',
+        label: 'Aprendiz',
         icon: GraduationCap
     },
     {
-        name: 'Instructor',
+        value: 'instructor',
+        label: 'Instructor',
         icon: Users
     }
 ]

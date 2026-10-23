@@ -69,11 +69,6 @@ class User extends Authenticatable
         ];
     }
 
-}
-
-
-
-
     // RELACIONES DE TRAINEEIQ (Documento Maestro v3)
 
     /**
@@ -120,4 +115,3 @@ class User extends Authenticatable
     }
 
 }
-

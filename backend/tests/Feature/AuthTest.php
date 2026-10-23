@@ -66,6 +66,7 @@ class AuthTest extends TestCase
         $loginResponse = $this->postJson('/api/login', [
             'email' => 'aprendiz@example.com',
             'password' => 'password-seguro',
+            'rol' => 'estudiante',
         ])->assertOk();
 
         $token = $loginResponse->json('token');
@@ -101,8 +102,41 @@ class AuthTest extends TestCase
         $this->postJson('/api/login', [
             'email' => 'aprendiz@example.com',
             'password' => 'incorrecta',
+            'rol' => 'estudiante',
         ])->assertUnauthorized()
             ->assertJsonPath('message', 'Credenciales incorrectas');
+    }
+
+    public function test_login_rejects_credentials_for_a_different_role(): void
+    {
+        User::factory()->create([
+            'email' => 'aprendiz@example.com',
+            'password' => Hash::make('password-seguro'),
+            'rol' => 'estudiante',
+        ]);
+
+        $this->postJson('/api/login', [
+            'email' => 'aprendiz@example.com',
+            'password' => 'password-seguro',
+            'rol' => 'instructor',
+        ])->assertUnauthorized()
+            ->assertJsonPath('message', 'Credenciales incorrectas');
+    }
+
+    public function test_instructor_can_log_in_with_the_instructor_role(): void
+    {
+        User::factory()->create([
+            'email' => 'instructor@example.com',
+            'password' => Hash::make('password-seguro'),
+            'rol' => 'instructor',
+        ]);
+
+        $this->postJson('/api/login', [
+            'email' => 'instructor@example.com',
+            'password' => 'password-seguro',
+            'rol' => 'instructor',
+        ])->assertOk()
+            ->assertJsonPath('user.rol', 'instructor');
     }
 
     public function test_student_can_read_and_update_preferred_mode(): void

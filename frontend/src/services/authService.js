@@ -8,12 +8,13 @@ import api from './api'
  * Recibe el correo y la contraseña que escribió el usuario en el formulario,
  * y los envía en el formato que espera el backend (campo "email", no "correo").
  */
-export async function login(correo, password) {
+export async function login(correo, password, rol) {
     // Mapeamos correo -> email aquí, en un solo lugar,
     // así el resto de la app puede seguir usando "correo" sin problema
     const { data } = await api.post('/login', {
         email: correo,
-        password: password
+        password: password,
+        rol: rol
     })
 
     // El backend devuelve { success, message, token, user }

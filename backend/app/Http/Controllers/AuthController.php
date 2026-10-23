@@ -46,7 +46,11 @@ class AuthController extends Controller
         $validated = $request->validated();
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (
+            ! $user
+            || $user->rol !== $validated['rol']
+            || ! Hash::check($validated['password'], $user->password)
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'Credenciales incorrectas',
