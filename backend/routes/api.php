@@ -29,7 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json($request->user());
     });
 
-    Route::middleware('estudiante')
+    Route::middleware('EsEstudiante')
         ->prefix('usuario')
         ->group(function () {
             Route::get('/modo', [UserController::class, 'showMode']);

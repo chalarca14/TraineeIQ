@@ -23,12 +23,14 @@ class UserController extends Controller
      */
     public function updateMode(UpdatePreferredModeRequest $request)
     {
-        $request->user()->update($request->validated());
+        $user = $request->user();
+        $validated = $request->validated();
+        $user->modo_preferido = $validated['modo_preferido'];
+        $user->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Modo preferido actualizado correctamente.',
-            'modo_preferido' => $request->user()->modo_preferido,
+            'modo_preferido' => $user->modo_preferido,
         ]);
     }
 }
