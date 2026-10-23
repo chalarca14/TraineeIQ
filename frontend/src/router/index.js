@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
+
 // Definimos todas las rutas de la aplicacion
 const routes = [
   {
@@ -16,13 +17,56 @@ const routes = [
 
   // Ruta dashboard para el rol de estudiante
   {
-    path: '/estudiante/dashboard',
-    name: 'EstudianteDashboard',
-    component: () => import('../views/estudiante/Dashboard.vue'),
+    path: '/estudiante',
+    component: () => import('../layouts/AppLayout.vue'),
+    redirect: '/estudiante/dashboard',
     meta: {
       requiereAuth: true,
       rol: 'estudiante'
-    }
+    },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'EstudianteDashboard',
+        component: () => import('../views/estudiante/Dashboard.vue')
+      },
+      // Aquí se irán sumando mi-guia, mini-proyectos, perfil...
+
+      {
+        path: 'chat-prueba',
+        name: 'ChatPrueba',
+        component: () => import('../views/estudiante/ChatPrueba.vue')
+      },
+
+
+      {
+        path: 'guias',
+        name: 'MisGuias',
+        component: () => import('../views/personal/MisGuias.vue')
+      },
+      {
+        path: 'guias/:id',
+        name: 'GuiaDetalle', component: () => import('../views/personal/GuiaDetalle.vue')
+      }
+
+    ]
+  },
+
+  {
+    path: '/instructor',
+    component: () => import('../layouts/AppLayout.vue'),
+    redirect: '/instructor/dashboard',
+    meta: {
+      requiereAuth: true,
+      rol: 'instructor'
+    },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'InstructorDashboard',
+        component: () => import('../views/instructor/Dashboard.vue')
+      }
+    ]
   },
 
   
