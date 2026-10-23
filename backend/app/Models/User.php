@@ -65,9 +65,7 @@ class User extends Authenticatable
         ];
     }
 
-
-
-    // RELACIONES DE TRAINEEIQ (Documento Maestro v3)
+                    //Relaciones de TraineeIQ
 
     /**
      * Grupos en los que el usuario actúa como instructor.
