@@ -49,9 +49,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Grupos
     Route::get('/grupos', [GrupoController::class, 'index']);
-    Route::post('/grupos', [GrupoController::class, 'store']);
+    Route::post('/grupos', [GrupoController::class, 'store'])->middleware('EsInstructor');
     Route::get('/grupos/{id}', [GrupoController::class, 'show']);
-    Route::post('/grupos/unirse', [GrupoController::class, 'unirse']);
+    Route::post('/grupos/unirse', [GrupoController::class, 'unirse'])->middleware('EsEstudiante');
 
     // Guías de Estudio
     Route::get('/guias', [GuiaController::class, 'index']);
