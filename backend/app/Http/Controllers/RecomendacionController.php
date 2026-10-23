@@ -8,11 +8,15 @@ use App\Models\Recomendacion;
 use App\Models\GuiaTema;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class RecomendacionController extends Controller
 {
     use VerificaAccesoAGuia;
+
+    // Valores permitidos de la columna recomendaciones.nivel
+    private const NIVELES = ['basico', 'recomendado', 'importante', 'avanzado'];
 
     private GeminiService $geminiService;
 
@@ -29,6 +33,8 @@ class RecomendacionController extends Controller
      * CAMBIO v3: ya no recibe guia_id + parsea el PDF completo. Ahora recibe tema_id
      * (guia_temas), cuyo contenido ya fue segmentado por Integrante 3 al subir la guia.
      * semana_actual es opcional porque en Modo Personal no existe semana asignada.
+     * CAMBIO v4: valida el nivel que devuelve Gemini, responde 503 si la IA no contesta
+     * y guarda todas las recomendaciones en una sola transaccion.
      */
     public function generarRecomendacion(Request $request)
     {
@@ -46,24 +52,40 @@ class RecomendacionController extends Controller
 
             $recomendaciones = $this->geminiService->generarRecomendaciones(
                 $tema->nombre_tema,
-                $tema->descripcion,
+                (string) $tema->descripcion,
                 $request->semana_actual
             );
 
-            $guardadas = [];
-            foreach ($recomendaciones as $item) {
-                $guardadas[] = Recomendacion::create([
-                    'estudiante_id' => $request->user()->id,
-                    'guia_id'       => $tema->guia_id,
-                    'tema_id'       => $tema->id,
-                    'semana'        => $request->semana_actual,
-                    'nivel'         => $item['nivel'] ?? 'recomendado',
-                    'contenido'     => json_encode([
-                        'titulo'      => $item['titulo'] ?? '',
-                        'descripcion' => $item['descripcion'] ?? '',
-                    ]),
-                ]);
+            // Si la IA no respondio, no se guarda nada y se avisa para que el usuario reintente
+            if (empty($recomendaciones)) {
+                return response()->json([
+                    'message' => 'La IA está ocupada, intenta de nuevo en un momento.',
+                ], 503);
             }
+
+            // Todo se guarda en una transaccion: o quedan todas las recomendaciones o ninguna
+            $guardadas = DB::transaction(function () use ($recomendaciones, $request, $tema) {
+                $filas = [];
+
+                foreach ($recomendaciones as $item) {
+                    $filas[] = Recomendacion::create([
+                        'estudiante_id' => $request->user()->id,
+                        'guia_id'       => $tema->guia_id,
+                        'tema_id'       => $tema->id,
+                        'semana'        => $request->semana_actual,
+                        // Gemini puede devolver un nivel fuera de la lista; en ese caso se usa 'recomendado'
+                        'nivel'         => in_array($item['nivel'] ?? '', self::NIVELES, true)
+                            ? $item['nivel']
+                            : 'recomendado',
+                        'contenido'     => json_encode([
+                            'titulo'      => $item['titulo'] ?? '',
+                            'descripcion' => $item['descripcion'] ?? '',
+                        ], JSON_UNESCAPED_UNICODE),
+                    ]);
+                }
+
+                return $filas;
+            });
 
             return response()->json([
                 'message'         => 'Recomendaciones generadas correctamente',
@@ -81,12 +103,14 @@ class RecomendacionController extends Controller
     }
 
     /**
-     * Retorna el historial de recomendaciones del estudiante autenticado.
+     * Retorna el historial de recomendaciones del estudiante autenticado,
+     * con el nombre del tema al que pertenece cada una.
      */
     public function historial(Request $request)
     {
         try {
-            $historial = Recomendacion::where('estudiante_id', $request->user()->id)
+            $historial = Recomendacion::with('tema:id,nombre_tema')
+                ->where('estudiante_id', $request->user()->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
