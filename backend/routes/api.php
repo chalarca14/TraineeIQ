@@ -1,19 +1,13 @@
 <?php
 
-<<<<<<< HEAD
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-=======
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController; // Asegúrate de ajustar este namespace según tu proyecto
 use App\Http\Controllers\Api\ConversacionIaController;
 use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
 use App\Http\Controllers\Api\MiniProyectoController;
->>>>>>> origin/rama-prueba
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +17,11 @@ use App\Http\Controllers\Api\MiniProyectoController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-<<<<<<< HEAD
+/*
+|--------------------------------------------------------------------------
+| Rutas Protegidas (auth:sanctum)
+|--------------------------------------------------------------------------
+*/
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -37,18 +35,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/modo', [UserController::class, 'showMode']);
             Route::patch('/modo', [UserController::class, 'updateMode']);
         });
-});
-=======
-/*
-|--------------------------------------------------------------------------
-| Rutas Protegidas (auth:sanctum)
-|--------------------------------------------------------------------------
-*/
-Route::middleware('auth:sanctum')->group(function () {
+
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::post('/logout', [AuthController::class, 'logout']);
 
     // Módulo de IA
     Route::get('/conversaciones', [ConversacionIaController::class, 'index']);
@@ -73,4 +63,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/mini-proyectos', [MiniProyectoController::class, 'store']);
     Route::get('/mini-proyectos/{id}', [MiniProyectoController::class, 'show']);
 });
->>>>>>> origin/rama-prueba
