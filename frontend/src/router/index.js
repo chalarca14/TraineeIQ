@@ -71,13 +71,6 @@ const routes = [
 
   
   // TEMPORAL: chat de prueba para el estudiante (se reemplaza por ChatLibre/ChatGuia)
-  {
-    path: '/estudiante/chat-prueba',
-    name: 'ChatPrueba',
-    component: () => import('../views/estudiante/ChatPrueba.vue'),
-    meta: { requiereAuth: true, rol: 'estudiante' } // mismo guard que ya usas
-  },
-
 
 
   // Ruta para paginas no encontradas
@@ -85,28 +78,6 @@ const routes = [
     path: '/:pathMatch(.*)*',
     redirect: '/login'
   },
-  // Instructor
-{
-  path: '/instructor/dashboard',
-  name: 'InstructorDashboard',
-  component: () => import('../views/instructor/Dashboard.vue'),
-  meta: {
-    requiereAuth: true,
-    rol: 'instructor'
-  }
-},
-
-// Estudiante
-{
-  path: '/estudiante/dashboard',
-  name: 'EstudianteDashboard',
-  component: () => import('../views/estudiante/Dashboard.vue'),
-  meta: {
-    requiereAuth: true,
-    rol: 'estudiante'
-  }
-},
-  
 ]
 
 // Creamos el router con el historial del navegador

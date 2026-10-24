@@ -9,6 +9,7 @@ use App\Services\PdfTextExtractor;
 use App\Services\GeminiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Exception;
@@ -105,6 +106,10 @@ class GuiaController extends Controller
             $temasSegmentados = $gemini->segmentarGuiaEnTemas($textoExtraido);
 
         } catch (Exception $e) {
+            Log::error('Error procesando el PDF de la guía', [
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile() . ':' . $e->getLine(),
+            ]);
             Storage::disk('public')->delete($path);
 
             if (str_contains($e->getMessage(), '503') || str_contains(strtolower($e->getMessage()), 'busy')) {
@@ -145,6 +150,10 @@ class GuiaController extends Controller
             ], 201);
 
         } catch (Exception $e) {
+            Log::error('Error guardando la guía en la base de datos', [
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile() . ':' . $e->getLine(),
+            ]);
             Storage::disk('public')->delete($path);
             return response()->json(['message' => 'Error al crear la guía'], 500);
         }

@@ -2,7 +2,7 @@ import api from './api'
 
 // Mientras el backend no esté listo, deja esto en true y todo funciona con datos de prueba.
 // Cuando Santiago confirme que la subida responde, ponlo en false.
-const USAR_DATOS_PRUEBA = true
+const USAR_DATOS_PRUEBA = false
 
 // Datos de prueba con la misma forma que la respuesta real del backend
 let guiasPrueba = [

@@ -398,10 +398,6 @@ function salir() {
         justify-content: center;
     }
 }
-<<<<<<< HEAD
 
 </style>
 
-=======
-</style>
->>>>>>> origin/rama-frontend

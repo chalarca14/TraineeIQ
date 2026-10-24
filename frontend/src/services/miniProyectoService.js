@@ -1,6 +1,6 @@
 import api from './api'
 
-const USAR_DATOS_PRUEBA = true
+const USAR_DATOS_PRUEBA = false
 const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export async function generarMiniProyectos({ guiaId, temaId }) {

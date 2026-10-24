@@ -13,12 +13,13 @@
                 <span>{{ archivo ? archivo.name : 'Haz clic para elegir un PDF (máx. 10 MB)' }}</span>
                 <input type="file" accept="application/pdf" class="sr-only" @change="elegirArchivo" />
             </label>
-            <p class="input-error">{{ errores.archivo }}</p>
-            <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando" @click="enviar">Reintentar</button>
+            <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando"
+                @click="enviar">Reintentar</button>
         </div>
 
         <p class="input-error">{{ error }}</p>
-        <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando" @click="enviar">Reintentar</button>
+        <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando"
+            @click="enviar">Reintentar</button>
 
         <div class="acciones">
             <button type="button" class="btn-cancelar" :disabled="cargando" @click="$emit('cancelar')">Cancelar</button>
@@ -74,15 +75,16 @@ function validar() {
 
 async function enviar() {
     error.value = ''
+    puedeReintentar.value = false
     if (!validar()) return
 
-    cargando.value = true // ✅ Cambiado a true
+    cargando.value = true
     try {
-        const formData = new FormData()
-        formData.append('nombre', nombre.value.trim())
-        formData.append('archivo', archivo.value)
-
-        const guia = await subirGuia(formData)
+        // El servicio arma el FormData; aquí solo le pasamos los datos
+        const guia = await subirGuia({
+            nombre: nombre.value.trim(),
+            archivo: archivo.value
+        })
         emit('subida', guia)
     } catch (err) {
         const status = err.response?.status
