@@ -181,6 +181,7 @@ const registrarse = async () => {
             if (erroresBackend.email) errores.value.correo = erroresBackend.email[0]
             if (erroresBackend.name) errores.value.nombre = erroresBackend.name[0]
             if (erroresBackend.password) errores.value.password = erroresBackend.password[0]
+            if (erroresBackend.rol) error.value = erroresBackend.rol[0]
 
         } else {
             error.value = 'No se pudo crear la cuenta. Intenta de nuevo.'
