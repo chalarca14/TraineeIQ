@@ -9,7 +9,6 @@ use App\Models\GuiaTema;
 use App\Traits\VerificaAccesoAGuia;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -39,9 +38,6 @@ class MiniProyectoController extends Controller
      * forma general con base en todos los temas de la guia.
      * CAMBIO v4: valida la dificultad que devuelve Gemini, responde 503 si la IA
      * no contesta, 422 si no hay contenido, y guarda todo en una sola transaccion.
-     * CAMBIO v6: si ya hay mini proyectos para ese tema (o para la guia completa cuando no
-     * se envia tema_id), se devuelven esos (200) y no se llama a Gemini. Un candado evita
-     * que dos clics seguidos generen el mismo tema dos veces.
      */
     public function generarMiniProyecto(Request $request)
     {
@@ -66,82 +62,49 @@ class MiniProyectoController extends Controller
                 }
             }
 
-            // Candado: solo una generacion a la vez por guia y tema (evita el doble clic)
-            $candado = Cache::lock('generar-mini-proyectos:' . $guia->id . ':' . ($tema?->id ?? 'general'), 150);
+            [$nombreTema, $contenidoTema] = $this->resolverContenido($guia, $tema);
 
-            if (! $candado->get()) {
+            // Sin contenido, Gemini inventaria los proyectos: mejor avisar
+            if (trim($contenidoTema) === '') {
                 return response()->json([
-                    'message' => 'Ya se están generando los mini proyectos, espera un momento.',
-                ], 409);
+                    'message' => 'Esta guía todavía no tiene contenido para generar mini proyectos.',
+                ], 422);
             }
 
-            try {
-                // Si ya existen mini proyectos para este tema (o los generales de la guia), se muestran esos
-                $existentes = MiniProyecto::where('guia_id', $guia->id)
-                    ->when(
-                        $tema,
-                        fn ($consulta) => $consulta->where('tema_id', $tema->id),
-                        fn ($consulta) => $consulta->whereNull('tema_id')
-                    )
-                    ->orderBy('id')
-                    ->get();
+            $proyectos = $this->geminiService->generarMiniProyectos($nombreTema, $contenidoTema);
 
-                if ($existentes->isNotEmpty()) {
-                    return response()->json([
-                        'message'        => 'Ya existían mini proyectos para este tema',
-                        'ya_existian'    => true,
-                        'mini_proyectos' => $existentes,
-                    ], 200);
-                }
-
-                [$nombreTema, $contenidoTema] = $this->resolverContenido($guia, $tema);
-
-                // Sin contenido, Gemini inventaria los proyectos: mejor avisar
-                if (trim($contenidoTema) === '') {
-                    return response()->json([
-                        'message' => 'Esta guía todavía no tiene contenido para generar mini proyectos.',
-                    ], 422);
-                }
-
-                $proyectos = $this->geminiService->generarMiniProyectos($nombreTema, $contenidoTema);
-
-                // Si la IA no respondio, no se guarda nada y se avisa para que el usuario reintente
-                if (empty($proyectos)) {
-                    return response()->json([
-                        'message' => 'La IA está ocupada, intenta de nuevo en un momento.',
-                    ], 503);
-                }
-
-                // Todo se guarda en una transaccion: o quedan todos los mini proyectos o ninguno
-                $guardados = DB::transaction(function () use ($proyectos, $guia, $tema) {
-                    $filas = [];
-
-                    foreach ($proyectos as $item) {
-                        $filas[] = MiniProyecto::create([
-                            'guia_id'     => $guia->id,
-                            'tema_id'     => $tema?->id,
-                            'titulo'      => $item['titulo'] ?? '',
-                            'descripcion' => $item['descripcion'] ?? '',
-                            // Gemini puede devolver una dificultad fuera de la lista; en ese caso se usa 'basico'
-                            'dificultad'  => in_array($item['dificultad'] ?? '', self::DIFICULTADES, true)
-                                ? $item['dificultad']
-                                : 'basico',
-                            'contenido'   => $item['contenido'] ?? '',
-                        ]);
-                    }
-
-                    return $filas;
-                });
-
+            // Si la IA no respondio, no se guarda nada y se avisa para que el usuario reintente
+            if (empty($proyectos)) {
                 return response()->json([
-                    'message'        => 'Mini proyectos generados correctamente',
-                    'ya_existian'    => false,
-                    'mini_proyectos' => $guardados,
-                ], 201);
-            } finally {
-                // Siempre se libera el candado, incluso si algo fallo
-                $candado->release();
+                    'message' => 'La IA está ocupada, intenta de nuevo en un momento.',
+                ], 503);
             }
+
+            // Todo se guarda en una transaccion: o quedan todos los mini proyectos o ninguno
+            $guardados = DB::transaction(function () use ($proyectos, $guia, $tema) {
+                $filas = [];
+
+                foreach ($proyectos as $item) {
+                    $filas[] = MiniProyecto::create([
+                        'guia_id'     => $guia->id,
+                        'tema_id'     => $tema?->id,
+                        'titulo'      => $item['titulo'] ?? '',
+                        'descripcion' => $item['descripcion'] ?? '',
+                        // Gemini puede devolver una dificultad fuera de la lista; en ese caso se usa 'basico'
+                        'dificultad'  => in_array($item['dificultad'] ?? '', self::DIFICULTADES, true)
+                            ? $item['dificultad']
+                            : 'basico',
+                        'contenido'   => $item['contenido'] ?? '',
+                    ]);
+                }
+
+                return $filas;
+            });
+
+            return response()->json([
+                'message'        => 'Mini proyectos generados correctamente',
+                'mini_proyectos' => $guardados,
+            ], 201);
 
         } catch (AuthorizationException $e) {
             return response()->json(['message' => $e->getMessage()], 403);

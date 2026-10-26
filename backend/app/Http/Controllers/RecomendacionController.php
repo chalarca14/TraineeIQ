@@ -8,7 +8,6 @@ use App\Models\Recomendacion;
 use App\Models\GuiaTema;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -36,9 +35,6 @@ class RecomendacionController extends Controller
      * semana_actual es opcional porque en Modo Personal no existe semana asignada.
      * CAMBIO v4: valida el nivel que devuelve Gemini, responde 503 si la IA no contesta
      * y guarda todas las recomendaciones en una sola transaccion.
-     * CAMBIO v6: si el estudiante YA tiene recomendaciones de este tema, se devuelven esas
-     * (200) y no se llama a Gemini ni se guardan filas nuevas. Un candado evita que dos
-     * clics seguidos generen el mismo tema dos veces.
      */
     public function generarRecomendacion(Request $request)
     {
@@ -54,78 +50,47 @@ class RecomendacionController extends Controller
             // o es su guia personal, o pertenece a un grupo del que es miembro.
             $this->verificarAccesoAGuia($tema->guia);
 
-            $estudianteId = $request->user()->id;
+            $recomendaciones = $this->geminiService->generarRecomendaciones(
+                $tema->nombre_tema,
+                (string) $tema->descripcion,
+                $request->semana_actual
+            );
 
-            // Candado: solo una generacion a la vez por estudiante y tema (evita el doble clic)
-            $candado = Cache::lock("generar-recomendaciones:{$estudianteId}:{$tema->id}", 150);
-
-            if (! $candado->get()) {
+            // Si la IA no respondio, no se guarda nada y se avisa para que el usuario reintente
+            if (empty($recomendaciones)) {
                 return response()->json([
-                    'message' => 'Ya se están generando las recomendaciones de este tema, espera un momento.',
-                ], 409);
+                    'message' => 'La IA está ocupada, intenta de nuevo en un momento.',
+                ], 503);
             }
 
-            try {
-                // Si ya existen recomendaciones de este tema, se muestran esas y no se genera nada nuevo
-                $existentes = Recomendacion::where('estudiante_id', $estudianteId)
-                    ->where('tema_id', $tema->id)
-                    ->orderBy('id')
-                    ->get();
+            // Todo se guarda en una transaccion: o quedan todas las recomendaciones o ninguna
+            $guardadas = DB::transaction(function () use ($recomendaciones, $request, $tema) {
+                $filas = [];
 
-                if ($existentes->isNotEmpty()) {
-                    return response()->json([
-                        'message'         => 'Ya tenías recomendaciones para este tema',
-                        'ya_existian'     => true,
-                        'recomendaciones' => $existentes,
-                    ], 200);
+                foreach ($recomendaciones as $item) {
+                    $filas[] = Recomendacion::create([
+                        'estudiante_id' => $request->user()->id,
+                        'guia_id'       => $tema->guia_id,
+                        'tema_id'       => $tema->id,
+                        'semana'        => $request->semana_actual,
+                        // Gemini puede devolver un nivel fuera de la lista; en ese caso se usa 'recomendado'
+                        'nivel'         => in_array($item['nivel'] ?? '', self::NIVELES, true)
+                            ? $item['nivel']
+                            : 'recomendado',
+                        'contenido'     => json_encode([
+                            'titulo'      => $item['titulo'] ?? '',
+                            'descripcion' => $item['descripcion'] ?? '',
+                        ], JSON_UNESCAPED_UNICODE),
+                    ]);
                 }
 
-                $recomendaciones = $this->geminiService->generarRecomendaciones(
-                    $tema->nombre_tema,
-                    (string) $tema->descripcion,
-                    $request->semana_actual
-                );
+                return $filas;
+            });
 
-                // Si la IA no respondio, no se guarda nada y se avisa para que el usuario reintente
-                if (empty($recomendaciones)) {
-                    return response()->json([
-                        'message' => 'La IA está ocupada, intenta de nuevo en un momento.',
-                    ], 503);
-                }
-
-                // Todo se guarda en una transaccion: o quedan todas las recomendaciones o ninguna
-                $guardadas = DB::transaction(function () use ($recomendaciones, $request, $tema, $estudianteId) {
-                    $filas = [];
-
-                    foreach ($recomendaciones as $item) {
-                        $filas[] = Recomendacion::create([
-                            'estudiante_id' => $estudianteId,
-                            'guia_id'       => $tema->guia_id,
-                            'tema_id'       => $tema->id,
-                            'semana'        => $request->semana_actual,
-                            // Gemini puede devolver un nivel fuera de la lista; en ese caso se usa 'recomendado'
-                            'nivel'         => in_array($item['nivel'] ?? '', self::NIVELES, true)
-                                ? $item['nivel']
-                                : 'recomendado',
-                            'contenido'     => json_encode([
-                                'titulo'      => $item['titulo'] ?? '',
-                                'descripcion' => $item['descripcion'] ?? '',
-                            ], JSON_UNESCAPED_UNICODE),
-                        ]);
-                    }
-
-                    return $filas;
-                });
-
-                return response()->json([
-                    'message'         => 'Recomendaciones generadas correctamente',
-                    'ya_existian'     => false,
-                    'recomendaciones' => $guardadas,
-                ], 201);
-            } finally {
-                // Siempre se libera el candado, incluso si algo fallo
-                $candado->release();
-            }
+            return response()->json([
+                'message'         => 'Recomendaciones generadas correctamente',
+                'recomendaciones' => $guardadas,
+            ], 201);
 
         } catch (AuthorizationException $e) {
             return response()->json(['message' => $e->getMessage()], 403);
