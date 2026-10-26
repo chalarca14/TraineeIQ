@@ -1,34 +1,13 @@
 <template>
     <main class="dashboard-content">
-        <h1>Bienvenido a tu panel de aprendizaje</h1>
-        <p class="subtitulo">Aquí puedes ver tus grupos, tu guía activa, y acceder a tus recomendaciones.</p>
+        <BannerBienvenida :nombre="primerNombre"
+            mensaje="Te damos la bienvenida a tu espacio de aprendizaje. Aquí tienes un resumen de tu progreso." />
 
-        <section class="dashboard-section">
-            <div class="section-header">
-                <h2>Tus grupos</h2>
-                <button class="btn-secundario" disabled title="Próximamente">
-                    <Plus :size="16" />
-                    Unirse a un grupo
-                </button>
-            </div>
-
-            <div v-if="grupos.length === 0" class="empty-state">
-                <Users :size="32" />
-                <p>Aún no perteneces a ningún grupo.</p>
-                <span>Pídele a tu instructor el código de acceso para unirte.</span>
-            </div>
-
-            <div v-else class="grupos-grid">
-                <div v-for="grupo in grupos" :key="grupo.id" class="grupo-card">
-                    <h3>{{ grupo.nombre }}</h3>
-                    <p class="grupo-descripcion">{{ grupo.descripcion }}</p>
-                    <div class="grupo-meta">
-                        <span>Semana {{ grupo.semanaActual }}</span>
-                        <span class="codigo">{{ grupo.codigoAcceso }}</span>
-                    </div>
-                </div>
-            </div>
+        <section class="stats-grid">
+            <StatCard v-for="stat in estadisticas" :key="stat.etiqueta" v-bind="stat" />
         </section>
+
+        <GuiaActualCard :guia="guiaActual" :cargando="cargandoGuias" :error="errorGuias" />
 
         <section class="dashboard-section">
             <h2>Guía activa de la semana</h2>
@@ -80,9 +59,78 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { Plus, Users, FileText, BookOpen, Sparkles, Rocket } from 'lucide-vue-next'
+import { computed, ref, onMounted } from 'vue'
+import { Plus, Users, FileText, BookOpen, Sparkles, Rocket, CalendarDays, Star, Target } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+import { listarMisGuias } from '@/services/guiaService'
+import StatCard from '@/components/dashboard/StatCard.vue'
+import BannerBienvenida from '@/components/dashboard/BannerBienvenida.vue'
+import GuiaActualCard from '@/components/dashboard/GuiaActualCard.vue'
 
+const authStore = useAuthStore()
+
+// POR SI EL USUARIO NO TRAE NOMBRE
+const primerNombre = computed(() => authStore.usuario?.name?.split(' ')[0] ?? 'estudiante')
+
+
+//GUIAS ACTIVAS - DATOS REALES
+const errorGuias = ref(false)
+
+const guias = ref(null)        // null = todavía cargando
+
+
+onMounted(async () => {
+    try {
+        guias.value = await listarMisGuias()
+    } catch (error) {
+        console.error('Error al obtener las guías:', error)
+        errorGuias.value = true
+    }
+})
+
+
+//DATOS DE EJEMPLOS: El backend aun no tiene semana, XP, ni progreso.
+//CUANDO EXISTAN LOS ENDPOINTS, ESTO SE DEBE REEMPLAZAR POR DATOS REALES
+
+const resumenEjemplo = {
+    semanaActual: 5,
+    semanasTotales: 12,
+    xp: 850,
+    xpEstaSemana: 120,
+    progreso: 68 // Porcentaje de progreso en la guía
+}
+
+const totalGuias = computed(() => guias.value?.length ?? null)
+const guiaActual = computed(() => guias.value?.[0] ?? null)
+const cargandoGuias = computed(() => guias.value === null && !errorGuias.value)
+
+// computed porque depende de totalGuias y errorGuias, que cambian cuando llega la respuesta
+const estadisticas = computed(() => [
+    {
+        etiqueta: 'Guías activas',
+        valor: errorGuias.value ? '—' : (totalGuias.value ?? '…'),
+        detalle: errorGuias.value ? 'No se pudo cargar' : 'en Modo Personal',
+        icono: BookOpen
+    },
+    {
+        etiqueta: 'Semana actual',
+        valor: resumenEjemplo.semanaActual,
+        detalle: `de ${resumenEjemplo.semanasTotales}`,
+        icono: CalendarDays
+    },
+    {
+        etiqueta: 'XP acumulados',
+        valor: resumenEjemplo.xp,
+        detalle: `+${resumenEjemplo.xpEstaSemana} esta semana`,
+        icono: Star
+    },
+    {
+        etiqueta: 'Progreso general',
+        valor: `${resumenEjemplo.progreso}%`,
+        progreso: resumenEjemplo.progreso,
+        icono: Target
+    }
+])
 
 // DATOS DE PRUEBA
 
@@ -134,10 +182,6 @@ const accesosRapidos = [
     }
 ]
 
-function salir() {
-    authStore.cerrarSesion()
-    router.push('/login')
-}
 </script>
 
 <style scoped>
@@ -386,6 +430,13 @@ function salir() {
     font-weight: 600;
 }
 
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
 
 /* CELULAR */
 @media (max-width: 700px) {
@@ -398,6 +449,4 @@ function salir() {
         justify-content: center;
     }
 }
-
 </style>
-
