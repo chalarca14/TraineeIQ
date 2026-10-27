@@ -141,21 +141,6 @@ onMounted(cargarGuias)
     gap: 1rem;
 }
 
-.guia-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.2rem;
-    border: 1px solid var(--color-card);
-    border-radius: 14px;
-    background: var(--color-surface);
-    transition: .2s;
-}
-
-.guia-card:hover {
-    border-color: var(--color-primary);
-    transform: translateY(-3px);
-}
 
 .guia-icon {
     display: flex;
@@ -169,24 +154,6 @@ onMounted(cargarGuias)
     color: var(--color-primary);
 }
 
-.guia-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.guia-info h3 {
-    margin: 0 0 .2rem 0;
-    font-size: 1rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.guia-info p {
-    margin: 0;
-    font-size: .8rem;
-    color: var(--color-text-secondary);
-}
 
 .btn-ver {
     padding: .5rem .9rem;

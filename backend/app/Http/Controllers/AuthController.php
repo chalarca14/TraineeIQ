@@ -19,7 +19,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|min:8',
-            'rol' => 'sometimes| string|in:estudiante,profesor',
+            'rol' => 'sometimes|string|in:estudiante,instructor',
         ]);
 
         if ($validator->fails()) {
@@ -41,6 +41,9 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Usuario registrado correctamente',
+            // Mismas claves que login() (token, user) para que el frontend entre directo al dashboard
+            'token' => $token,
+            'user' => $user,
             'data' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',

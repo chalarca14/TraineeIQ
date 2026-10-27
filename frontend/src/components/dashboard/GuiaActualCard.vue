@@ -1,6 +1,8 @@
 <template>
     <article class="guia-actual">
-        <h2><BookOpen :size="20" /> Mi guía actual</h2>
+        <h2>
+            <BookOpen :size="20" /> Mi guía actual
+        </h2>
 
         <!-- Tres estados: cargando, error, vacío y con datos. Solo se muestra uno -->
         <p v-if="cargando" class="mensaje">Cargando tu guía...</p>
@@ -18,12 +20,15 @@
                     <span class="chip">Modo Personal</span>
                 </div>
                 <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn-ver">
-                    Ver detalles <ArrowRight :size="16" />
+                    Ver detalles
+                    <ArrowRight :size="16" />
                 </RouterLink>
             </div>
 
             <div class="progreso">
-                <div class="barra"><div class="relleno" :style="{ width: porcentaje + '%' }"></div></div>
+                <div class="barra">
+                    <div class="relleno" :style="{ width: porcentaje + '%' }"></div>
+                </div>
                 <span>{{ porcentaje }}%</span>
             </div>
 
@@ -41,6 +46,7 @@
 import { computed } from 'vue'
 import { BookOpen, ArrowRight } from 'lucide-vue-next'
 import TemaEstado from '@/components/dashboard/TemaEstado.vue'
+import { temasHechos } from '@/utils/progresoEjemplo'
 
 const props = defineProps({
     guia: { type: Object, default: null },
@@ -50,21 +56,20 @@ const props = defineProps({
 
 // DATO DE EJEMPLO: el backend aún no guarda qué temas completó el estudiante.
 // Se reemplaza por el progreso real cuando exista el endpoint.
-const TEMAS_HECHOS_EJEMPLO = 1
 
 const temasConEstado = computed(() => {
     const temas = props.guia?.temas ?? []
+    const hechos = temasHechos(temas.length)
     return temas.map((tema, i) => ({
         ...tema,
-        estado: i < TEMAS_HECHOS_EJEMPLO ? 'hecho' : i === TEMAS_HECHOS_EJEMPLO ? 'actual' : 'pendiente'
+        estado: i < hechos ? 'hecho' : i === hechos ? 'actual' : 'pendiente'
     }))
 })
 
 const porcentaje = computed(() => {
     const total = temasConEstado.value.length
-    // Evita dividir entre cero si la guía no tiene temas
     if (total === 0) return 0
-    return Math.round((Math.min(TEMAS_HECHOS_EJEMPLO, total) / total) * 100)
+    return Math.round((temasHechos(total) / total) * 100)
 })
 </script>
 
@@ -121,14 +126,6 @@ h2 {
     background: var(--color-primary-hover);
 }
 
-.progreso {
-    display: flex;
-    align-items: center;
-    gap: .8rem;
-    margin: 1rem 0 1.2rem;
-    font-size: .85rem;
-    color: var(--color-text-secondary);
-}
 
 .barra {
     flex: 1;
