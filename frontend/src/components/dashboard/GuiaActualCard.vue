@@ -155,6 +155,8 @@ h4 {
     padding: 0 0 .5rem;
     list-style: none;
     overflow-x: auto;
+    scrollbar-width: thin;                                  /* barra delgada */
+    scrollbar-color: var(--color-primary) transparent;  
 }
 
 .temas li {

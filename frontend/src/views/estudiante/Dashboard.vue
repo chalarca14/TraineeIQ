@@ -92,135 +92,20 @@ const estadisticas = computed(() => [
 </script>
 
 <style scoped>
-.dashboard-page {
-    min-height: 100dvh;
-    background: var(--color-background);
-    color: var(--color-text);
-    font-family: Puritan;
-}
-
-
-.dashboard-section {
-    margin-bottom: 2.5rem;
-}
-
-.section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-}
-
-.section-header h2 {
-    margin: 0;
-    font-size: 1.15rem;
-}
-
-.btn-secundario {
-    display: flex;
-    align-items: center;
-    gap: .4rem;
-    padding: .5rem .9rem;
-    border: 1px solid var(--color-card);
-    border-radius: 10px;
-    background: transparent;
-    color: var(--color-text-secondary);
-    font-size: .82rem;
-    cursor: not-allowed;
-}
-
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: .5rem;
-    padding: 2.5rem 1rem;
-    border: 1px dashed var(--color-card);
-    border-radius: 14px;
-    color: var(--color-text-secondary);
-}
-
-.empty-state p {
-    margin: 0;
-    color: var(--color-text);
-    font-weight: 600;
-}
-
-.empty-state span {
-    font-size: .85rem;
-}
-
-.grupos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
-}
-
-.grupo-card {
-    padding: 1.2rem;
-    border: 1px solid var(--color-card);
-    border-radius: 14px;
-    background: var(--color-surface);
-    transition: .2s;
-}
-
-.grupo-card:hover {
-    border-color: var(--color-primary);
-    transform: translateY(-3px);
-}
-
-.grupo-card h3 {
-    margin: 0 0 .4rem 0;
-    font-size: 1rem;
-}
-
-.grupo-descripcion {
-    margin: 0 0 .8rem 0;
-    font-size: .82rem;
-    color: var(--color-text-secondary);
-    line-height: 1.4;
-}
-
-.grupo-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: .78rem;
-}
-
-.grupo-meta .codigo {
-    font-family: monospace;
-    background: var(--color-background);
-    padding: .2rem .5rem;
-    border-radius: 6px;
-    color: var(--color-primary);
-}
-
-
+/* Contenedor central: limita el ancho para que no se estire en pantallas grandes */
 .dashboard-content {
     padding: clamp(1.5rem, 4vw, 3rem);
     max-width: 1100px;
     margin: 0 auto;
 }
 
-.dashboard-content h1 {
-    margin: 0 0 .4rem 0;
-    font-size: clamp(1.4rem, 3vw, 1.8rem);
-}
-
-.subtitulo {
-    color: var(--color-text-secondary);
-    margin-bottom: 2rem;
-}
-
+/* Las 4 tarjetas de estadísticas: se acomodan solas según el ancho disponible */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
 }
-
 
 /* Guía actual (más ancha) + siguiente paso, lado a lado */
 .fila-principal {
@@ -232,11 +117,11 @@ const estadisticas = computed(() => [
 }
 
 /* Sin esto, la fila de temas con scroll ensancha la columna */
-.fila-principal > * {
+.fila-principal>* {
     min-width: 0;
 }
 
-/* CELULAR / TABLET: se apilan */
+/* Celular / tablet: se apilan */
 @media (max-width: 900px) {
     .fila-principal {
         grid-template-columns: 1fr;
