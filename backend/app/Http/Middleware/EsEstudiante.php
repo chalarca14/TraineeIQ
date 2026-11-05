@@ -9,12 +9,28 @@ use Symfony\Component\HttpFoundation\Response;
 class EsEstudiante
 {
     /**
-     * Handle an incoming request.
+     * Autorizar únicamente a usuarios autenticados con rol estudiante.
      *
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado',
+            ], 401);
+        }
+
+        if ($user->rol !== 'estudiante') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para esta acción',
+            ], 403);
+        }
+
         return $next($request);
     }
 }

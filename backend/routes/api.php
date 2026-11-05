@@ -1,22 +1,23 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController; // Asegúrate de ajustar este namespace según tu proyecto
-use App\Http\Controllers\ChatIaController;
-use App\Http\Controllers\RecomendacionController;
-use App\Http\Controllers\MiniProyectoController as MiniProyectoIaController;
 use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
 use App\Http\Controllers\Api\MiniProyectoController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChatIaController;
+use App\Http\Controllers\MiniProyectoController as MiniProyectoIaController;
+use App\Http\Controllers\RecomendacionController;
+use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | Rutas Públicas (Autenticación)
 |--------------------------------------------------------------------------
 */
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -24,10 +25,22 @@ Route::post('/login', [AuthController::class, 'login']);
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::get('/me', function (Request $request) {
+        return response()->json($request->user());
+    });
+
+    Route::middleware('EsEstudiante')
+        ->prefix('usuario')
+        ->group(function () {
+            Route::get('/modo', [UserController::class, 'showMode']);
+            Route::patch('/modo', [UserController::class, 'updateMode']);
+        });
+
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::post('/logout', [AuthController::class, 'logout']);
 
     // Chat con IA: guiado y libre (Integrante 1)
     Route::get('/conversaciones', [ChatIaController::class, 'index']);
@@ -44,9 +57,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Grupos
     Route::get('/grupos', [GrupoController::class, 'index']);
-    Route::post('/grupos', [GrupoController::class, 'store']);
+    Route::post('/grupos', [GrupoController::class, 'store'])->middleware('EsInstructor');
     Route::get('/grupos/{id}', [GrupoController::class, 'show']);
-    Route::post('/grupos/unirse', [GrupoController::class, 'unirse']);
+    Route::post('/grupos/unirse', [GrupoController::class, 'unirse'])->middleware('EsEstudiante');
 
     // Guías de Estudio
     Route::get('/guias', [GuiaController::class, 'index']);
