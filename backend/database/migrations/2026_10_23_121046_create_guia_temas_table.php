@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('guia_temas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('guia_id')->constrained('guias')->onDelete('cascade');
+            // Semana del tema; nullable para guias creadas antes de dividir por semanas
+            $table->foreignId('guia_semana_id')->nullable()->constrained('guia_semanas')->onDelete('cascade');
             $table->string('nombre_tema');
             $table->text('descripcion');
             $table->integer('orden')->default(1);

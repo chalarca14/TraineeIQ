@@ -12,19 +12,21 @@ class Recomendacion extends Model
     protected $table = 'recomendaciones';
 
     protected $fillable = [
-        'estudiante_id',
         'guia_id',
-        'tema_id',
-        'semana',
+        'guia_semana_id',
+        'orden',
         'nivel', // 'basico', 'recomendado', 'importante', 'avanzado'
         'contenido',
     ];
 
-    //Una recomendación va dirigida a un estudiante específico.
-
-    public function estudiante()
+    /**
+     * Convierte el JSON de contenido (titulo y descripcion) a un arreglo de PHP.
+     */
+    protected function casts(): array
     {
-        return $this->belongsTo(User::class, 'estudiante_id');
+        return [
+            'contenido' => 'array',
+        ];
     }
 
     //Pertenece a una guía de estudio.
@@ -34,10 +36,10 @@ class Recomendacion extends Model
         return $this->belongsTo(Guia::class, 'guia_id');
     }
 
-    //Opcionalmente puede estar vinculada a un tema específico.
+    //Pertenece a una semana de la guía.
 
-    public function tema()
+    public function semana()
     {
-        return $this->belongsTo(GuiaTema::class, 'tema_id');
+        return $this->belongsTo(GuiaSemana::class, 'guia_semana_id');
     }
 }

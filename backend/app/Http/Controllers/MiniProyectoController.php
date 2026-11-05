@@ -126,9 +126,10 @@ class MiniProyectoController extends Controller
             $guia = Guia::findOrFail($guiaId);
             $this->verificarAccesoAGuia($guia);
 
-            $miniProyectos = MiniProyecto::with('tema:id,nombre_tema')
+            $miniProyectos = MiniProyecto::with('semana:id,numero_semana,titulo')
                 ->where('guia_id', $guiaId)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('guia_semana_id')
+                ->orderBy('orden')
                 ->get();
 
             return response()->json([

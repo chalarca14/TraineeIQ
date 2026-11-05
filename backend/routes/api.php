@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\MiniProyectoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatIaController;
 use App\Http\Controllers\MiniProyectoController as MiniProyectoIaController;
-use App\Http\Controllers\RecomendacionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -49,10 +48,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversaciones/{id}/mensajes', [ChatIaController::class, 'enviarMensaje']);
     Route::delete('/conversaciones/{id}', [ChatIaController::class, 'destroy']);
 
-    // Recomendaciones y mini proyectos generados por IA (Integrante 1)
-    Route::post('/recomendaciones', [RecomendacionController::class, 'generarRecomendacion']);
-    Route::get('/recomendaciones/historial', [RecomendacionController::class, 'historial']);
-    Route::post('/mini-proyectos/generar', [MiniProyectoIaController::class, 'generarMiniProyecto']);
+    // Generacion a pedido reemplazada por el contenido por semana. Responde 410
+    // hasta que la Fase 4 elimine estas rutas y sus controladores.
+    $generacionReemplazada = fn () => response()->json([
+        'message' => 'Esta función fue reemplazada por el contenido por semana.',
+    ], 410);
+
+    Route::post('/recomendaciones', $generacionReemplazada);
+    Route::get('/recomendaciones/historial', $generacionReemplazada);
+    Route::post('/mini-proyectos/generar', $generacionReemplazada);
     Route::get('/mini-proyectos/guia/{guiaId}', [MiniProyectoIaController::class, 'porGuia']);
 
     // Grupos

@@ -44,6 +44,7 @@ class TraineeIQSeeder extends Seeder
             'descripcion'   => 'Grupo de prueba para desarrollo',
             'instructor_id' => $instructorId,
             'codigo_acceso' => 'SENA2025',
+            'semana_actual' => 2,
             'created_at'    => now(),
             'updated_at'    => now(),
         ]);
@@ -64,14 +65,12 @@ class TraineeIQSeeder extends Seeder
             [
                 'estudiante_id' => $estudiante1Id,
                 'grupo_id'      => $grupoId,
-                'semana_actual' => 1,
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ],
             [
                 'estudiante_id' => $estudiante2Id,
                 'grupo_id'      => $grupoId,
-                'semana_actual' => 2,
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ],

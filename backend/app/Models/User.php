@@ -86,7 +86,6 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Grupo::class, 'estudiante_grupo', 'estudiante_id', 'grupo_id')
                     ->using(EstudianteGrupo::class)
-                    ->withPivot('semana_actual')
                     ->withTimestamps();
     }
 
@@ -107,11 +106,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Recomendaciones emitidas para el estudiante.
+     * Entregas de mini proyectos hechas por el estudiante.
      */
-    public function recomendaciones()
+    public function entregas()
     {
-        return $this->hasMany(Recomendacion::class, 'estudiante_id');
+        return $this->hasMany(EntregaMiniProyecto::class, 'estudiante_id');
     }
 
 }

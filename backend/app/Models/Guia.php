@@ -14,6 +14,7 @@ class Guia extends Model
     protected $fillable = [
         'nombre',
         'archivo_pdf',
+        'hash_archivo',
         'semanas_totales',
         'grupo_id',
         'usuario_id',
@@ -32,6 +33,13 @@ class Guia extends Model
     public function usuario()
     {
         return $this->belongsTo(User::class, 'usuario_id');
+    }
+
+    //Una guía se divide en semanas.
+
+    public function semanas()
+    {
+        return $this->hasMany(GuiaSemana::class, 'guia_id')->orderBy('numero_semana');
     }
 
     //Una guía se divide en varios temas o módulos.

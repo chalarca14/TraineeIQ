@@ -11,7 +11,6 @@ class EstudianteGrupo extends Pivot
     protected $fillable = [
         'estudiante_id',
         'grupo_id',
-        'semana_actual',
     ];
 
     //Pertenece a un estudiante (usuario).
