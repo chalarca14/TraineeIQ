@@ -25,7 +25,7 @@ class GuiaController extends Controller
 
         if ($user->rol === 'instructor') {
             // El instructor ve las guías de sus grupos
-            $gruposIds = Grupo::where('profesor_id', $user->id)->pluck('id');
+            $gruposIds = Grupo::where('instructor_id', $user->id)->pluck('id');
             $guias = Guia::whereIn('grupo_id', $gruposIds)
                 ->with(['temas' => fn($q) => $q->orderBy('orden', 'asc')])
                 ->paginate(15);
@@ -74,7 +74,7 @@ class GuiaController extends Controller
             }
 
             $grupo = Grupo::find($request->grupo_id);
-            if (!$grupo || $grupo->profesor_id !== $user->id) {
+            if (!$grupo || $grupo->instructor_id !== $user->id) {
                 return response()->json(['message' => 'El grupo especificado no pertenece al instructor.'], 403);
             }
 
@@ -173,7 +173,7 @@ class GuiaController extends Controller
 
         if ($user->rol === 'instructor') {
             $grupo = Grupo::find($guia->grupo_id);
-            if (!$grupo || $grupo->profesor_id !== $user->id) {
+            if (!$grupo || $grupo->instructor_id !== $user->id) {
                 return response()->json(['message' => 'No tienes acceso a esta guía.'], 403);
             }
         } else {

@@ -11,17 +11,17 @@ use Illuminate\Support\Str;
 
 class GrupoController extends Controller
 {
-    //Listar los grupos del profesor o a los que pertenece el estudiante.
+    //Listar los grupos del instructor o a los que pertenece el estudiante.
 
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        if ($user->role === 'profesor'){
-            $grupo = Grupo::where('profesor_id', $user->id)->withCount ('estudiantes')->get();
-            } else {
+        if ($user->rol === 'instructor') {
+            $grupos = Grupo::where('instructor_id', $user->id)->withCount('estudiantes')->get();
+        } else {
             // Si es estudiante, listar los grupos en los que está inscrito
-            $grupos = $user->gruposInscritos()->with('profesor:id,name')->get();
+            $grupos = $user->gruposInscritos()->with('instructor:id,name')->get();
         }
 
         return response()->json([
@@ -31,7 +31,7 @@ class GrupoController extends Controller
     }
 
     /**
-     * Crear un nuevo grupo (Solo profesores).
+     * Crear un nuevo grupo (Solo instructores).
      */
     public function store(Request $request)
     {
@@ -46,7 +46,7 @@ class GrupoController extends Controller
         } while (Grupo::where('codigo_acceso', $codigo)->exists());
 
         $grupo = Grupo::create([
-            'profesor_id' => Auth::id(),
+            'instructor_id' => Auth::id(),
             'nombre' => $request->nombre,
             'descripcion' => $request->descripcion,
             'codigo_acceso' => $codigo,
@@ -101,7 +101,7 @@ class GrupoController extends Controller
      */
     public function show(int $id)
     {
-        $grupo = Grupo::with(['estudiantes:id,name,email', 'profesor:id,name'])->findOrFail($id);
+        $grupo = Grupo::with(['estudiantes:id,name,email', 'instructor:id,name'])->findOrFail($id);
 
         return response()->json([
             'success' => true,
