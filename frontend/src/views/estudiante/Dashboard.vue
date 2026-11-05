@@ -19,6 +19,7 @@ import { computed, ref, onMounted } from 'vue'
 import { BookOpen, CalendarDays, Star, Target } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { listarMisGuias } from '@/services/guiaService'
+import { RESUMEN_EJEMPLO } from '@/utils/progresoEjemplo'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import BannerBienvenida from '@/components/dashboard/BannerBienvenida.vue'
 import GuiaActualCard from '@/components/dashboard/GuiaActualCard.vue'
@@ -46,16 +47,9 @@ onMounted(async () => {
 })
 
 
-//DATOS DE EJEMPLOS: El backend aun no tiene semana, XP, ni progreso.
-//CUANDO EXISTAN LOS ENDPOINTS, ESTO SE DEBE REEMPLAZAR POR DATOS REALES
-
-const resumenEjemplo = {
-    semanaActual: 5,
-    semanasTotales: 12,
-    xp: 850,
-    xpEstaSemana: 120,
-    progreso: 68 // Porcentaje de progreso en la guía
-}
+// DATOS DE EJEMPLO: semana, XP y progreso vienen de utils/progresoEjemplo.js
+// porque el backend aún no los tiene (ver RESUMEN_EJEMPLO).
+const resumenEjemplo = RESUMEN_EJEMPLO
 
 const totalGuias = computed(() => guias.value?.length ?? null)
 const guiaActual = computed(() => guias.value?.[0] ?? null)
