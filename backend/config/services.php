@@ -39,6 +39,8 @@ return [
     'key'            => env('GEMINI_API_KEY'),
     'model'          => env('GEMINI_MODEL', 'gemini-3.6-flash'),
     'fallback_model' => env('GEMINI_FALLBACK_MODEL', 'gemini-3.5-flash-lite'),
+    // Una guia mas larga se rechaza con un mensaje claro, en vez de recortarla en silencio
+    'max_caracteres_guia' => (int) env('GEMINI_MAX_CARACTERES_GUIA', 300000),
 ],
 
 ];

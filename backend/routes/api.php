@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/guias', [GuiaController::class, 'index']);
     Route::post('/guias', [GuiaController::class, 'store']);
     Route::get('/guias/{id}', [GuiaController::class, 'show']);
+    Route::put('/guias/{id}', [GuiaController::class, 'update']);
 
     // Mini Proyectos (CRUD manual de Integrante 3)
     Route::get('/mini-proyectos', [MiniProyectoController::class, 'index']);

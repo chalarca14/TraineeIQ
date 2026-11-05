@@ -22,6 +22,12 @@ class GuiaSemana extends Model
         'error_mensaje',
     ];
 
+    // El texto completo solo lo usa el backend: no viaja en las respuestas de la API
+    protected $hidden = [
+        'contenido_texto',
+        'hash_contenido',
+    ];
+
     //Una semana pertenece a una guía.
 
     public function guia()
