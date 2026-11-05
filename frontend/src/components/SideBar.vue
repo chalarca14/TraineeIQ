@@ -63,11 +63,10 @@ const menuGrupo = [
 // Menú del Modo Personal
 const menuPersonal = [
     { etiqueta: 'Inicio', icono: Home, ruta: '/estudiante/dashboard', descripcion: 'Resumen del aprendizaje personal.' },
-    { etiqueta: 'Mis guías', icono: BookOpen, ruta: null, descripcion: 'Guías que tú has cargado, organizadas por temas.' },
+    { etiqueta: 'Mis guías', icono: BookOpen, ruta: '/estudiante/guias', descripcion: 'Guías que tú has cargado, organizadas por temas.' },
     { etiqueta: 'Mini proyectos', icono: Rocket, ruta: null, descripcion: 'Proyectos prácticos adecuados a tu nivel.' },
     { etiqueta: 'IA', icono: Bot, ruta: null, descripcion: 'Recomendaciones sobre tus guías y chat libre para resolver dudas.' },
-    { etiqueta: 'Historial · Perfil', icono: History, ruta: null, descripcion: 'Actividad personal anterior y datos de la cuenta.' },
-    { etiqueta: 'Mis guías', icono: BookOpen, ruta: '/estudiante/guias', descripcion: 'Guías que tú has cargado, organizadas por temas.' }
+    { etiqueta: 'Historial · Perfil', icono: History, ruta: null, descripcion: 'Actividad personal anterior y datos de la cuenta.' }
 ]
 
 // El instructor no tiene modos, así que su menú no cambia
