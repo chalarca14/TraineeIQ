@@ -95,10 +95,11 @@ h2 {
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
+    margin-bottom: 1.2rem; /* aire entre el título de la guía y la barra de progreso */
 }
 
 .resumen h3 {
-    margin-bottom: .3rem;
+    margin-bottom: .5rem;
 }
 
 .chip {
@@ -126,6 +127,20 @@ h2 {
     background: var(--color-primary-hover);
 }
 
+/* Barra + porcentaje en una sola fila (el porcentaje no se encoge ni se parte en dos líneas) */
+.progreso {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    margin-bottom: 1.4rem;
+}
+
+.progreso span {
+    flex-shrink: 0;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
 
 .barra {
     flex: 1;
