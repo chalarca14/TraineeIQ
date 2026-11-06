@@ -7,17 +7,39 @@ import api from './api'
 // Gemini puede tardar; sin esto axios esperaría "para siempre" y el usuario vería la pantalla colgada.
 const TIMEOUT_IA = 120000
 
+const MAX_TITULO = 50
+
+// Título de una conversación a partir de su primer mensaje (como en ChatGPT): una sola línea,
+// recortada para que quepa en el panel lateral.
+export function tituloDesdeMensaje(texto) {
+  const limpio = (texto ?? '').trim().replace(/\s+/g, ' ')
+  return limpio.length > MAX_TITULO ? `${limpio.slice(0, MAX_TITULO).trimEnd()}…` : limpio
+}
+
 // Crea una conversación. En modo libre NO se envía guia_id (el backend lo prohíbe con 422).
-// El título se arma aquí porque el backend lo exige.
-export async function crearConversacion(tipo, guiaId = null) {
-  const cuerpo = {
-    tipo,
-    titulo: tipo === 'guiada' ? `Conversación guiada (guía ${guiaId})` : 'Conversación libre'
-  }
+// PENDIENTE DEL BACKEND: hoy ChatIaController::store NO valida ni guarda `titulo`; fija siempre
+// "Conversacion libre" o "Conversacion sobre <guía>". Se envía igualmente (Laravel ignora los
+// campos que no valida) para que el panel muestre el primer mensaje en cuanto el backend lo acepte.
+export async function crearConversacion(tipo, guiaId = null, primerMensaje = '') {
+  const cuerpo = { tipo }
   if (tipo === 'guiada') cuerpo.guia_id = guiaId
+  if (primerMensaje) cuerpo.titulo = tituloDesdeMensaje(primerMensaje)
 
   // El backend responde la conversación directamente (status 201), sin envoltorio.
   const { data } = await api.post('/conversaciones', cuerpo)
+  return data
+}
+
+// Conversaciones del aprendiz, la más reciente primero. El backend pagina de 15 en 15 y aquí
+// solo se necesita la primera página: el panel muestra las últimas 10.
+export async function listarConversaciones() {
+  const { data } = await api.get('/conversaciones')
+  return data.data
+}
+
+// Una conversación con su historial completo (`mensajes`), para reabrirla.
+export async function obtenerConversacion(id) {
+  const { data } = await api.get(`/conversaciones/${id}`)
   return data
 }
 

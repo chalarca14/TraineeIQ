@@ -38,6 +38,12 @@ const routes = [
         name: 'ChatIA',
         component: () => import('../views/estudiante/ChatIA.vue')
       },
+      // Reabrir una conversación guardada (la lista del panel lateral enlaza aquí)
+      {
+        path: 'ia/:conversacionId',
+        name: 'ChatIAConversacion',
+        component: () => import('../views/estudiante/ChatIA.vue')
+      },
 
 
       {
