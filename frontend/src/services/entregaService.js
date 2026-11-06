@@ -42,8 +42,8 @@ async function enviarEntregaReal(proyectoId, repoUrl) {
 // Cómo recorrer los 5 estados con el servicio de prueba:
 //   · un enlace que contenga "privado", "vacio", "grande" o "falla" termina en error
 //     (repo_privado, repo_vacio, repo_muy_grande, ia_no_pudo)
-//   · la 1.ª entrega normal termina en "necesita mejoras" (intento 1)
-//   · la 2.ª entrega normal termina en "aprobado" (intento 2)
+//   · el 1.er envío normal (sin esas palabras) termina en "necesita mejoras"
+//   · el 2.º envío normal termina en "aprobado" (los envíos con error no cuentan para esto)
 //   · "evaluando" dura 6 s, así que se ve el sondeo (2 consultas de 3 s)
 //   · un proyecto que la lista marca como completado ya trae una entrega aprobada
 //   · enviar mientras hay una evaluación en curso responde 429, como haría el backend
@@ -98,7 +98,10 @@ function resultadoEjemplo(registro, contexto) {
     const error = errorSegunUrl(registro.repo_url)
     if (error) return { ...base, estado: 'error', ...error }
 
-    if (registro.intento < 2) {
+    // El resultado depende de cuántos envíos NORMALES van (los que terminan en error no cuentan):
+    // así el 1.º envío válido siempre da "necesita mejoras" y el 2.º "aprobado". El número de
+    // intento que se muestra sí cuenta todos los envíos. (`?? intento`: registros guardados antes.)
+    if ((registro.normales ?? registro.intento) < 2) {
         return {
             ...base,
             estado: 'necesita_mejoras',
@@ -186,6 +189,7 @@ async function enviarEntregaEjemplo(proyectoId, repoUrl) {
     const ahora = Date.now()
     const registro = {
         intento: (previo?.intento ?? 0) + 1,
+        normales: (previo?.normales ?? 0) + (errorSegunUrl(repoUrl) ? 0 : 1),
         repo_url: repoUrl,
         fecha_entrega: new Date(ahora).toISOString(),
         evaluado_en: ahora + DURACION_EVALUACION_MS
