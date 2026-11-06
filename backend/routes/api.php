@@ -74,5 +74,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('EsEstudiante')->whereNumber('id')->group(function () {
         Route::get('/mini-proyectos/{id}/entrega', [EntregaMiniProyectoController::class, 'show']);
         Route::put('/mini-proyectos/{id}/entrega', [EntregaMiniProyectoController::class, 'guardar']);
+        Route::post('/mini-proyectos/{id}/entrega/evaluar', [EntregaMiniProyectoController::class, 'evaluar']);
     });
 });

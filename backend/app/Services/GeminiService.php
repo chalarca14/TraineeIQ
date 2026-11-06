@@ -32,6 +32,9 @@ use Illuminate\Support\Facades\Log;
  * CAMBIOS v8:
  * - Se eliminan generarRecomendaciones() y generarMiniProyectos(): el contenido ya no se
  *   genera a pedido, sino una vez por semana con generarContenidoSemana().
+ * CAMBIOS v9:
+ * - evaluarCodigo() evalua un repositorio contra los criterios del mini proyecto.
+ *   Gemini nunca fija el puntaje: solo dice cuanto se cumple cada criterio.
  */
 class GeminiService
 {
@@ -146,6 +149,52 @@ class GeminiService
         ],
     ];
 
+    // Esquema que Gemini debe cumplir al evaluar una entrega (contrato de la Fase 0)
+    private const ESQUEMA_EVALUACION = [
+        'type'       => 'object',
+        'required'   => ['resumen', 'criterios', 'requisitos', 'buenas_practicas', 'sugerencias'],
+        'properties' => [
+            'resumen'   => ['type' => 'string'],
+            'criterios' => [
+                'type'  => 'array',
+                'items' => [
+                    'type'       => 'object',
+                    'required'   => ['criterio', 'cumplimiento', 'comentario'],
+                    'properties' => [
+                        'criterio'     => ['type' => 'string'],
+                        'cumplimiento' => ['type' => 'integer'],
+                        'comentario'   => ['type' => 'string'],
+                    ],
+                ],
+            ],
+            'requisitos' => [
+                'type'  => 'array',
+                'items' => [
+                    'type'       => 'object',
+                    'required'   => ['requisito', 'cumple', 'comentario'],
+                    'properties' => [
+                        'requisito'  => ['type' => 'string'],
+                        'cumple'     => ['type' => 'boolean'],
+                        'comentario' => ['type' => 'string'],
+                    ],
+                ],
+            ],
+            'buenas_practicas' => [
+                'type'  => 'array',
+                'items' => [
+                    'type'       => 'object',
+                    'required'   => ['practica', 'cumple', 'comentario'],
+                    'properties' => [
+                        'practica'   => ['type' => 'string'],
+                        'cumple'     => ['type' => 'boolean'],
+                        'comentario' => ['type' => 'string'],
+                    ],
+                ],
+            ],
+            'sugerencias' => ['type' => 'array', 'items' => ['type' => 'string']],
+        ],
+    ];
+
     private static ?GeminiService $instancia = null;
     private string $apiKey;
     private string $modelo;
@@ -233,6 +282,42 @@ class GeminiService
         return [
             'recomendaciones' => $this->validarRecomendaciones($datos['recomendaciones'] ?? null),
             'mini_proyectos'  => $this->validarMiniProyectos($datos['mini_proyectos'] ?? null),
+        ];
+    }
+
+    /**
+     * Evalua el codigo de una entrega (contrato 2.3). Recibe los textos exactos de los
+     * criterios, requisitos y practicas, y exige que la respuesta traiga esos mismos.
+     *
+     * @throws IaNoDisponibleException Si Gemini no responde.
+     * @throws RespuestaIaInvalidaException Si la respuesta no cumple el contrato.
+     */
+    public function evaluarCodigo(array $criterios, array $requisitos, array $practicas, string $codigo): array
+    {
+        $comoJson = fn (array $lista) => json_encode($lista, JSON_UNESCAPED_UNICODE);
+
+        $prompt = $this->cargarPrompt('evaluar_codigo', [
+            '{{CRITERIOS}}'  => $comoJson($criterios),
+            '{{REQUISITOS}}' => $comoJson($requisitos),
+            '{{PRACTICAS}}'  => $comoJson($practicas),
+            // Evita que el repositorio cierre la etiqueta y su texto parezca una instruccion
+            '{{CODIGO}}'     => str_ireplace(['<repositorio>', '</repositorio>'], ' ', $codigo),
+        ]);
+
+        $texto = $this->llamarApi($prompt, self::ESQUEMA_EVALUACION);
+
+        if ($texto === null) {
+            throw new IaNoDisponibleException('Gemini no respondio al evaluar el codigo.');
+        }
+
+        $datos = $this->parsearJson($texto, []);
+
+        return [
+            'resumen'          => $this->textoObligatorio($datos, 'resumen'),
+            'criterios'        => $this->validarCriteriosEvaluados($datos['criterios'] ?? null, $criterios),
+            'requisitos'       => $this->validarCumplimiento($datos['requisitos'] ?? null, 'requisito', $requisitos),
+            'buenas_practicas' => $this->validarCumplimiento($datos['buenas_practicas'] ?? null, 'practica', $practicas),
+            'sugerencias'      => $this->validarSugerencias($datos['sugerencias'] ?? null),
         ];
     }
 
@@ -456,6 +541,81 @@ class GeminiService
         }
 
         return $validos;
+    }
+
+    /**
+     * Valida el cumplimiento de cada criterio: debe ser un entero de 0 a 100.
+     */
+    private function validarCriteriosEvaluados(mixed $evaluados, array $esperados): array
+    {
+        return array_map(function (array $item) {
+            $cumplimiento = $item['cumplimiento'] ?? null;
+
+            if (! is_int($cumplimiento) || $cumplimiento < 0 || $cumplimiento > 100) {
+                throw new RespuestaIaInvalidaException('Un criterio trae un cumplimiento invalido.');
+            }
+
+            return [
+                'criterio'     => $item['criterio'],
+                'cumplimiento' => $cumplimiento,
+                'comentario'   => $this->textoObligatorio($item, 'comentario'),
+            ];
+        }, $this->alinearConEsperados($evaluados, 'criterio', $esperados));
+    }
+
+    /**
+     * Valida los requisitos o las buenas practicas: cada uno dice si se cumple y por que.
+     */
+    private function validarCumplimiento(mixed $evaluados, string $campo, array $esperados): array
+    {
+        return array_map(function (array $item) use ($campo) {
+            if (! is_bool($item['cumple'] ?? null)) {
+                throw new RespuestaIaInvalidaException("Falta cumple en {$campo}.");
+            }
+
+            return [
+                $campo       => $item[$campo],
+                'cumple'     => $item['cumple'],
+                'comentario' => $this->textoObligatorio($item, 'comentario'),
+            ];
+        }, $this->alinearConEsperados($evaluados, $campo, $esperados));
+    }
+
+    /**
+     * Exige exactamente los textos esperados, sin faltantes ni sobrantes, y los
+     * devuelve en el orden del mini proyecto.
+     */
+    private function alinearConEsperados(mixed $evaluados, string $campo, array $esperados): array
+    {
+        if (! is_array($evaluados) || count($evaluados) !== count($esperados)) {
+            throw new RespuestaIaInvalidaException("La evaluacion no trae todos los elementos de {$campo}.");
+        }
+
+        $porTexto = [];
+
+        foreach ($evaluados as $item) {
+            $porTexto[$this->textoObligatorio($item, $campo)] = $item;
+        }
+
+        return array_map(function (string $esperado) use ($porTexto, $campo) {
+            if (! isset($porTexto[$esperado])) {
+                throw new RespuestaIaInvalidaException("La evaluacion cambio un texto de {$campo}.");
+            }
+
+            return [$campo => $esperado] + $porTexto[$esperado];
+        }, array_values($esperados));
+    }
+
+    /**
+     * Valida las sugerencias: una lista de textos que puede estar vacia.
+     */
+    private function validarSugerencias(mixed $sugerencias): array
+    {
+        if ($sugerencias === []) {
+            return [];
+        }
+
+        return $this->listaDeTextos(['sugerencias' => $sugerencias], 'sugerencias');
     }
 
     /**
