@@ -1,15 +1,29 @@
 <template>
     <span class="chip" :style="{ '--c': tecnologia.color }">
-        <b class="insignia" aria-hidden="true">{{ tecnologia.abrev }}</b>
+        <!-- Con logo oficial si lo tenemos; si no, una insignia de color con la abreviatura -->
+        <span v-if="logo" class="insignia con-logo" aria-hidden="true"><img :src="logo" alt="" /></span>
+        <b v-else class="insignia" aria-hidden="true">{{ tecnologia.abrev }}</b>
         {{ tecnologia.etiqueta }}
     </span>
 </template>
 
 <script setup>
-// Etiqueta de tecnología: insignia de color con la abreviatura + el nombre.
-// Se usa una insignia (y no el logo oficial) para no depender de imágenes de marca;
-// si más adelante se agregan los logos SVG, solo cambia el contenido de .insignia.
-defineProps({ tecnologia: { type: Object, required: true } })
+import { computed } from 'vue'
+import python from '@/assets/logos/python.svg'
+import javascript from '@/assets/logos/javascript.svg'
+import java from '@/assets/logos/java.svg'
+import csharp from '@/assets/logos/csharp.svg'
+import html from '@/assets/logos/html5.svg'
+import css from '@/assets/logos/css3.svg'
+
+const props = defineProps({ tecnologia: { type: Object, required: true } })
+
+// Los logos van por nombre de tecnología (el mismo que devuelve tecnologiasDelProyecto).
+// Se mapean aquí, y no en utils/, para que utils siga siendo JavaScript puro y fácil de probar.
+// SQL, Vue y PHP no tienen logo aún: usan la insignia con abreviatura.
+const LOGOS = { Python: python, JavaScript: javascript, Java: java, 'C#': csharp, HTML: html, CSS: css }
+
+const logo = computed(() => LOGOS[props.tecnologia.etiqueta] ?? null)
 </script>
 
 <style scoped>
@@ -37,5 +51,21 @@ defineProps({ tecnologia: { type: Object, required: true } })
     background: var(--c);
     color: var(--color-background);
     font-size: .62rem;
+}
+
+/* Fondo claro detrás del logo: los logos de marca están pensados para fondos claros */
+.insignia.con-logo {
+    /* Tamaño FIJO: con width:100% en la imagen y sin ancho en el contenedor, el SVG tomaba su
+       tamaño natural (grande) y deformaba toda la etiqueta */
+    width: 22px;
+    padding: 3px;
+    background: var(--color-text);
+}
+
+.insignia img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 </style>

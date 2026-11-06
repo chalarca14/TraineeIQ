@@ -5,12 +5,12 @@
 
         <div v-else-if="error" class="estado error">
             <p>{{ error }}</p>
-            <button type="button" class="boton" @click="cargar">Reintentar</button>
+            <button type="button" class="btn btn-secundario" @click="cargar">Reintentar</button>
         </div>
 
         <div v-else-if="!proyecto" class="estado vacio">
             <p>No encontramos este mini proyecto.</p>
-            <RouterLink class="boton" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
+            <RouterLink class="btn btn-secundario" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
         </div>
 
         <template v-else>
@@ -25,7 +25,7 @@
                 <span class="candado"><Lock :size="28" /></span>
                 <h2>Este proyecto está bloqueado</h2>
                 <p>Completa el nivel {{ NOMBRES_NIVEL[proyecto.bloqueadoPor] ?? 'anterior' }} de este tema para desbloquearlo.</p>
-                <RouterLink class="boton" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
+                <RouterLink class="btn btn-secundario" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
             </section>
 
             <template v-else>
@@ -202,21 +202,6 @@ onMounted(cargar)
 .bloqueado h2 {
     color: var(--color-text);
     font-size: 1.1rem;
-}
-
-.boton {
-    padding: .6rem 1.2rem;
-    border: 1px solid var(--color-primary);
-    border-radius: 12px;
-    background: transparent;
-    color: var(--color-primary-light);
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.boton:hover {
-    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 @media (max-width: 520px) {

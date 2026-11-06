@@ -12,7 +12,7 @@
                         aria-label="Enlace del repositorio de GitHub" :aria-invalid="Boolean(error)"
                         :disabled="deshabilitado" @input="error = ''" />
                 </label>
-                <button type="submit" :disabled="deshabilitado">
+                <button type="submit" class="btn btn-primario" :disabled="deshabilitado">
                     <Upload :size="16" /> Subir entrega
                 </button>
             </div>
@@ -99,28 +99,6 @@ input {
     color: var(--color-text);
 }
 
-button {
-    display: flex;
-    align-items: center;
-    gap: .45rem;
-    padding: 0 1.1rem;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary) 40%, transparent);
-    color: var(--color-text);
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: transform .15s, box-shadow .15s;
-}
-
-button:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 22px color-mix(in srgb, var(--color-primary) 55%, transparent);
-}
-
-button:disabled,
 input:disabled {
     opacity: .5;
     cursor: not-allowed;
@@ -138,8 +116,7 @@ input:disabled {
         flex-direction: column;
     }
 
-    button {
-        justify-content: center;
+    .btn {
         padding: .75rem 1rem;
     }
 }

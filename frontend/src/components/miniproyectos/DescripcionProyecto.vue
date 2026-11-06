@@ -2,7 +2,7 @@
     <div class="descripcion">
 
         <section class="bloque">
-            <h3><span class="medalla info"><Info :size="18" /></span> Información del proyecto</h3>
+            <h3><Medalla :icono="Info" color="info" /> Información del proyecto</h3>
             <div class="info-fila">
                 <p class="texto"><TextoConCodigo :texto="proyecto.descripcion" /></p>
                 <dl>
@@ -13,7 +13,7 @@
         </section>
 
         <section v-if="pasos.length" class="bloque">
-            <h3><span class="medalla"><Code :size="18" /></span> Instrucciones</h3>
+            <h3><Medalla :icono="Code" /> Instrucciones</h3>
             <ol>
                 <li v-for="(paso, i) in pasos" :key="i"><TextoConCodigo :texto="paso" /></li>
             </ol>
@@ -24,20 +24,20 @@
              `requisitos` (hoy manda solo titulo, descripcion, dificultad y contenido). No se
              inventan en el frontend. Son casillas de solo lectura: quien verifica es la IA. -->
         <section v-if="proyecto.requisitos?.length" class="bloque">
-            <h3><span class="medalla ok"><ListChecks :size="18" /></span> Requisitos del proyecto</h3>
+            <h3><Medalla :icono="ListChecks" color="success" /> Requisitos del proyecto</h3>
             <ListaRequisitos :requisitos="proyecto.requisitos" />
         </section>
 
         <section class="entregar">
             <div class="columnas">
                 <div class="vscode">
-                    <h3><span class="medalla"><Rocket :size="18" /></span> Desarrolla tu proyecto</h3>
+                    <h3><Medalla :icono="Rocket" /> Desarrolla tu proyecto</h3>
                     <p class="texto">Puedes trabajar en tu computador con Visual Studio Code.</p>
                     <!-- Un enlace web NO puede crear el proyecto en el computador del aprendiz: el navegador
                          no tiene permiso para escribir carpetas ni archivos. Lo máximo que puede hacer es
                          pedirle al sistema que abra VS Code con el protocolo vscode://, y solo funciona si
                          ya está instalado. Por eso va el texto de apoyo con el enlace oficial de descarga. -->
-                    <a class="btn-vscode" href="vscode://">
+                    <a class="btn btn-info btn-vscode" href="vscode://">
                         <Code :size="18" /> Abrir en Visual Studio Code <ExternalLink :size="15" />
                     </a>
                     <p class="nota">
@@ -56,6 +56,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Info, Code, ExternalLink, Rocket, Star, ListChecks } from 'lucide-vue-next'
+import Medalla from '@/components/ui/Medalla.vue'
 import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
 import EntregaForm from '@/components/miniproyectos/EntregaForm.vue'
 import ListaRequisitos from '@/components/miniproyectos/ListaRequisitos.vue'
@@ -98,28 +99,6 @@ h3 {
     gap: .6rem;
     margin-bottom: .6rem;
     font-size: 1.02rem;
-}
-
-/* Círculo de color con el icono de cada sección */
-.medalla {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--color-primary) 22%, transparent);
-    color: var(--color-primary-light);
-}
-
-.medalla.info {
-    background: color-mix(in srgb, var(--color-info) 22%, transparent);
-    color: var(--color-info);
-}
-
-.medalla.ok {
-    background: color-mix(in srgb, var(--color-success) 22%, transparent);
-    color: var(--color-success);
 }
 
 .texto,
@@ -212,23 +191,9 @@ ol li::before {
     border-right: 1px solid var(--color-border);
 }
 
+/* El aspecto del botón viene de las clases globales .btn .btn-info; aquí solo su separación */
 .btn-vscode {
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
     margin: .8rem 0 .5rem;
-    padding: .7rem 1.2rem;
-    border-radius: 12px;
-    background: linear-gradient(90deg, var(--color-info), var(--color-primary));
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-info) 35%, transparent);
-    color: var(--color-text);
-    font-weight: 600;
-    text-decoration: none;
-    transition: transform .15s;
-}
-
-.btn-vscode:hover {
-    transform: translateY(-1px);
 }
 
 .nota a {
