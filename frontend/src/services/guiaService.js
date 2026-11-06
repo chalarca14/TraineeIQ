@@ -83,3 +83,30 @@ export async function obtenerGuia(id) {
     const { data } = await api.get(`/guias/${id}`)
     return data.guia
 }
+
+/** Devuelve las guías que puede ver el usuario, personales y de grupo. */
+export async function listarGuias() {
+    const { data } = await api.get('/guias')
+    return data.data
+}
+
+/** Devuelve las semanas de una guía con su estado y si están disponibles. */
+export async function getSemanas(guiaId) {
+    const { data } = await api.get(`/guias/${guiaId}/semanas`)
+    return data.semanas
+}
+
+/** Devuelve las recomendaciones y los mini proyectos de una semana. */
+export async function getSemana(guiaId, numero) {
+    const { data } = await api.get(`/guias/${guiaId}/semanas/${numero}`)
+    return data.semana
+}
+
+/**
+ * Pide generar una semana. Con forzar la regenera (solo el dueño de la guía).
+ * El timeout supera los 180 s que el backend le da a esta petición.
+ */
+export async function generarSemana(guiaId, numero, forzar = false) {
+    const { data } = await api.post(`/guias/${guiaId}/semanas/${numero}/generar`, { forzar }, { timeout: 200000 })
+    return data.semana
+}

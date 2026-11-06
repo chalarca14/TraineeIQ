@@ -69,7 +69,28 @@ const routes = [
     ]
   },
 
-  
+  // PRUEBA-BACKEND: inicio. Borrar este bloque cuando exista la vista definitiva
+  {
+    path: '/prueba',
+    component: () => import('../layouts/AppLayout.vue'),
+    meta: {
+      requiereAuth: true
+    },
+    children: [
+      {
+        path: 'guias',
+        name: 'GuiasPrueba',
+        component: () => import('../views/prueba/GuiasPrueba.vue')
+      },
+      {
+        path: 'guias/:id',
+        name: 'GuiaSemanasPrueba',
+        component: () => import('../views/prueba/GuiaSemanasPrueba.vue')
+      }
+    ]
+  },
+  // PRUEBA-BACKEND: fin
+
   // TEMPORAL: chat de prueba para el estudiante (se reemplaza por ChatLibre/ChatGuia)
 
 
