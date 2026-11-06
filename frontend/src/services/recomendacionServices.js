@@ -18,6 +18,13 @@ export async function generarRecomendaciones(temaId) {
     return data.recomendaciones
 }
 
+// Todas las recomendaciones del aprendiz, la más reciente primero (cada una trae `tema.nombre_tema`).
+// Este endpoint no pagina: devuelve la lista completa.
+export async function obtenerHistorialRecomendaciones() {
+    const { data } = await api.get('/recomendaciones/historial')
+    return data.historial
+}
+
 // "contenido" puede ser texto con un JSON o ya un objeto: aquí lo dejamos siempre como objeto
 export function leerContenido(recomendacion) {
     try {

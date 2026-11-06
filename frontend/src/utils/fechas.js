@@ -14,6 +14,18 @@ export function fechaRelativa(valor) {
     return formatearFecha(valor)
 }
 
+/** ¿La fecha cae dentro de los últimos `dias` días? Con `dias` en 0 o null no filtra (opción "Todo").
+ *  Se cuenta desde el inicio del día de hoy hacia atrás, para que "últimos 7 días" incluya
+ *  todo el día de hace 7 días y no se corte a mitad de la tarde. */
+export function dentroDeUltimosDias(valor, dias) {
+    if (!dias) return true
+    const fecha = new Date(valor)
+    if (Number.isNaN(fecha.getTime())) return false
+    const hoy = new Date()
+    const desde = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - dias)
+    return fecha >= desde
+}
+
 /** Hora en formato "10:24". Devuelve '' si la fecha no es válida. */
 export function horaCorta(valor) {
     const fecha = new Date(valor)

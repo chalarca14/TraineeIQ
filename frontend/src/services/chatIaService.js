@@ -37,6 +37,14 @@ export async function listarConversaciones() {
   return data.data
 }
 
+// Una página de conversaciones para el Historial, que sí necesita llegar a las más viejas.
+// El backend usa paginate(15) de Laravel: junto con `data` manda `current_page` y `last_page`.
+// Se devuelve `hayMas` ya calculado para que la vista no conozca el formato del paginador.
+export async function listarConversacionesPagina(pagina = 1) {
+  const { data } = await api.get('/conversaciones', { params: { page: pagina } })
+  return { items: data.data ?? [], hayMas: (data.current_page ?? 1) < (data.last_page ?? 1) }
+}
+
 // Una conversación con su historial completo (`mensajes`), para reabrirla.
 export async function obtenerConversacion(id) {
   const { data } = await api.get(`/conversaciones/${id}`)
