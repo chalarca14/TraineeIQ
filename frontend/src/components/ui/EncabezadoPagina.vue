@@ -133,6 +133,7 @@ h1 {
 }
 
 .compacto .datos p {
+    max-width: none; /* una sola línea en escritorio: menos alto */
     margin-top: .1rem;
     font-size: .85rem;
 }
@@ -180,6 +181,11 @@ h1 {
 
     .compacto .acciones {
         align-self: center;
+    }
+
+    /* En celular la descripción se omite: el título y las etiquetas bastan y el chat gana altura */
+    .compacto .datos p {
+        display: none;
     }
 }
 </style>
