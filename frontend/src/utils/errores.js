@@ -4,6 +4,8 @@ export function mensajeDeError(err) {
     if (status === 403) return 'No tienes acceso a esta guía.'
     if (status === 422) return err.response.data?.message ?? 'No se pudo procesar este tema.'
     if (status === 503) return err.response.data?.message ?? 'La IA está saturada. Intenta en un momento.'
+    // 429: demasiadas peticiones (por ejemplo, otra entrega mientras la anterior aún se evalúa)
+    if (status === 429) return 'Ya hay una evaluación en curso o hiciste demasiados envíos seguidos. Espera un momento y vuelve a intentarlo.'
     if (status >= 500) return 'El servidor tuvo un problema. Intenta de nuevo.'
     if (err.code === 'ECONNABORTED') return 'La IA tardó demasiado. Intenta de nuevo.'
     // Sin respuesta del servidor: backend apagado o sin internet

@@ -26,6 +26,17 @@ const claveDeCadena = (p) => `${p.guia_id}-${p.tema_id ?? 'guia'}`
 const porNivelEId = (a, b) =>
     (ORDEN_NIVEL[a.dificultad] ?? 0) - (ORDEN_NIVEL[b.dificultad] ?? 0) || a.id - b.id
 
+/**
+ * Siguiente proyecto del MISMO tema (el nivel que sigue), para el botón "Continuar" de una
+ * entrega aprobada. Devuelve null si ya es el último. Es solo navegación: si está desbloqueado
+ * o no lo sigue decidiendo el backend (cuando mande `siguiente_proyecto_id`, usar ese).
+ */
+export function siguienteProyecto(proyecto, todos) {
+    const cadena = todos.filter((p) => claveDeCadena(p) === claveDeCadena(proyecto)).sort(porNivelEId)
+    const nivelActual = ORDEN_NIVEL[proyecto.dificultad] ?? 0
+    return cadena.find((p) => (ORDEN_NIVEL[p.dificultad] ?? 0) > nivelActual) ?? null
+}
+
 // Nivel que hay que APROBAR para abrir cada nivel. El básico no tiene requisito: nunca se bloquea.
 const NIVEL_PREVIO = { intermedio: 'basico', avanzado: 'intermedio' }
 
