@@ -68,11 +68,10 @@ defineExpose({ enfocar: () => nueva.value?.$el?.focus() })
       </li>
     </ul>
 
-    <!-- TODO Tarea 5: cuando exista /estudiante/historial, cambiar este <span> por un RouterLink.
-         Hoy no se enlaza porque el router manda toda ruta desconocida a /login. -->
-    <span class="panel__historial" aria-disabled="true" title="Disponible próximamente">
-      <History :size="15" /> Ver todo el historial <small>Próximamente</small>
-    </span>
+    <!-- Al navegar se cierra el cajón (en celular) igual que con las conversaciones de la lista -->
+    <RouterLink :to="{ name: 'Historial' }" class="panel__historial" @click="$emit('cerrar')">
+      <History :size="15" /> Ver todo el historial
+    </RouterLink>
   </aside>
 </template>
 
@@ -205,14 +204,12 @@ h2 { font-size: .95rem; }
   border-top: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   font-size: .8rem;
-  opacity: .7;
-  cursor: not-allowed;
+  text-decoration: none;
+  transition: color .2s;
 }
 
-.panel__historial small {
-  margin-left: auto;
-  color: var(--color-warning);
-  font-size: .68rem;
+.panel__historial:hover {
+  color: var(--color-text);
 }
 
 /* Cajón: bajo 900 px el panel no cabe junto al chat, así que sale desde la izquierda.

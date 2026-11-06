@@ -66,6 +66,13 @@ const routes = [
         path: 'mini-proyectos/:id',
         name: 'MiniProyectoDetalle',
         component: () => import('../views/estudiante/MiniProyectoDetalle.vue')
+      },
+
+      // Historial de actividad (conversaciones con la IA y recomendaciones)
+      {
+        path: 'historial',
+        name: 'Historial',
+        component: () => import('../views/estudiante/Historial.vue')
       }
 
     ]
