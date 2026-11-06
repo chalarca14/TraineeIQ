@@ -1,5 +1,5 @@
 <template>
-    <article class="tema-card">
+    <article class="tema-card" :class="{ abierta: abierto }">
         <button type="button" class="tema-header" :aria-expanded="abierto" @click="abierto = !abierto">
             <span class="tema-orden">{{ tema.orden }}</span>
             <strong>{{ tema.nombre_tema }}</strong>
@@ -10,11 +10,11 @@
             <p class="tema-descripcion">{{ tema.descripcion }}</p>
 
             <div class="tema-acciones">
-                <button type="button" class="btn-ia" :disabled="cargandoRec" @click="pedirRecomendaciones">
+                <button type="button" class="btn btn-secundario btn-sm" :disabled="cargandoRec" @click="pedirRecomendaciones">
                     <Sparkles :size="16" />
                     {{ cargandoRec ? 'Generando...' : 'Generar recomendaciones' }}
                 </button>
-                <button type="button" class="btn-ia" :disabled="cargandoMini" @click="pedirMiniProyectos">
+                <button type="button" class="btn btn-secundario btn-sm" :disabled="cargandoMini" @click="pedirMiniProyectos">
                     <Rocket :size="16" />
                     {{ cargandoMini ? 'Generando...' : 'Generar mini proyectos' }}
                 </button>
@@ -24,27 +24,27 @@
             <p v-if="errorMini" class="error">{{ errorMini }}</p>
 
             <section v-if="recomendaciones.length" class="resultados">
-                <h4>Recomendaciones</h4>
+                <h4><Medalla :icono="Sparkles" :size="26" /> Recomendaciones</h4>
                 <div v-for="r in recomendaciones" :key="r.id" class="resultado">
                     <div class="resultado-top">
                         <strong>{{ leerContenido(r).titulo }}</strong>
                         <EtiquetaNivel :valor="r.nivel" />
                     </div>
-                    <p>{{ leerContenido(r).descripcion }}</p>
+                    <p><TextoConCodigo :texto="leerContenido(r).descripcion" /></p>
                 </div>
             </section>
 
             <section v-if="miniProyectos.length" class="resultados">
-                <h4>Mini proyectos</h4>
+                <h4><Medalla :icono="Rocket" :size="26" color="info" /> Mini proyectos</h4>
                 <div v-for="m in miniProyectos" :key="m.id" class="resultado">
                     <div class="resultado-top">
                         <strong>{{ m.titulo }}</strong>
                         <EtiquetaNivel :valor="m.dificultad" />
                     </div>
-                    <p>{{ m.descripcion }}</p>
+                    <p><TextoConCodigo :texto="m.descripcion" /></p>
                     <details>
                         <summary>Ver instrucciones</summary>
-                        <p class="pasos">{{ m.contenido }}</p>
+                        <p class="pasos"><TextoConCodigo :texto="m.contenido" /></p>
                     </details>
                 </div>
             </section>
@@ -56,6 +56,8 @@
 import { ref } from 'vue'
 import { ChevronDown, Sparkles, Rocket } from 'lucide-vue-next'
 import EtiquetaNivel from './EtiquetaNivel.vue'
+import Medalla from '@/components/ui/Medalla.vue'
+import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 import { generarRecomendaciones, leerContenido } from '@/services/recomendacionServices.js'
 import { generarMiniProyectos } from '@/services/miniProyectoService'
 import { mensajeDeError } from '@/utils/errores'
@@ -100,10 +102,20 @@ async function pedirMiniProyectos() {
 
 <style scoped>
 .tema-card {
-    border: 1px solid var(--color-card);
-    border-radius: 14px;
-    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-card) 55%, var(--color-surface)), var(--color-surface));
     overflow: hidden;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.tema-card:hover,
+.tema-card.abierta {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+.tema-card.abierta {
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
 .tema-header {
@@ -122,28 +134,31 @@ async function pedirMiniProyectos() {
 }
 
 .tema-header:hover {
-    background: var(--color-background);
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
+/* Número del tema en un círculo con degradado, igual que las instrucciones del mini proyecto */
 .tema-orden {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: rgba(124, 58, 237, .18);
-    color: var(--color-primary);
-    font-size: .8rem;
+    background: var(--gradiente-primario);
+    color: var(--color-text);
+    font-size: .82rem;
     font-weight: 700;
 }
 
 .tema-header strong {
     flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .chevron {
+    flex-shrink: 0;
     color: var(--color-text-secondary);
     transition: transform .2s;
 }
@@ -168,31 +183,6 @@ async function pedirMiniProyectos() {
     gap: .6rem;
 }
 
-.btn-ia {
-    display: flex;
-    align-items: center;
-    gap: .4rem;
-    padding: .55rem 1rem;
-    border: 1px solid var(--color-primary);
-    border-radius: 10px;
-    background: transparent;
-    color: var(--color-primary);
-    font-size: .82rem;
-    font-family: inherit;
-    cursor: pointer;
-    transition: .2s;
-}
-
-.btn-ia:hover:not(:disabled) {
-    background: var(--color-primary);
-    color: white;
-}
-
-.btn-ia:disabled {
-    opacity: .6;
-    cursor: wait;
-}
-
 .error {
     margin: .8rem 0 0 0;
     color: var(--color-danger);
@@ -204,15 +194,17 @@ async function pedirMiniProyectos() {
 }
 
 .resultados h4 {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
     margin: 0 0 .6rem 0;
-    font-size: .9rem;
-    color: var(--color-text-secondary);
+    font-size: .92rem;
 }
 
 .resultado {
     padding: .9rem 1rem;
     margin-bottom: .6rem;
-    border: 1px solid var(--color-card);
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     background: var(--color-background);
 }
@@ -234,7 +226,7 @@ async function pedirMiniProyectos() {
 .resultado summary {
     margin-top: .5rem;
     font-size: .8rem;
-    color: var(--color-primary);
+    color: var(--color-primary-light);
     cursor: pointer;
 }
 

@@ -2,23 +2,26 @@
     <main class="guia-detalle">
 
         <RouterLink to="/estudiante/guias" class="volver">
-            <ArrowLeft :size="16" />
-            Mis guías
+            <span class="flecha"><ArrowLeft :size="16" /></span> Volver a Mis guías
         </RouterLink>
 
         <p v-if="cargando" class="estado">Cargando la guía...</p>
-        <p v-else-if="error" class="estado error">{{ error }}</p>
+
+        <div v-else-if="error" class="estado error">
+            <p>{{ error }}</p>
+            <button type="button" class="btn btn-secundario btn-sm" @click="cargar">Reintentar</button>
+        </div>
 
         <template v-else>
-            <header class="page-header">
-                <h1>{{ guia.nombre }}</h1>
-                <p>{{ guia.temas.length }} temas. Abre uno para generar recomendaciones y mini proyectos con la IA.</p>
-                <!-- Lleva al chat en modo guiado: la IA solo responde sobre esta guía (RF-14) -->
-                <RouterLink :to="{ path: '/estudiante/ia', query: { guiaId: guia.id } }" class="btn-chat">
-                    <Bot :size="16" />
-                    Abrir chat con la IA
-                </RouterLink>
-            </header>
+            <EncabezadoPagina :titulo="guia.nombre" :icono="BookOpen"
+                :descripcion="`${guia.temas.length} ${guia.temas.length === 1 ? 'tema' : 'temas'}. Abre uno para generar recomendaciones y mini proyectos con la IA.`">
+                <template #acciones>
+                    <!-- Lleva al chat en modo guiado: la IA solo responde sobre esta guía (RF-14) -->
+                    <RouterLink :to="{ path: '/estudiante/ia', query: { guiaId: guia.id } }" class="btn btn-primario">
+                        <Bot :size="18" /> Abrir chat con la IA
+                    </RouterLink>
+                </template>
+            </EncabezadoPagina>
 
             <div class="temas-lista">
                 <TemaCard v-for="tema in guia.temas" :key="tema.id" :tema="tema" :guia-id="guia.id" />
@@ -31,7 +34,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, Bot } from 'lucide-vue-next'
+import { ArrowLeft, Bot, BookOpen } from 'lucide-vue-next'
+import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import TemaCard from '@/components/personal/TemaCard.vue'
 import { obtenerGuia } from '@/services/guiaService'
 
@@ -40,7 +44,9 @@ const guia = ref(null)
 const cargando = ref(true)
 const error = ref('')
 
-onMounted(async () => {
+async function cargar() {
+    cargando.value = true
+    error.value = ''
     try {
         guia.value = await obtenerGuia(route.params.id)
     } catch (err) {
@@ -48,55 +54,49 @@ onMounted(async () => {
     } finally {
         cargando.value = false
     }
-})
+}
+
+onMounted(cargar)
 </script>
 
 <style scoped>
 .guia-detalle {
-    padding: clamp(1.5rem, 4vw, 3rem);
-    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    max-width: 960px;
     margin: 0 auto;
+    padding: clamp(1rem, 4vw, 3rem);
 }
 
+/* Mismo botón "Volver" que el detalle de mini proyecto */
 .volver {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    margin-bottom: 1rem;
-    color: var(--color-text-secondary);
-    font-size: .85rem;
+    align-self: flex-start;
+    gap: .6rem;
+    padding: .3rem .9rem .3rem .3rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: .88rem;
     text-decoration: none;
+    transition: border-color .2s;
 }
 
 .volver:hover {
-    color: var(--color-primary);
+    border-color: var(--color-primary);
 }
 
-.page-header h1 {
-    margin: 0 0 .3rem 0;
-    font-size: clamp(1.4rem, 3vw, 1.8rem);
-}
-
-.page-header p {
-    margin: 0 0 1.5rem 0;
-    color: var(--color-text-secondary);
-}
-
-.btn-chat {
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    margin-bottom: 1.5rem;
-    padding: .55rem 1rem;
-    border-radius: 10px;
-    background: var(--color-primary);
-    color: #fff;
-    font-size: .9rem;
-    text-decoration: none;
-}
-
-.btn-chat:hover {
-    background: var(--color-primary-hover);
+.flecha {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-primary) 25%, transparent);
+    color: var(--color-primary-light);
 }
 
 .temas-lista {
@@ -110,6 +110,14 @@ onMounted(async () => {
 }
 
 .estado.error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .6rem;
+    padding: 2.5rem 1rem;
+    border: 1px dashed var(--color-card);
+    border-radius: 16px;
     color: var(--color-danger);
+    text-align: center;
 }
 </style>
