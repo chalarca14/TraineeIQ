@@ -2,8 +2,10 @@
     <article class="proyecto" :class="{ bloqueado: proyecto.bloqueado }">
         <div class="cabecera">
             <EtiquetaNivel :valor="proyecto.dificultad" />
-            <span v-if="etiqueta" class="tag" :title="etiqueta">{{ etiqueta }}</span>
         </div>
+
+        <!-- El tema va en su propia línea, encima del título: así cabe el texto completo y no compite con el nivel -->
+        <p v-if="etiqueta" class="tema" :title="etiqueta">{{ etiqueta }}</p>
 
         <div class="titulo-fila">
             <span class="icono" :style="{ '--c': visual.color }" aria-hidden="true">
@@ -94,11 +96,10 @@ const etiqueta = computed(() => props.proyecto.tema?.nombre_tema ?? props.proyec
     gap: .5rem;
 }
 
-.tag {
+.tema {
     overflow: hidden;
-    max-width: 55%;
     color: var(--color-text-secondary);
-    font-size: .72rem;
+    font-size: .75rem;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

@@ -3,13 +3,10 @@
 
         <section class="bloque">
             <h3><Medalla :icono="Info" color="info" /> Información del proyecto</h3>
-            <div class="info-fila">
-                <p class="texto"><TextoConCodigo :texto="proyecto.descripcion" /></p>
-                <dl>
-                    <div><dt>Nivel</dt><dd><EtiquetaNivel :valor="proyecto.dificultad" /></dd></div>
-                    <div><dt>XP estimado</dt><dd class="xp"><Star :size="15" /> +{{ xp }} XP</dd></div>
-                </dl>
-            </div>
+            <dl>
+                <div><dt>Nivel</dt><dd><EtiquetaNivel :valor="proyecto.dificultad" /></dd></div>
+                <div><dt>XP estimado</dt><dd class="xp"><Star :size="15" /> +{{ xp }} XP</dd></div>
+            </dl>
         </section>
 
         <section v-if="pasos.length" class="bloque">
@@ -107,27 +104,16 @@ h3 {
     font-size: .9rem;
 }
 
-.info-fila {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-}
-
 dl {
     display: flex;
-    flex-direction: column;
-    gap: .6rem;
-    flex-shrink: 0;
-    padding-left: 1.5rem;
-    border-left: 1px solid var(--color-border);
+    flex-wrap: wrap;
+    gap: .6rem 2rem;
 }
 
 dl div {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: .6rem;
 }
 
 dt {
@@ -222,15 +208,5 @@ ol li::before {
         border-bottom: 1px solid var(--color-border);
     }
 
-    .info-fila {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    dl {
-        padding: .8rem 0 0;
-        border-top: 1px solid var(--color-border);
-        border-left: none;
-    }
 }
 </style>

@@ -1,6 +1,6 @@
 import {
     Calculator, MessageSquare, ListChecks, Image, Cloud, Database, ChartColumn,
-    Coffee, Braces, Globe, Code, Box
+    Coffee, Braces, Globe, Receipt, Box
 } from 'lucide-vue-next'
 
 // Los colores son variables de variables.css (nunca colores sueltos). Como solo hay unas
@@ -15,9 +15,8 @@ const REGLAS = [
     { patron: /to-?do|tareas|lista de/, icono: ListChecks, color: 'var(--color-success)' },
     { patron: /galeria|imagen|imagenes/, icono: Image, color: 'var(--color-success)' },
     { patron: /nube|cloud|despliegue/, icono: Cloud, color: 'var(--color-info)' },
-    // sql va antes que "datos" para que "base de datos" no se confunda con gráficos de datos
+    { patron: /factur|recibo|boleta|ticket/, icono: Receipt, color: 'var(--color-success)' },
     { patron: /sql|base de datos/, icono: Database, color: 'var(--color-info)' },
-    { patron: /grafico|dashboard|visualiza|datos/, icono: ChartColumn, color: 'var(--color-primary-light)' },
     // \b evita que "java" coincida dentro de "javascript"
     { patron: /\bjava\b/, icono: Coffee, color: 'var(--color-danger)' },
     { patron: /python/, icono: Braces, color: 'var(--color-info)' },
@@ -26,7 +25,9 @@ const REGLAS = [
 ]
 
 // Respaldo cuando nada coincide
-const GENERICO = { icono: Code, color: 'var(--color-primary)' }
+// El de barras es el genérico: ya no hay una regla para "datos", que coincidía con casi cualquier
+// descripción ("tipos de datos") y le ponía barras a proyectos que no tenían nada que ver.
+const GENERICO = { icono: ChartColumn, color: 'var(--color-primary)' }
 
 // Pasa a minúsculas y quita tildes: "Galería" → "galeria"
 const normalizar = (texto) =>
