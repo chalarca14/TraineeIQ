@@ -1,3 +1,11 @@
+// Errores del cambio de contraseña. Se decide por el código HTTP (no por el texto del backend,
+// que llega en inglés). 422 = contraseña actual incorrecta o nueva inválida; lo demás es genérico.
+// (Un 401 no llega aquí: el interceptor de api.js lo trata como sesión vencida y manda al login.)
+export function mensajeDeErrorPassword(err) {
+    if (err.response?.status === 422) return 'La contraseña actual no es correcta. Revísala e intenta de nuevo.'
+    return mensajeDeError(err)
+}
+
 // Traduce un error de axios a un mensaje para el usuario, según el código HTTP
 export function mensajeDeError(err) {
     const status = err.response?.status
