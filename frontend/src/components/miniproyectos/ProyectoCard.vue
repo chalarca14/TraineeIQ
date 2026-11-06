@@ -11,7 +11,11 @@
             </span>
             <h3>{{ proyecto.titulo }}</h3>
         </div>
-        <p class="descripcion">{{ proyecto.descripcion }}</p>
+        <p class="descripcion"><TextoConCodigo :texto="proyecto.descripcion" /></p>
+
+        <div v-if="tecnologias.length" class="chips">
+            <TecnologiaChip v-for="t in tecnologias" :key="t.etiqueta" :tecnologia="t" />
+        </div>
 
         <!-- La barra solo tiene sentido si el proyecto ya se empezó o terminó -->
         <div v-if="!proyecto.bloqueado" class="progreso" :aria-label="`Progreso ${proyecto.progreso}%`">
@@ -28,7 +32,8 @@
         </p>
 
         <!-- No es un RouterLink: la ruta de detalle aún no existe (Tarea 3). Solo avisamos a la vista. -->
-        <button type="button" class="accion" :disabled="proyecto.bloqueado" @click="$emit('abrir', proyecto)">
+        <button type="button" class="btn btn-primario btn-sm accion" :disabled="proyecto.bloqueado"
+            @click="$emit('abrir', proyecto)">
             <template v-if="proyecto.bloqueado">Bloqueado</template>
             <template v-else>{{ ETIQUETA_BOTON[proyecto.estado] }} <ArrowRight :size="15" /></template>
         </button>
@@ -39,7 +44,9 @@
 import { computed } from 'vue'
 import { Check, Lock, ArrowRight } from 'lucide-vue-next'
 import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
-import { iconoDelProyecto } from '@/utils/iconosProyecto'
+import TecnologiaChip from '@/components/miniproyectos/TecnologiaChip.vue'
+import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
+import { iconoDelProyecto, tecnologiasDelProyecto } from '@/utils/iconosProyecto'
 import { formatearFecha } from '@/utils/fechas'
 
 const props = defineProps({
@@ -52,6 +59,8 @@ const ETIQUETA_BOTON = { por_iniciar: 'Comenzar', en_progreso: 'Continuar', comp
 const NOMBRES_NIVEL = { basico: 'básico', intermedio: 'intermedio', avanzado: 'avanzado' }
 
 const visual = computed(() => iconoDelProyecto(props.proyecto))
+// Máximo 2 en la tarjeta para que no crezca demasiado; el detalle muestra hasta 3
+const tecnologias = computed(() => tecnologiasDelProyecto(props.proyecto).slice(0, 2))
 
 const fechaFinalizado = computed(() => formatearFecha(props.proyecto.finalizado))
 
@@ -68,7 +77,14 @@ const etiqueta = computed(() => props.proyecto.tema?.nombre_tema ?? props.proyec
     padding: 1rem;
     border: 1px solid var(--color-border);
     border-radius: 14px;
-    background: var(--color-surface);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-card) 55%, var(--color-surface)), var(--color-surface));
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+}
+
+.proyecto:not(.bloqueado):hover {
+    border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary) 18%, transparent);
+    transform: translateY(-2px);
 }
 
 .cabecera {
@@ -155,29 +171,13 @@ h3 {
 }
 
 .accion {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: .35rem;
     align-self: flex-end;
-    padding: .5rem 1rem;
-    border: none;
-    border-radius: 10px;
-    background: var(--color-primary);
-    color: var(--color-text);
-    font-size: .85rem;
-    font-weight: 600;
-    cursor: pointer;
 }
 
-.accion:hover:not(:disabled) {
-    background: var(--color-primary-hover);
-}
-
-.accion:disabled {
-    background: var(--color-card);
-    color: var(--color-text-secondary);
-    cursor: not-allowed;
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
 }
 
 .bloqueado h3 {

@@ -1,19 +1,14 @@
 <template>
     <main class="mini-proyectos">
 
-        <header class="banner">
-            <span class="banner-icono"><Code :size="28" /></span>
-            <div>
-                <h1>Mini Proyectos</h1>
-                <p>Aplica lo que aprendiste con proyectos prácticos y lleva tu conocimiento al siguiente nivel.</p>
-            </div>
-        </header>
+        <EncabezadoPagina titulo="Mini Proyectos" :icono="Code"
+            descripcion="Aplica lo que aprendiste con proyectos prácticos y lleva tu conocimiento al siguiente nivel." />
 
         <p v-if="cargando" class="estado">Cargando tus mini proyectos...</p>
 
         <div v-else-if="error" class="estado error">
             <p>{{ error }}</p>
-            <button type="button" class="reintentar" @click="cargar">Reintentar</button>
+            <button type="button" class="btn btn-secundario btn-sm" @click="cargar">Reintentar</button>
         </div>
 
         <div v-else-if="proyectos.length === 0" class="vacio">
@@ -55,6 +50,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Code } from 'lucide-vue-next'
+import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import FiltrosProyectos from '@/components/miniproyectos/FiltrosProyectos.vue'
 import ProyectoCard from '@/components/miniproyectos/ProyectoCard.vue'
 import ResumenProgreso from '@/components/miniproyectos/ResumenProgreso.vue'
@@ -171,38 +167,14 @@ onMounted(cargar)
 
 <style scoped>
 .mini-proyectos {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
     max-width: 1200px;
     margin: 0 auto;
     padding: clamp(1rem, 4vw, 2.5rem);
 }
 
-.banner {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.2rem;
-    padding: 1.2rem;
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 30%, var(--color-surface)), var(--color-surface));
-}
-
-.banner-icono {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    flex-shrink: 0;
-    border-radius: 12px;
-    background: var(--color-primary);
-}
-
-.banner h1 {
-    font-size: clamp(1.3rem, 3vw, 1.7rem);
-}
-
-.banner p,
 .encabezado p,
 .estado,
 .vacio,
@@ -250,15 +222,6 @@ onMounted(cargar)
 
 .estado.error {
     color: var(--color-danger);
-}
-
-.reintentar {
-    padding: .5rem 1rem;
-    border: 1px solid var(--color-danger);
-    border-radius: 10px;
-    background: transparent;
-    color: var(--color-danger);
-    cursor: pointer;
 }
 
 .aviso {
