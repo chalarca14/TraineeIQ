@@ -28,7 +28,7 @@
         </section>
 
         <section class="entregar">
-            <div class="columnas">
+            <div class="columnas" :class="{ una: !puedeEntregar }">
                 <div class="vscode">
                     <h3><Medalla :icono="Rocket" /> Desarrolla tu proyecto</h3>
                     <p class="texto">Puedes trabajar en tu computador con Visual Studio Code.</p>
@@ -45,9 +45,11 @@
                     </p>
                 </div>
 
-                <EntregaForm @entregar="$emit('entregar', $event)" />
+                <!-- Un proyecto ya aprobado no se vuelve a entregar: el formulario ni se muestra -->
+                <EntregaForm v-if="puedeEntregar" :en-evaluacion="enEvaluacion" :error-externo="errorEntrega"
+                    @entregar="$emit('entregar', $event)" />
             </div>
-            <p class="aviso"><Info :size="15" /> Asegúrate de que tu repositorio sea público y contenga todo el código del proyecto.</p>
+            <p v-if="puedeEntregar" class="aviso"><Info :size="15" /> Asegúrate de que tu repositorio sea público y contenga todo el código del proyecto.</p>
         </section>
     </div>
 </template>
@@ -62,7 +64,12 @@ import ListaRequisitos from '@/components/miniproyectos/ListaRequisitos.vue'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 import { xpEstimado } from '@/utils/progresoEjemplo'
 
-const props = defineProps({ proyecto: { type: Object, required: true } })
+const props = defineProps({
+    proyecto: { type: Object, required: true },
+    puedeEntregar: { type: Boolean, default: true },
+    enEvaluacion: { type: Boolean, default: false },
+    errorEntrega: { type: String, default: '' }
+})
 defineEmits(['entregar'])
 
 const xp = computed(() => xpEstimado(props.proyecto.dificultad))
@@ -175,6 +182,16 @@ ol li::before {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
     gap: 1.5rem;
+}
+
+/* Sin formulario (proyecto aprobado): el bloque de VS Code ocupa todo el ancho y pierde su divisor */
+.columnas.una {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.columnas.una .vscode {
+    padding: 0;
+    border: none;
 }
 
 .vscode {

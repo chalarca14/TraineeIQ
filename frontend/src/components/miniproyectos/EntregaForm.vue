@@ -12,12 +12,14 @@
                         aria-label="Enlace del repositorio de GitHub" :aria-invalid="Boolean(error)"
                         :disabled="deshabilitado" @input="error = ''" />
                 </label>
-                <button type="submit" class="btn btn-primario" :disabled="deshabilitado">
-                    <Upload :size="16" /> Subir entrega
+                <button type="submit" class="btn btn-primario" :disabled="deshabilitado || enEvaluacion">
+                    <Upload :size="16" /> {{ enEvaluacion ? 'Evaluando…' : 'Subir entrega' }}
                 </button>
             </div>
-            <p v-if="error" class="error" role="alert">{{ error }}</p>
-            <p class="nota">Solo se aceptan repositorios públicos de GitHub.</p>
+            <!-- error local (URL mal escrita) o del servidor (429, repositorio rechazado...) -->
+            <p v-if="error || errorExterno" class="error" role="alert">{{ error || errorExterno }}</p>
+            <p v-if="enEvaluacion" class="nota">Hay una evaluación en curso. Espera a que termine para entregar de nuevo.</p>
+            <p v-else class="nota">Solo se aceptan repositorios públicos de GitHub.</p>
         </form>
     </section>
 </template>
@@ -27,7 +29,13 @@ import { ref } from 'vue'
 import { Upload, UploadCloud, Github } from 'lucide-vue-next'
 import { validarRepoGitHub } from '@/utils/validaciones'
 
-defineProps({ deshabilitado: { type: Boolean, default: false } })
+const props = defineProps({
+    deshabilitado: { type: Boolean, default: false },
+    // Hay una evaluación corriendo: no se puede entregar otra hasta que termine
+    enEvaluacion: { type: Boolean, default: false },
+    // Error que viene del servidor al enviar (el de la URL mal escrita se calcula aquí mismo)
+    errorExterno: { type: String, default: '' }
+})
 const emit = defineEmits(['entregar'])
 
 const url = ref('')
@@ -35,6 +43,7 @@ const error = ref('')
 
 // Validamos ANTES de avisar a la vista: una URL mal escrita nunca sale del formulario
 function enviar() {
+    if (props.enEvaluacion || props.deshabilitado) return // seguro extra: el botón ya está deshabilitado
     error.value = validarRepoGitHub(url.value)
     if (error.value) return
     emit('entregar', url.value.trim())
