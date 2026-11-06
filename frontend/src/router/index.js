@@ -32,10 +32,11 @@ const routes = [
       },
       // Aquí se irán sumando mi-guia, mini-proyectos, perfil...
 
+      // Chat IA: libre por defecto, guiado si llega ?guiaId=N
       {
-        path: 'chat-prueba',
-        name: 'ChatPrueba',
-        component: () => import('../views/estudiante/ChatPrueba.vue')
+        path: 'ia',
+        name: 'ChatIA',
+        component: () => import('../views/estudiante/ChatIA.vue')
       },
 
 
@@ -70,9 +71,6 @@ const routes = [
   },
 
   
-  // TEMPORAL: chat de prueba para el estudiante (se reemplaza por ChatLibre/ChatGuia)
-
-
   // Ruta para paginas no encontradas
   {
     path: '/:pathMatch(.*)*',

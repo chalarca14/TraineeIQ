@@ -44,6 +44,8 @@ const sidebarAbierto = ref(false)
 .app-main {
     flex: 1;
     min-width: 0;
+    /* referencia para vistas que ocupan EXACTAMENTE el alto disponible (el chat) */
+    position: relative;
     overflow-y: auto;
     /* solo scrollea el contenido; NavBar y SideBar se quedan fijos */
 }
