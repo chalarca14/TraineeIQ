@@ -1,22 +1,13 @@
 <template>
     <main class="detalle">
 
-        <p v-if="cargando" class="estado">Cargando el mini proyecto...</p>
+        <EstadoVista :cargando="cargando" :error="error" :vacio="!proyecto" texto-cargando="Cargando el mini proyecto..."
+            texto-vacio="No encontramos este mini proyecto." @reintentar="cargar">
+            <template #vacio>
+                <RouterLink class="btn btn-secundario" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
+            </template>
 
-        <div v-else-if="error" class="estado error">
-            <p>{{ error }}</p>
-            <button type="button" class="btn btn-secundario" @click="cargar">Reintentar</button>
-        </div>
-
-        <div v-else-if="!proyecto" class="estado vacio">
-            <p>No encontramos este mini proyecto.</p>
-            <RouterLink class="btn btn-secundario" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
-        </div>
-
-        <template v-else>
-            <RouterLink class="volver" to="/estudiante/mini-proyectos">
-                <span class="flecha"><ArrowLeft :size="16" /></span> Volver a Mini Proyectos
-            </RouterLink>
+            <BotonVolver to="/estudiante/mini-proyectos">Volver a Mini Proyectos</BotonVolver>
 
             <HeaderProyecto :proyecto="proyecto" />
 
@@ -29,20 +20,14 @@
             </section>
 
             <template v-else>
-                <div class="pestanas" role="tablist">
-                    <button v-for="p in PESTANAS" :key="p.clave" type="button" role="tab"
-                        :class="{ activa: pestana === p.clave }" :aria-selected="pestana === p.clave"
-                        @click="pestana = p.clave">
-                        <component :is="p.icono" :size="18" /> {{ p.etiqueta }}
-                    </button>
-                </div>
+                <Pestanas v-model="pestana" :pestanas="PESTANAS" />
 
                 <DescripcionProyecto v-if="pestana === 'descripcion'" :proyecto="proyecto" @entregar="alEntregar" />
 
                 <!-- TODO fase 3b: aquí van los 5 estados de la evaluación con IA -->
-                <p v-else class="estado">La evaluación con IA se conecta en la siguiente fase.</p>
+                <p v-else class="pendiente">La evaluación con IA se conecta en la siguiente fase.</p>
             </template>
-        </template>
+        </EstadoVista>
 
     </main>
 </template>
@@ -50,7 +35,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, Lock, FileText, Star } from 'lucide-vue-next'
+import { Lock, FileText, Star } from 'lucide-vue-next'
+import EstadoVista from '@/components/ui/EstadoVista.vue'
+import BotonVolver from '@/components/ui/BotonVolver.vue'
+import Pestanas from '@/components/ui/Pestanas.vue'
 import HeaderProyecto from '@/components/miniproyectos/HeaderProyecto.vue'
 import DescripcionProyecto from '@/components/miniproyectos/DescripcionProyecto.vue'
 import { obtenerMiniProyecto } from '@/services/miniProyectoService'
@@ -103,73 +91,10 @@ onMounted(cargar)
     padding: clamp(1rem, 4vw, 2.5rem);
 }
 
-.volver {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    gap: .6rem;
-    padding: .3rem .9rem .3rem .3rem;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-text);
-    font-size: .88rem;
-    text-decoration: none;
-    transition: border-color .2s;
-}
-
-.volver:hover {
-    border-color: var(--color-primary);
-}
-
-.flecha {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--color-primary) 25%, transparent);
-    color: var(--color-primary-light);
-}
-
-/* Pestañas grandes con icono; la activa lleva degradado y resplandor */
-.pestanas {
-    display: flex;
-    gap: .6rem;
-}
-
-.pestanas button {
-    display: flex;
-    align-items: center;
-    gap: .55rem;
-    padding: .7rem 1.4rem;
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-    font-weight: 600;
-    cursor: pointer;
-    transition: color .2s, border-color .2s;
-}
-
-.pestanas button:hover {
-    border-color: var(--color-primary);
-    color: var(--color-text);
-}
-
-.pestanas button.activa {
-    border-color: transparent;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary) 40%, transparent);
-    color: var(--color-text);
-}
-
-.estado {
+.pendiente {
     color: var(--color-text-secondary);
 }
 
-.estado.error,
-.estado.vacio,
 .bloqueado {
     display: flex;
     flex-direction: column;
@@ -178,15 +103,8 @@ onMounted(cargar)
     padding: 2.5rem 1rem;
     border: 1px dashed var(--color-card);
     border-radius: 16px;
-    text-align: center;
-}
-
-.estado.error {
-    color: var(--color-danger);
-}
-
-.bloqueado {
     color: var(--color-text-secondary);
+    text-align: center;
 }
 
 .candado {
@@ -202,13 +120,5 @@ onMounted(cargar)
 .bloqueado h2 {
     color: var(--color-text);
     font-size: 1.1rem;
-}
-
-@media (max-width: 520px) {
-    .pestanas button {
-        flex: 1;
-        justify-content: center;
-        padding: .7rem .5rem;
-    }
 }
 </style>

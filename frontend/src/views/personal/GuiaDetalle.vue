@@ -1,18 +1,9 @@
 <template>
     <main class="guia-detalle">
 
-        <RouterLink to="/estudiante/guias" class="volver">
-            <span class="flecha"><ArrowLeft :size="16" /></span> Volver a Mis guías
-        </RouterLink>
+        <EstadoVista :cargando="cargando" :error="error" texto-cargando="Cargando la guía..." @reintentar="cargar">
+            <BotonVolver to="/estudiante/guias">Volver a Mis guías</BotonVolver>
 
-        <p v-if="cargando" class="estado">Cargando la guía...</p>
-
-        <div v-else-if="error" class="estado error">
-            <p>{{ error }}</p>
-            <button type="button" class="btn btn-secundario btn-sm" @click="cargar">Reintentar</button>
-        </div>
-
-        <template v-else>
             <EncabezadoPagina :titulo="guia.nombre" :icono="BookOpen"
                 :descripcion="`${guia.temas.length} ${guia.temas.length === 1 ? 'tema' : 'temas'}. Abre uno para generar recomendaciones y mini proyectos con la IA.`">
                 <template #acciones>
@@ -26,7 +17,7 @@
             <div class="temas-lista">
                 <TemaCard v-for="tema in guia.temas" :key="tema.id" :tema="tema" :guia-id="guia.id" />
             </div>
-        </template>
+        </EstadoVista>
 
     </main>
 </template>
@@ -34,8 +25,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, Bot, BookOpen } from 'lucide-vue-next'
+import { Bot, BookOpen } from 'lucide-vue-next'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
+import EstadoVista from '@/components/ui/EstadoVista.vue'
+import BotonVolver from '@/components/ui/BotonVolver.vue'
 import TemaCard from '@/components/personal/TemaCard.vue'
 import { obtenerGuia } from '@/services/guiaService'
 
@@ -69,55 +62,9 @@ onMounted(cargar)
     padding: clamp(1rem, 4vw, 3rem);
 }
 
-/* Mismo botón "Volver" que el detalle de mini proyecto */
-.volver {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    gap: .6rem;
-    padding: .3rem .9rem .3rem .3rem;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-text);
-    font-size: .88rem;
-    text-decoration: none;
-    transition: border-color .2s;
-}
-
-.volver:hover {
-    border-color: var(--color-primary);
-}
-
-.flecha {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--color-primary) 25%, transparent);
-    color: var(--color-primary-light);
-}
-
 .temas-lista {
     display: flex;
     flex-direction: column;
     gap: .8rem;
-}
-
-.estado {
-    color: var(--color-text-secondary);
-}
-
-.estado.error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: .6rem;
-    padding: 2.5rem 1rem;
-    border: 1px dashed var(--color-card);
-    border-radius: 16px;
-    color: var(--color-danger);
-    text-align: center;
 }
 </style>

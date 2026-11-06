@@ -4,20 +4,10 @@
         <EncabezadoPagina titulo="Mini Proyectos" :icono="Code"
             descripcion="Aplica lo que aprendiste con proyectos prácticos y lleva tu conocimiento al siguiente nivel." />
 
-        <p v-if="cargando" class="estado">Cargando tus mini proyectos...</p>
-
-        <div v-else-if="error" class="estado error">
-            <p>{{ error }}</p>
-            <button type="button" class="btn btn-secundario btn-sm" @click="cargar">Reintentar</button>
-        </div>
-
-        <div v-else-if="proyectos.length === 0" class="vacio">
-            <Code :size="32" />
-            <p>Aún no tienes mini proyectos.</p>
-            <span>Abre una de tus guías y pulsa "Comenzar proyecto" para que la IA los cree.</span>
-        </div>
-
-        <div v-else class="contenido">
+        <EstadoVista :cargando="cargando" :error="error" :vacio="proyectos.length === 0" :icono="Code"
+            texto-cargando="Cargando tus mini proyectos..." texto-vacio="Aún no tienes mini proyectos."
+            descripcion-vacio='Abre una de tus guías y pulsa "Comenzar proyecto" para que la IA los cree.' @reintentar="cargar">
+        <div class="contenido">
             <section class="principal">
                 <p v-if="guiasConError" class="aviso">
                     No se pudieron cargar los proyectos de {{ guiasConError }}
@@ -42,6 +32,7 @@
 
             <ResumenProgreso :resumen="resumen" />
         </div>
+        </EstadoVista>
 
     </main>
 </template>
@@ -51,6 +42,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Code } from 'lucide-vue-next'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
+import EstadoVista from '@/components/ui/EstadoVista.vue'
 import FiltrosProyectos from '@/components/miniproyectos/FiltrosProyectos.vue'
 import ProyectoCard from '@/components/miniproyectos/ProyectoCard.vue'
 import ResumenProgreso from '@/components/miniproyectos/ResumenProgreso.vue'
@@ -176,8 +168,6 @@ onMounted(cargar)
 }
 
 .encabezado p,
-.estado,
-.vacio,
 .vacio-pestana {
     color: var(--color-text-secondary);
 }
@@ -201,27 +191,6 @@ onMounted(cargar)
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1rem;
-}
-
-.vacio,
-.estado.error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: .5rem;
-    padding: 2.5rem 1rem;
-    border: 1px dashed var(--color-card);
-    border-radius: 14px;
-    text-align: center;
-}
-
-.vacio p {
-    color: var(--color-text);
-    font-weight: 600;
-}
-
-.estado.error {
-    color: var(--color-danger);
 }
 
 .aviso {

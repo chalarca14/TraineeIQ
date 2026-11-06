@@ -1,12 +1,6 @@
 <template>
     <div>
-        <div class="pestanas" role="tablist">
-            <button v-for="p in PESTANAS" :key="p.clave" type="button" role="tab"
-                :class="{ activa: pestana === p.clave }" :aria-selected="pestana === p.clave"
-                @click="pestana = p.clave">
-                {{ p.etiqueta }}
-            </button>
-        </div>
+        <Pestanas v-model="pestana" :pestanas="PESTANAS" compacto class="pestanas" />
 
         <div class="herramientas">
             <label class="buscador">
@@ -25,6 +19,7 @@
 
 <script setup>
 import { Search } from 'lucide-vue-next'
+import Pestanas from '@/components/ui/Pestanas.vue'
 
 // defineModel permite usar v-model:pestana, v-model:busqueda y v-model:orden desde la vista.
 // Así el estado vive en la vista (que es quien filtra la lista) y este componente solo lo edita.
@@ -42,25 +37,7 @@ const PESTANAS = [
 
 <style scoped>
 .pestanas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
     margin-bottom: 1rem;
-}
-
-.pestanas button {
-    padding: .45rem 1rem;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--color-text-secondary);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.pestanas button.activa {
-    background: var(--color-primary);
-    color: var(--color-text);
 }
 
 .herramientas {
