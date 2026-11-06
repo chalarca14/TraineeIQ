@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\EntregaMiniProyectoController;
 use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
 use App\Http\Controllers\Api\GuiaSemanaController;
@@ -68,4 +69,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mini Proyectos: los genera la IA por semana, aqui solo se leen
     Route::get('/mini-proyectos/{id}', [MiniProyectoController::class, 'show'])->whereNumber('id');
+
+    // Entrega del repositorio: es por estudiante
+    Route::middleware('EsEstudiante')->whereNumber('id')->group(function () {
+        Route::get('/mini-proyectos/{id}/entrega', [EntregaMiniProyectoController::class, 'show']);
+        Route::put('/mini-proyectos/{id}/entrega', [EntregaMiniProyectoController::class, 'guardar']);
+    });
 });
