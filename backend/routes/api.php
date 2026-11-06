@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
+use App\Http\Controllers\Api\GuiaSemanaController;
 use App\Http\Controllers\Api\MiniProyectoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatIaController;
@@ -70,6 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/guias', [GuiaController::class, 'store']);
     Route::get('/guias/{id}', [GuiaController::class, 'show']);
     Route::put('/guias/{id}', [GuiaController::class, 'update']);
+    Route::post('/guias/{guiaId}/semanas/{numero}/generar', [GuiaSemanaController::class, 'generar'])
+        ->whereNumber(['guiaId', 'numero']);
 
     // Mini Proyectos (CRUD manual de Integrante 3)
     Route::get('/mini-proyectos', [MiniProyectoController::class, 'index']);

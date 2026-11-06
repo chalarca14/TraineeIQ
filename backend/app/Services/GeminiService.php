@@ -26,11 +26,87 @@ use Illuminate\Support\Facades\Log;
  * - dividirEnSemanas() reemplaza a segmentarGuiaEnTemas(): usa un esquema JSON y
  *   lanza excepciones para distinguir "IA caida" de "respuesta invalida".
  * - Los prompts nuevos viven en resources/prompts, no dentro del codigo.
+ * CAMBIOS v7:
+ * - generarContenidoSemana() genera en una sola llamada las recomendaciones y los
+ *   mini proyectos de una semana, y valida la respuesta contra el contrato 2.2.
  */
 class GeminiService
 {
     // Tope de semanas que se aceptan en una guia
     private const MAX_SEMANAS = 52;
+
+    // Cantidad fija de recomendaciones por semana (contrato 2.2 de la Fase 0)
+    private const TOTAL_RECOMENDACIONES = 4;
+
+    private const NIVELES = ['basico', 'recomendado', 'importante', 'avanzado'];
+
+    // La posicion define el orden: basico es el 1, intermedio el 2 y avanzado el 3
+    private const DIFICULTADES = ['basico', 'intermedio', 'avanzado'];
+
+    // Los pesos de los criterios de un mini proyecto deben sumar exactamente esto
+    private const SUMA_PESOS = 100;
+
+    // Esquema que Gemini debe cumplir al generar una semana (contrato de la Fase 0)
+    private const ESQUEMA_CONTENIDO = [
+        'type'       => 'object',
+        'required'   => ['recomendaciones', 'mini_proyectos'],
+        'properties' => [
+            'recomendaciones' => [
+                'type'     => 'array',
+                'minItems' => self::TOTAL_RECOMENDACIONES,
+                'items'    => [
+                    'type'       => 'object',
+                    'required'   => ['orden', 'nivel', 'titulo', 'descripcion'],
+                    'properties' => [
+                        'orden'       => ['type' => 'integer'],
+                        'nivel'       => ['type' => 'string', 'enum' => self::NIVELES],
+                        'titulo'      => ['type' => 'string'],
+                        'descripcion' => ['type' => 'string'],
+                    ],
+                ],
+            ],
+            'mini_proyectos' => [
+                'type'     => 'array',
+                'minItems' => 3,
+                'items'    => [
+                    'type'     => 'object',
+                    'required' => [
+                        'orden', 'dificultad', 'titulo', 'descripcion', 'contenido',
+                        'requisitos_funcionales', 'buenas_practicas', 'criterios_evaluacion',
+                    ],
+                    'properties' => [
+                        'orden'                  => ['type' => 'integer'],
+                        'dificultad'             => ['type' => 'string', 'enum' => self::DIFICULTADES],
+                        'titulo'                 => ['type' => 'string'],
+                        'descripcion'            => ['type' => 'string'],
+                        'contenido'              => ['type' => 'string'],
+                        'requisitos_funcionales' => [
+                            'type'     => 'array',
+                            'minItems' => 1,
+                            'items'    => ['type' => 'string'],
+                        ],
+                        'buenas_practicas' => [
+                            'type'     => 'array',
+                            'minItems' => 1,
+                            'items'    => ['type' => 'string'],
+                        ],
+                        'criterios_evaluacion' => [
+                            'type'     => 'array',
+                            'minItems' => 1,
+                            'items'    => [
+                                'type'       => 'object',
+                                'required'   => ['criterio', 'peso'],
+                                'properties' => [
+                                    'criterio' => ['type' => 'string'],
+                                    'peso'     => ['type' => 'integer'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
 
     // Esquema que Gemini debe cumplir al dividir una guia (contrato de la Fase 0)
     private const ESQUEMA_SEMANAS = [
@@ -143,7 +219,7 @@ class GeminiService
         $prompt = $this->cargarPrompt('dividir_semanas', [
             '{{SUGERENCIA_SEMANAS}}' => $sugerencia,
             // Evita que el PDF cierre la etiqueta y su texto parezca una instruccion
-            '{{GUIA}}' => str_ireplace(['<guia>', '</guia>'], '', $textoGuia),
+            '{{GUIA}}' => str_ireplace(['<guia>', '</guia>'], ' ', $textoGuia),
         ]);
 
         $texto = $this->llamarApi($prompt, self::ESQUEMA_SEMANAS);
@@ -153,6 +229,40 @@ class GeminiService
         }
 
         return $this->validarSemanas($this->parsearJson($texto, []));
+    }
+
+    /**
+     * Genera las recomendaciones y los mini proyectos de una semana (contrato 2.2).
+     * El titulo y el resumen tambien van delimitados: Gemini los redacto a partir
+     * del PDF, asi que se tratan como dato no confiable igual que el texto.
+     *
+     * @throws IaNoDisponibleException Si Gemini no responde.
+     * @throws RespuestaIaInvalidaException Si la respuesta no cumple el contrato.
+     */
+    public function generarContenidoSemana(string $titulo, string $resumen, string $contenido): array
+    {
+        // Evita que el PDF cierre la etiqueta. Se cambia por un espacio y no por nada:
+        // borrarla dejaria que "</sem</semana>ana>" formara una etiqueta nueva
+        $limpiar = fn (string $texto) => str_ireplace(['<semana>', '</semana>'], ' ', $texto);
+
+        $prompt = $this->cargarPrompt('generar_contenido_semana', [
+            '{{TITULO}}'    => $limpiar($titulo),
+            '{{RESUMEN}}'   => $limpiar($resumen),
+            '{{CONTENIDO}}' => $limpiar($contenido),
+        ]);
+
+        $texto = $this->llamarApi($prompt, self::ESQUEMA_CONTENIDO);
+
+        if ($texto === null) {
+            throw new IaNoDisponibleException('Gemini no respondio al generar la semana.');
+        }
+
+        $datos = $this->parsearJson($texto, []);
+
+        return [
+            'recomendaciones' => $this->validarRecomendaciones($datos['recomendaciones'] ?? null),
+            'mini_proyectos'  => $this->validarMiniProyectos($datos['mini_proyectos'] ?? null),
+        ];
     }
 
     /**
@@ -330,6 +440,124 @@ class GeminiService
         }
 
         return $validas;
+    }
+
+    /**
+     * Valida las recomendaciones: exactamente 4, en orden y con un nivel permitido.
+     * Un valor fuera de la lista invalida la respuesta en vez de reemplazarse por
+     * uno por defecto, porque este contenido lo ve todo el grupo.
+     */
+    private function validarRecomendaciones(mixed $recomendaciones): array
+    {
+        if (! is_array($recomendaciones) || count($recomendaciones) !== self::TOTAL_RECOMENDACIONES) {
+            throw new RespuestaIaInvalidaException('La semana no trae 4 recomendaciones.');
+        }
+
+        $validas = [];
+
+        foreach (array_values($recomendaciones) as $indice => $recomendacion) {
+            $nivel = is_array($recomendacion) ? ($recomendacion['nivel'] ?? null) : null;
+
+            if (! in_array($nivel, self::NIVELES, true) || ($recomendacion['orden'] ?? null) !== $indice + 1) {
+                throw new RespuestaIaInvalidaException('Orden o nivel de recomendacion invalido.');
+            }
+
+            $validas[] = [
+                'orden'       => $indice + 1,
+                'nivel'       => $nivel,
+                'titulo'      => $this->textoObligatorio($recomendacion, 'titulo'),
+                'descripcion' => $this->textoObligatorio($recomendacion, 'descripcion'),
+            ];
+        }
+
+        return $validas;
+    }
+
+    /**
+     * Valida los mini proyectos: uno por dificultad, en orden, con listas no vacias
+     * y criterios cuyos pesos sumen 100.
+     */
+    private function validarMiniProyectos(mixed $miniProyectos): array
+    {
+        if (! is_array($miniProyectos) || count($miniProyectos) !== count(self::DIFICULTADES)) {
+            throw new RespuestaIaInvalidaException('La semana no trae 3 mini proyectos.');
+        }
+
+        $validos = [];
+
+        foreach (array_values($miniProyectos) as $indice => $proyecto) {
+            $titulo = $this->textoObligatorio($proyecto, 'titulo');
+
+            if (
+                ($proyecto['orden'] ?? null) !== $indice + 1
+                || ($proyecto['dificultad'] ?? null) !== self::DIFICULTADES[$indice]
+                || mb_strlen($titulo) > 255
+            ) {
+                throw new RespuestaIaInvalidaException('Orden, dificultad o titulo de mini proyecto invalido.');
+            }
+
+            $validos[] = [
+                'orden'                  => $indice + 1,
+                'dificultad'             => self::DIFICULTADES[$indice],
+                'titulo'                 => $titulo,
+                'descripcion'            => $this->textoObligatorio($proyecto, 'descripcion'),
+                'contenido'              => $this->textoObligatorio($proyecto, 'contenido'),
+                'requisitos_funcionales' => $this->listaDeTextos($proyecto, 'requisitos_funcionales'),
+                'buenas_practicas'       => $this->listaDeTextos($proyecto, 'buenas_practicas'),
+                'criterios_evaluacion'   => $this->validarCriterios($proyecto['criterios_evaluacion'] ?? null),
+            ];
+        }
+
+        return $validos;
+    }
+
+    /**
+     * Valida los criterios de evaluacion. La suma de pesos debe ser 100 porque de
+     * ella sale el puntaje que el backend calcula en la Fase 7.
+     */
+    private function validarCriterios(mixed $criterios): array
+    {
+        if (! is_array($criterios) || $criterios === []) {
+            throw new RespuestaIaInvalidaException('Un mini proyecto no trae criterios.');
+        }
+
+        $validos = [];
+
+        foreach (array_values($criterios) as $criterio) {
+            $peso = is_array($criterio) ? ($criterio['peso'] ?? null) : null;
+
+            if (! is_int($peso) || $peso <= 0) {
+                throw new RespuestaIaInvalidaException('Un criterio trae un peso invalido.');
+            }
+
+            $validos[] = ['criterio' => $this->textoObligatorio($criterio, 'criterio'), 'peso' => $peso];
+        }
+
+        if (array_sum(array_column($validos, 'peso')) !== self::SUMA_PESOS) {
+            throw new RespuestaIaInvalidaException('Los pesos de los criterios no suman 100.');
+        }
+
+        return $validos;
+    }
+
+    /**
+     * Devuelve una lista de textos limpios, o falla si esta vacia o trae otra cosa.
+     */
+    private function listaDeTextos(array $datos, string $campo): array
+    {
+        $lista = $datos[$campo] ?? null;
+
+        if (! is_array($lista) || $lista === []) {
+            throw new RespuestaIaInvalidaException("Falta la lista {$campo}.");
+        }
+
+        return array_map(function ($texto) use ($campo) {
+            if (! is_string($texto) || trim($texto) === '') {
+                throw new RespuestaIaInvalidaException("La lista {$campo} trae un texto vacio.");
+            }
+
+            return trim($texto);
+        }, array_values($lista));
     }
 
     /**
