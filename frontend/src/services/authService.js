@@ -22,6 +22,16 @@ export async function login(correo, password) {
 }
 
 /**
+ * Avisa al backend que cierre la sesión: POST /logout borra el token en el servidor (Sanctum).
+ * Sin esto el token seguiría siendo válido aunque el navegador lo olvide.
+ * El timeout es corto a propósito: si el backend no responde, el usuario no debe quedarse
+ * esperando para poder salir (el composable useCerrarSesion limpia lo local igual).
+ */
+export async function cerrarSesionServidor() {
+    await api.post('/logout', null, { timeout: 5000 })
+}
+
+/**
  * Registra un nuevo usuario en el backend.
  * Igual que login(), traduce los nombres de campo al formato que espera Laravel.
  */

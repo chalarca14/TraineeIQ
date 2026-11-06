@@ -48,15 +48,15 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
 import { Menu, Search, Bell, ChevronDown, LogOut } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useCerrarSesion } from '@/composables/useCerrarSesion'
 import SwitchModo from './SwitchModo.vue'
 
 defineEmits(['toggle-menu'])
 
-const router = useRouter()
 const authStore = useAuthStore()
+const { cerrarSesion } = useCerrarSesion()
 
 const menuAbierto = ref(false)
 const menuRef = ref(null)
@@ -77,8 +77,7 @@ const iniciales = computed(() =>
 
 function salir() {
     menuAbierto.value = false
-    authStore.cerrarSesion()
-    router.push('/login')
+    cerrarSesion()
 }
 
 // Cierra el menú desplegable si se hace clic en cualquier lugar fuera de él
