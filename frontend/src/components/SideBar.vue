@@ -58,8 +58,7 @@ const menuGrupo = [
     { etiqueta: 'Mini proyectos', icono: Rocket, ruta: '/estudiante/mini-proyectos', descripcion: 'Retos prácticos vinculados al aprendizaje, con niveles progresivos.' },
     { etiqueta: 'IA', icono: Bot, ruta: '/estudiante/ia', descripcion: 'Recomendaciones y chat guiado sobre las guías del grupo.' },
     { etiqueta: 'Historial', icono: History, ruta: '/estudiante/historial', descripcion: 'Actividad anterior: chats con la IA y recomendaciones.' },
-    // Perfil sigue deshabilitado (ruta null) hasta la Tarea 6
-    { etiqueta: 'Perfil', icono: User, ruta: null, descripcion: 'Datos de la cuenta.' }
+    { etiqueta: 'Perfil', icono: User, ruta: '/estudiante/perfil', descripcion: 'Datos de la cuenta y cambio de contraseña.' }
 ]
 
 // Menú del Modo Personal
@@ -69,7 +68,7 @@ const menuPersonal = [
     { etiqueta: 'Mini proyectos', icono: Rocket, ruta: '/estudiante/mini-proyectos', descripcion: 'Proyectos prácticos adecuados a tu nivel.' },
     { etiqueta: 'IA', icono: Bot, ruta: '/estudiante/ia', descripcion: 'Recomendaciones sobre tus guías y chat libre para resolver dudas.' },
     { etiqueta: 'Historial', icono: History, ruta: '/estudiante/historial', descripcion: 'Actividad personal anterior: chats con la IA y recomendaciones.' },
-    { etiqueta: 'Perfil', icono: User, ruta: null, descripcion: 'Datos de la cuenta.' }
+    { etiqueta: 'Perfil', icono: User, ruta: '/estudiante/perfil', descripcion: 'Datos de la cuenta y cambio de contraseña.' }
 ]
 
 // El instructor no tiene modos, así que su menú no cambia

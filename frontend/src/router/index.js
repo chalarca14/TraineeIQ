@@ -73,6 +73,13 @@ const routes = [
         path: 'historial',
         name: 'Historial',
         component: () => import('../views/estudiante/Historial.vue')
+      },
+
+      // Perfil: datos de la cuenta, cambio de contraseña y cerrar sesión
+      {
+        path: 'perfil',
+        name: 'Perfil',
+        component: () => import('../views/estudiante/Perfil.vue')
       }
 
     ]
