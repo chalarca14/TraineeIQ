@@ -42,6 +42,13 @@ function enviar() {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+/* El anillo morado aparece cuando se escribe, como en los demás campos de la app */
+.entrada:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
 input {
@@ -64,12 +71,14 @@ button {
   height: 44px;
   flex-shrink: 0;
   border: none;
-  border-radius: 10px;
-  background: var(--color-primary);
-  color: #fff;
+  border-radius: 12px;
+  background: var(--gradiente-primario);
+  box-shadow: var(--brillo-primario);
+  color: var(--color-text);
   cursor: pointer;
+  transition: transform .15s;
 }
 
-button:hover:not(:disabled) { background: var(--color-primary-hover); }
+button:hover:not(:disabled) { transform: translateY(-1px); }
 button:disabled { opacity: .45; cursor: not-allowed; }
 </style>

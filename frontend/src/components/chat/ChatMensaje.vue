@@ -53,7 +53,7 @@ const hora = computed(() => {
   height: 32px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: var(--color-card);
+  background: color-mix(in srgb, var(--color-primary) 20%, var(--color-card));
   color: var(--color-primary-light);
 }
 
@@ -70,8 +70,8 @@ const hora = computed(() => {
 .mensaje--usuario .mensaje__burbuja {
   border-radius: 14px;
   border-bottom-right-radius: 4px;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--gradiente-primario);
+  color: var(--color-text);
 }
 
 .mensaje__texto {

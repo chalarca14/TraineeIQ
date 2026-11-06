@@ -1,9 +1,9 @@
 <template>
-    <header class="hero">
+    <header class="hero" :class="{ compacto }">
         <div class="brillo" aria-hidden="true"></div>
 
         <span class="icono" :style="{ '--c': COLORES[color] ?? color }" aria-hidden="true">
-            <component :is="icono" :size="40" />
+            <component :is="icono" :size="compacto ? 24 : 40" />
         </span>
 
         <div class="datos">
@@ -18,7 +18,7 @@
         <div v-if="$slots.acciones" class="acciones"><slot name="acciones" /></div>
 
         <!-- Ilustración por defecto; se puede reemplazar con el slot o quitar con sin-ilustracion -->
-        <slot v-else-if="!sinIlustracion" name="ilustracion"><IlustracionVentana class="ilu" /></slot>
+        <slot v-else-if="!sinIlustracion && !compacto" name="ilustracion"><IlustracionVentana class="ilu" /></slot>
     </header>
 </template>
 
@@ -34,7 +34,9 @@ defineProps({
     icono: { type: [Object, Function], required: true },
     // Nombre de color ('primary', 'info'...) o directamente una variable CSS ('var(--color-info)')
     color: { type: String, default: 'primary' },
-    sinIlustracion: { type: Boolean, default: false }
+    sinIlustracion: { type: Boolean, default: false },
+    // Versión baja del banner (sin ilustración) para pantallas que necesitan altura, como el chat
+    compacto: { type: Boolean, default: false }
 })
 
 const COLORES = {
@@ -113,6 +115,32 @@ h1 {
     flex-shrink: 0;
 }
 
+/* Compacto: menos relleno e icono más chico, para dejarle el alto al contenido de la pantalla */
+.compacto {
+    gap: .9rem;
+    padding: .7rem 1rem;
+    border-radius: 14px;
+}
+
+.compacto .icono {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+}
+
+.compacto h1 {
+    font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+}
+
+.compacto .datos p {
+    margin-top: .1rem;
+    font-size: .85rem;
+}
+
+.compacto .etiquetas {
+    margin-top: .4rem;
+}
+
 /* En pantallas angostas se quita la ilustración para que el título respire */
 .ilu {
     position: relative;
@@ -137,6 +165,21 @@ h1 {
 
     .acciones {
         align-self: stretch;
+    }
+
+    /* El compacto se queda en fila también en celular: apilarlo lo haría alto, justo lo que evita */
+    .compacto {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .compacto .icono {
+        width: 40px;
+        height: 40px;
+    }
+
+    .compacto .acciones {
+        align-self: center;
     }
 }
 </style>
