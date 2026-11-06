@@ -92,6 +92,18 @@ class AuthTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_login_limit_is_separate_for_each_client_behind_the_proxy(): void
+    {
+        $credenciales = ['email' => 'nadie@example.com', 'password' => 'incorrecta', 'rol' => 'estudiante'];
+
+        foreach (range(1, 5) as $intento) {
+            $this->withHeader('X-Forwarded-For', '203.0.113.10')->postJson('/api/login', $credenciales);
+        }
+
+        $this->withHeader('X-Forwarded-For', '203.0.113.10')->postJson('/api/login', $credenciales)->assertStatus(429);
+        $this->withHeader('X-Forwarded-For', '203.0.113.20')->postJson('/api/login', $credenciales)->assertStatus(401);
+    }
+
     public function test_login_rejects_invalid_credentials(): void
     {
         User::factory()->create([
