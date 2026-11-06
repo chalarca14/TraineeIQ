@@ -35,7 +35,7 @@
             <h3>Mini proyectos</h3>
             <article v-for="m in contenido.mini_proyectos" :key="m.id" class="item">
                 <div class="item-titulo">
-                    <strong>{{ m.titulo }}</strong>
+                    <RouterLink :to="`/prueba/mini-proyectos/${m.id}`" class="enlace">{{ m.titulo }}</RouterLink>
                     <EtiquetaNivel :valor="m.dificultad" />
                 </div>
                 <p>{{ m.descripcion }}</p>
@@ -100,6 +100,11 @@ h3 {
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: .3rem;
+}
+
+.enlace {
+    color: var(--color-text);
+    font-weight: 700;
 }
 
 .btn {

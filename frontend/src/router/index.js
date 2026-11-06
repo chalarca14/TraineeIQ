@@ -86,6 +86,11 @@ const routes = [
         path: 'guias/:id',
         name: 'GuiaSemanasPrueba',
         component: () => import('../views/prueba/GuiaSemanasPrueba.vue')
+      },
+      {
+        path: 'mini-proyectos/:id',
+        name: 'MiniProyectoPrueba',
+        component: () => import('../views/prueba/MiniProyectoPrueba.vue')
       }
     ]
   },
