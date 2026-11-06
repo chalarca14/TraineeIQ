@@ -18,6 +18,10 @@
                 <span v-if="mensajeLiberar" class="mensaje">{{ mensajeLiberar }}</span>
             </form>
 
+            <RouterLink v-if="grupo" :to="`/prueba/grupos/${grupo.id}/entregas`" class="volver">
+                Ver entregas del grupo
+            </RouterLink>
+
             <p v-if="store.aviso" class="estado aviso">{{ store.aviso }}</p>
             <p v-if="store.error" class="estado error">{{ store.error }}</p>
             <p v-if="store.procesandoCola" class="estado">Preparando semanas...</p>

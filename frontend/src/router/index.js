@@ -91,6 +91,11 @@ const routes = [
         path: 'mini-proyectos/:id',
         name: 'MiniProyectoPrueba',
         component: () => import('../views/prueba/MiniProyectoPrueba.vue')
+      },
+      {
+        path: 'grupos/:id/entregas',
+        name: 'EntregasGrupoPrueba',
+        component: () => import('../views/prueba/EntregasGrupoPrueba.vue')
       }
     ]
   },
