@@ -13,6 +13,11 @@
             <header class="page-header">
                 <h1>{{ guia.nombre }}</h1>
                 <p>{{ guia.temas.length }} temas. Abre uno para generar recomendaciones y mini proyectos con la IA.</p>
+                <!-- Lleva al chat en modo guiado: la IA solo responde sobre esta guía (RF-14) -->
+                <RouterLink :to="{ path: '/estudiante/ia', query: { guiaId: guia.id } }" class="btn-chat">
+                    <Bot :size="16" />
+                    Abrir chat con la IA
+                </RouterLink>
             </header>
 
             <div class="temas-lista">
@@ -26,7 +31,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Bot } from 'lucide-vue-next'
 import TemaCard from '@/components/personal/TemaCard.vue'
 import { obtenerGuia } from '@/services/guiaService'
 
@@ -75,6 +80,23 @@ onMounted(async () => {
 .page-header p {
     margin: 0 0 1.5rem 0;
     color: var(--color-text-secondary);
+}
+
+.btn-chat {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: 1.5rem;
+    padding: .55rem 1rem;
+    border-radius: 10px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: .9rem;
+    text-decoration: none;
+}
+
+.btn-chat:hover {
+    background: var(--color-primary-hover);
 }
 
 .temas-lista {
