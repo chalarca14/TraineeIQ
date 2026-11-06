@@ -1,4 +1,5 @@
 import api from './api'
+import { listarTodasMisGuias } from './guiaService'
 
 const USAR_DATOS_PRUEBA = false
 const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -15,4 +16,54 @@ export async function generarMiniProyectos({ guiaId, temaId }) {
     // tema_id es opcional: sin él se generan sobre toda la guía
     const { data } = await api.post('/mini-proyectos/generar', { guia_id: guiaId, tema_id: temaId }, { timeout: 120000 })
     return data.mini_proyectos
+}
+
+/** Mini proyectos ya generados de UNA guía (el backend verifica que tengas acceso a ella). */
+export async function listarMiniProyectosDeGuia(guiaId) {
+    if (USAR_DATOS_PRUEBA) {
+        await esperar(300)
+        return []
+    }
+    const { data } = await api.get(`/mini-proyectos/guia/${guiaId}`)
+    return data.mini_proyectos
+}
+
+/**
+ * Junta los mini proyectos de todas las guías del aprendiz.
+ *
+ * Por qué por guía y no GET /mini-proyectos: ese endpoint devuelve los de TODOS los usuarios
+ * sin filtrar. En cambio /mini-proyectos/guia/{id} valida el acceso a la guía.
+ *
+ * Por qué Promise.allSettled: con Promise.all, si UNA petición falla se rechaza todo y se pierde
+ * el resultado de las demás. allSettled espera a todas y devuelve el estado de cada una
+ * ('fulfilled' o 'rejected'), así mostramos lo que sí cargó y avisamos de lo que falló.
+ *
+ * Devuelve { proyectos, guiasConError }. Si falla la lista de guías, lanza el error
+ * (no hay nada que mostrar).
+ */
+export async function listarMisMiniProyectos() {
+    const guias = await listarTodasMisGuias()
+
+    const resultados = await Promise.allSettled(
+        guias.map((guia) => listarMiniProyectosDeGuia(guia.id))
+    )
+
+    const proyectos = []
+    let guiasConError = 0
+
+    resultados.forEach((resultado, i) => {
+        if (resultado.status === 'rejected') {
+            guiasConError++
+            return
+        }
+        // Añadimos el nombre de la guía para mostrarlo como etiqueta en la tarjeta
+        resultado.value.forEach((p) => proyectos.push({ ...p, guiaNombre: guias[i].nombre }))
+    })
+
+    // Si TODAS fallaron (y había guías), es un error real y no una lista vacía
+    if (guias.length > 0 && guiasConError === guias.length) {
+        throw resultados[0].reason
+    }
+
+    return { proyectos, guiasConError }
 }
