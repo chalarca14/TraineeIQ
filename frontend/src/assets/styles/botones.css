@@ -1,0 +1,63 @@
+/* Botones compartidos. Son clases globales (no un componente) para que sirvan igual en
+   <button>, <a> y <RouterLink>. BaseButton.vue se mantiene aparte para Login y Registro
+   (ancho completo y efecto onda), así que cambiar esto no afecta esas pantallas.
+   Uso: <button class="btn btn-primario">, <a class="btn btn-secundario btn-sm"> */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    padding: .7rem 1.2rem;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font-size: .9rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, background-color .2s, border-color .2s;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+/* Acción principal: degradado morado con resplandor */
+.btn-primario {
+    background: var(--gradiente-primario);
+    box-shadow: var(--brillo-primario);
+    color: var(--color-text);
+}
+
+.btn-primario:hover:not(:disabled) {
+    box-shadow: var(--brillo-primario-fuerte);
+}
+
+/* Acción secundaria: solo borde, para no competir con la principal */
+.btn-secundario {
+    border-color: var(--color-primary);
+    background: transparent;
+    color: var(--color-primary-light);
+}
+
+.btn-secundario:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+/* Acciones externas (por ejemplo, abrir VS Code): degradado azul → morado */
+.btn-info {
+    background: linear-gradient(90deg, var(--color-info), var(--color-primary));
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-info) 35%, transparent);
+    color: var(--color-text);
+}
+
+.btn-sm {
+    padding: .5rem .9rem;
+    font-size: .82rem;
+}

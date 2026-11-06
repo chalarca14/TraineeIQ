@@ -48,4 +48,9 @@ html {
     --color-primary-light: #A855F7;
     --color-border: #1E2235;
 
+    /* Degradado y resplandor morado compartidos por botones, banners y tarjetas destacadas */
+    --gradiente-primario: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    --brillo-primario: 0 6px 18px color-mix(in srgb, var(--color-primary) 40%, transparent);
+    --brillo-primario-fuerte: 0 8px 22px color-mix(in srgb, var(--color-primary) 55%, transparent);
+
 }
