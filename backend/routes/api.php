@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\GuiaSemanaController;
 use App\Http\Controllers\Api\MiniProyectoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatIaController;
-use App\Http\Controllers\MiniProyectoController as MiniProyectoIaController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -49,21 +48,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversaciones/{id}/mensajes', [ChatIaController::class, 'enviarMensaje']);
     Route::delete('/conversaciones/{id}', [ChatIaController::class, 'destroy']);
 
-    // Generacion a pedido reemplazada por el contenido por semana. Responde 410
-    // hasta que la Fase 4 elimine estas rutas y sus controladores.
-    $generacionReemplazada = fn () => response()->json([
-        'message' => 'Esta función fue reemplazada por el contenido por semana.',
-    ], 410);
-
-    Route::post('/recomendaciones', $generacionReemplazada);
-    Route::get('/recomendaciones/historial', $generacionReemplazada);
-    Route::post('/mini-proyectos/generar', $generacionReemplazada);
-    Route::get('/mini-proyectos/guia/{guiaId}', [MiniProyectoIaController::class, 'porGuia']);
-
     // Grupos
     Route::get('/grupos', [GrupoController::class, 'index']);
     Route::post('/grupos', [GrupoController::class, 'store'])->middleware('EsInstructor');
     Route::get('/grupos/{id}', [GrupoController::class, 'show']);
+    Route::patch('/grupos/{id}/semana-actual', [GrupoController::class, 'actualizarSemanaActual'])->middleware('EsInstructor');
     Route::post('/grupos/unirse', [GrupoController::class, 'unirse'])->middleware('EsEstudiante');
 
     // Guías de Estudio
@@ -71,11 +60,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/guias', [GuiaController::class, 'store']);
     Route::get('/guias/{id}', [GuiaController::class, 'show']);
     Route::put('/guias/{id}', [GuiaController::class, 'update']);
+    Route::get('/guias/{guiaId}/semanas', [GuiaSemanaController::class, 'index'])->whereNumber('guiaId');
+    Route::get('/guias/{guiaId}/semanas/{numero}', [GuiaSemanaController::class, 'show'])
+        ->whereNumber(['guiaId', 'numero']);
     Route::post('/guias/{guiaId}/semanas/{numero}/generar', [GuiaSemanaController::class, 'generar'])
         ->whereNumber(['guiaId', 'numero']);
 
-    // Mini Proyectos (CRUD manual de Integrante 3)
-    Route::get('/mini-proyectos', [MiniProyectoController::class, 'index']);
-    Route::post('/mini-proyectos', [MiniProyectoController::class, 'store']);
-    Route::get('/mini-proyectos/{id}', [MiniProyectoController::class, 'show']);
+    // Mini Proyectos: los genera la IA por semana, aqui solo se leen
+    Route::get('/mini-proyectos/{id}', [MiniProyectoController::class, 'show'])->whereNumber('id');
 });

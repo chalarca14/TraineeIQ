@@ -11,6 +11,7 @@ use App\Http\Requests\ReemplazarGuiaRequest;
 use App\Http\Requests\StoreGuiaRequest;
 use App\Models\Guia;
 use App\Models\Grupo;
+use App\Models\User;
 use App\Services\ProcesarGuiaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class GuiaController extends Controller
             // El instructor ve las guías de sus grupos
             $gruposIds = Grupo::where('instructor_id', $user->id)->pluck('id');
             $guias = Guia::whereIn('grupo_id', $gruposIds)
-                ->with(['temas' => fn($q) => $q->orderBy('orden', 'asc')])
+                ->with($this->relacionesDeLectura())
                 ->paginate(15);
         } else {
             // El estudiante ve sus guías personales y las de los grupos donde está inscrito
@@ -40,9 +41,11 @@ class GuiaController extends Controller
                     $query->where('usuario_id', $user->id)
                           ->orWhereIn('grupo_id', $gruposInscritosIds);
                 })
-                ->with(['temas' => fn($q) => $q->orderBy('orden', 'asc')])
+                ->with($this->relacionesDeLectura())
                 ->paginate(15);
         }
+
+        $guias->getCollection()->each(fn (Guia $guia) => $this->prepararLectura($guia, $user));
 
         return response()->json($guias, 200);
     }
@@ -134,29 +137,34 @@ class GuiaController extends Controller
      */
     public function show(Request $request, int $id)
     {
-        $user = $request->user();
-        $guia = Guia::with(['temas' => fn($q) => $q->orderBy('orden', 'asc')])->find($id);
+        $guia = Guia::with($this->relacionesDeLectura())->find($id);
 
         if (!$guia) {
             return response()->json(['message' => 'Guía no encontrada'], 404);
         }
 
-        if ($user->rol === 'instructor') {
-            $grupo = Grupo::find($guia->grupo_id);
-            if (!$grupo || $grupo->instructor_id !== $user->id) {
-                return response()->json(['message' => 'No tienes acceso a esta guía.'], 403);
-            }
-        } else {
-            $gruposInscritosIds = $user->gruposInscritos()->pluck('grupos.id')->toArray();
-            
-            $tieneAcceso = ($guia->usuario_id === $user->id) || 
-                        ($guia->grupo_id && in_array($guia->grupo_id, $gruposInscritosIds));
+        Gate::authorize('view', $guia);
 
-            if (!$tieneAcceso) {
-                return response()->json(['message' => 'No tienes acceso a esta guía.'], 403);
-            }
-        }
+        return response()->json(['guia' => $this->prepararLectura($guia, $request->user())], 200);
+    }
 
-        return response()->json(['guia' => $guia], 200);
+    /**
+     * Relaciones que necesitan las lecturas de guias. El grupo y la semana de cada
+     * tema se cargan aqui para decidir que temas puede ver el usuario sin hacer N+1.
+     */
+    private function relacionesDeLectura(): array
+    {
+        return [
+            'grupo',
+            'temas' => fn ($q) => $q->orderBy('orden', 'asc')->with('semana:id,numero_semana'),
+        ];
+    }
+
+    /**
+     * Deja la guia lista para responder: sin temas bloqueados y sin los datos del grupo.
+     */
+    private function prepararLectura(Guia $guia, User $user): Guia
+    {
+        return $guia->ocultarTemasBloqueadosPara($user)->makeHidden('grupo');
     }
 }

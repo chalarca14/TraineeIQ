@@ -129,33 +129,4 @@ class EsquemaSemanasTest extends TestCase
         $this->assertSame(3, MiniProyecto::count());
         $this->assertSame(0, EntregaMiniProyecto::count());
     }
-
-    /**
-     * La generación a pedido avisa que fue reemplazada, sin error de base de datos.
-     */
-    public function test_la_generacion_a_pedido_responde_410(): void
-    {
-        Sanctum::actingAs(User::factory()->create(['rol' => 'estudiante']));
-
-        $this->postJson('/api/recomendaciones', ['tema_id' => 1])->assertStatus(410);
-        $this->getJson('/api/recomendaciones/historial')->assertStatus(410);
-        $this->postJson('/api/mini-proyectos/generar', ['guia_id' => 1])->assertStatus(410);
-    }
-
-    /**
-     * La lista de mini proyectos por guía sigue funcionando, ordenada por semana.
-     */
-    public function test_los_mini_proyectos_por_guia_siguen_funcionando(): void
-    {
-        $this->seed(DatabaseSeeder::class);
-
-        $estudiante = User::where('email', 'estudiante1@traineeiq.com')->firstOrFail();
-        $guia = Guia::where('nombre', 'Guia de Introduccion')->firstOrFail();
-        Sanctum::actingAs($estudiante);
-
-        $this->getJson("/api/mini-proyectos/guia/{$guia->id}")
-            ->assertOk()
-            ->assertJsonCount(6, 'mini_proyectos')
-            ->assertJsonPath('mini_proyectos.0.semana.numero_semana', 1);
-    }
 }

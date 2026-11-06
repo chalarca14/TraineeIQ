@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ActualizarSemanaActualRequest;
 use App\Models\Grupo;
 use App\Models\EstudianteGrupo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 class GrupoController extends Controller
@@ -98,14 +101,33 @@ class GrupoController extends Controller
 
     /**
      * Ver detalles de un grupo específico y sus estudiantes inscritos.
+     * Solo lo ven su instructor y sus estudiantes, porque incluye nombres y correos.
      */
     public function show(int $id)
     {
         $grupo = Grupo::with(['estudiantes:id,name,email', 'instructor:id,name'])->findOrFail($id);
+        Gate::authorize('view', $grupo);
 
         return response()->json([
             'success' => true,
             'data' => $grupo
+        ], 200);
+    }
+
+    /**
+     * Libera semanas: los estudiantes del grupo pueden leer hasta la semana indicada.
+     * Aplica a todas las guias del grupo. Bajar el numero vuelve a bloquear las siguientes.
+     */
+    public function actualizarSemanaActual(ActualizarSemanaActualRequest $request, int $id): JsonResponse
+    {
+        $grupo = Grupo::findOrFail($id);
+        Gate::authorize('update', $grupo);
+
+        $grupo->update(['semana_actual' => $request->integer('semana_actual')]);
+
+        return response()->json([
+            'message'       => 'Semana actualizada correctamente',
+            'semana_actual' => $grupo->semana_actual,
         ], 200);
     }
 }

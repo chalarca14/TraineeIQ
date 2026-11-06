@@ -9,8 +9,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 /**
  * Trait reutilizable: verifica que el estudiante autenticado tiene permiso
  * sobre una guia (personal propia, o de un grupo en el que esta inscrito).
- * Usado por RecomendacionController, MiniProyectoController y, mas adelante,
- * por las estrategias del chat (modo guiado).
+ * Usado por ChatIaController en el chat guiado. El resto de la API usa GuiaPolicy.
  */
 trait VerificaAccesoAGuia
 {

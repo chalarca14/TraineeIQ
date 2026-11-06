@@ -29,6 +29,9 @@ use Illuminate\Support\Facades\Log;
  * CAMBIOS v7:
  * - generarContenidoSemana() genera en una sola llamada las recomendaciones y los
  *   mini proyectos de una semana, y valida la respuesta contra el contrato 2.2.
+ * CAMBIOS v8:
+ * - Se eliminan generarRecomendaciones() y generarMiniProyectos(): el contenido ya no se
+ *   genera a pedido, sino una vez por semana con generarContenidoSemana().
  */
 class GeminiService
 {
@@ -171,38 +174,6 @@ class GeminiService
     }
 
     /**
-     * Genera recomendaciones academicas para UN tema especifico de una guia,
-     * clasificadas por nivel: basico, recomendado, importante, avanzado.
-     */
-    public function generarRecomendaciones(string $nombreTema, string $contenidoTema, ?int $semanaActual = null): array
-    {
-        $prompt = $this->construirPromptRecomendaciones($nombreTema, $contenidoTema, $semanaActual);
-        $texto = $this->llamarApi($prompt);
-
-        if ($texto === null) {
-            return [];
-        }
-
-        return $this->parsearJson($texto, []);
-    }
-
-    /**
-     * Genera mini proyectos practicos para un tema (o para la guia completa si
-     * $nombreTema es null), clasificados por dificultad: basico, intermedio, avanzado.
-     */
-    public function generarMiniProyectos(?string $nombreTema, string $contenidoTema): array
-    {
-        $prompt = $this->construirPromptMiniProyectos($nombreTema, $contenidoTema);
-        $texto = $this->llamarApi($prompt);
-
-        if ($texto === null) {
-            return [];
-        }
-
-        return $this->parsearJson($texto, []);
-    }
-
-    /**
      * Divide el texto de una guia en semanas con sus temas (contrato 2.1 de la Fase 0).
      * No devuelve el texto de cada semana: solo la frase con la que empieza, para que
      * el backend corte el texto real del PDF.
@@ -336,59 +307,6 @@ class GeminiService
 
         // Ningun modelo respondio: los metodos publicos ya manejan el null
         return null;
-    }
-
-    /**
-     * Prompt para recomendaciones: exige que Gemini clasifique cada sugerencia
-     * segun el ENUM real de la columna recomendaciones.nivel.
-     */
-    private function construirPromptRecomendaciones(string $nombreTema, string $contenidoTema, ?int $semanaActual): string
-    {
-        $contextoSemana = $semanaActual
-            ? "El estudiante se encuentra en la semana {$semanaActual} de su formacion."
-            : "El estudiante esta estudiando este tema de forma independiente (Modo Personal), sin semana asignada.";
-
-        return "Eres un asistente academico del SENA especializado en programacion.
-        {$contextoSemana}
-        El tema que esta estudiando actualmente es: \"{$nombreTema}\".
-        Contenido de ese tema extraido de su guia:
-        {$contenidoTema}
-
-        Genera entre 3 y 5 recomendaciones de profundizacion para este tema especifico.
-        Cada recomendacion debe tener un nivel EXACTAMENTE uno de estos valores:
-        \"basico\", \"recomendado\", \"importante\", \"avanzado\".
-
-        Responde UNICAMENTE en formato JSON, sin texto adicional, con esta estructura exacta:
-        [
-            {\"nivel\": \"basico\", \"titulo\": \"...\", \"descripcion\": \"...\"},
-            {\"nivel\": \"recomendado\", \"titulo\": \"...\", \"descripcion\": \"...\"}
-        ]";
-    }
-
-    /**
-     * Prompt para mini proyectos: exige clasificacion segun el ENUM real de
-     * mini_proyectos.dificultad, y separa descripcion (resumen) de contenido
-     * (instrucciones completas), tal como lo define la tabla mini_proyectos.
-     */
-    private function construirPromptMiniProyectos(?string $nombreTema, string $contenidoTema): string
-    {
-        $etiquetaTema = $nombreTema ? "sobre el tema \"{$nombreTema}\"" : "sobre el contenido general de la guia";
-
-        return "Eres un asistente academico del SENA especializado en programacion.
-        Genera 3 mini proyectos practicos {$etiquetaTema}, uno por cada nivel de dificultad.
-        Contenido de referencia:
-        {$contenidoTema}
-
-        La dificultad debe ser EXACTAMENTE uno de estos valores: \"basico\", \"intermedio\", \"avanzado\".
-        \"descripcion\" es un resumen de una sola linea. \"contenido\" son las instrucciones
-        completas paso a paso para que el estudiante desarrolle el proyecto.
-
-        Responde UNICAMENTE en formato JSON, sin texto adicional, con esta estructura exacta:
-        [
-            {\"dificultad\": \"basico\", \"titulo\": \"...\", \"descripcion\": \"...\", \"contenido\": \"...\"},
-            {\"dificultad\": \"intermedio\", \"titulo\": \"...\", \"descripcion\": \"...\", \"contenido\": \"...\"},
-            {\"dificultad\": \"avanzado\", \"titulo\": \"...\", \"descripcion\": \"...\", \"contenido\": \"...\"}
-        ]";
     }
 
     /**

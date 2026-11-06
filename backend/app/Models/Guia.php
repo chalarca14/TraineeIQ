@@ -21,6 +21,38 @@ class Guia extends Model
         'origen', // 'grupo' o 'personal'
     ];
 
+    /**
+     * Indica si una semana ya esta liberada para este usuario. En Modo Personal y para
+     * el instructor del grupo todas lo estan. El estudiante de grupo llega hasta la
+     * semana_actual que fija el instructor: conserva las pasadas y no ve las futuras.
+     */
+    public function semanaLiberadaPara(User $user, int $numeroSemana): bool
+    {
+        if ($this->origen === 'personal' || $this->grupo?->instructor_id === $user->id) {
+            return true;
+        }
+
+        return $numeroSemana <= (int) $this->grupo?->semana_actual;
+    }
+
+    /**
+     * Quita de la guia los temas de semanas que este usuario aun no tiene liberadas.
+     * Espera cargadas las relaciones grupo y temas.semana, para no consultar tema por tema.
+     * Un tema sin semana no tiene nada que bloquear y se deja visible.
+     */
+    public function ocultarTemasBloqueadosPara(User $user): static
+    {
+        $visibles = $this->temas
+            ->filter(fn (GuiaTema $tema) => $tema->semana === null
+                || $this->semanaLiberadaPara($user, $tema->semana->numero_semana))
+            ->values();
+
+        // La semana solo se cargo para filtrar: no viaja en la respuesta
+        $visibles->each->makeHidden('semana');
+
+        return $this->setRelation('temas', $visibles);
+    }
+
      // Una guía puede pertenecer a un grupo (si es de origen grupal).
 
     public function grupo()
