@@ -3,6 +3,8 @@
 
         <section class="bloque">
             <h3><Medalla :icono="Info" color="info" /> Información del proyecto</h3>
+            <!-- La descripción vive solo aquí (el banner ya no la repite) -->
+            <p class="texto"><TextoConCodigo :texto="proyecto.descripcion" /></p>
             <dl>
                 <div><dt>Nivel</dt><dd><EtiquetaNivel :valor="proyecto.dificultad" /></dd></div>
                 <div><dt>XP estimado</dt><dd class="xp"><Star :size="15" /> +{{ xp }} XP</dd></div>
@@ -108,6 +110,9 @@ dl {
     display: flex;
     flex-wrap: wrap;
     gap: .6rem 2rem;
+    margin-top: .8rem;
+    padding-top: .8rem;
+    border-top: 1px solid var(--color-border);
 }
 
 dl div {

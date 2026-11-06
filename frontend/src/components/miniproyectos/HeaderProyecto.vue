@@ -1,7 +1,6 @@
 <template>
     <!-- Cabecera del detalle: reutiliza el banner compartido y solo aporta icono, textos y etiquetas -->
     <EncabezadoPagina :titulo="proyecto.titulo" :icono="visual.icono" :color="visual.color">
-        <template #descripcion><TextoConCodigo :texto="proyecto.descripcion" /></template>
         <template #etiquetas>
             <EtiquetaNivel :valor="proyecto.dificultad" />
             <TecnologiaChip v-for="t in tecnologias" :key="t.etiqueta" :tecnologia="t" />
@@ -15,7 +14,6 @@ import { computed } from 'vue'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
 import TecnologiaChip from '@/components/miniproyectos/TecnologiaChip.vue'
-import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 import { iconoDelProyecto, tecnologiasDelProyecto } from '@/utils/iconosProyecto'
 
 const props = defineProps({ proyecto: { type: Object, required: true } })
