@@ -37,6 +37,7 @@ const guiaNombre = ref('')
 const mensajes = ref([])
 const texto = ref('')
 const pendiente = ref('')         // mensaje del usuario mientras espera a la IA
+const ultimoEnviado = ref('')     // la caja se vacía al enviar: "Reintentar" reenvía esto
 const enviando = ref(false)
 const error = ref('')
 const cargandoConversacion = ref(false)
@@ -82,6 +83,7 @@ async function abrirDesdeRuta() {
   mensajes.value = []
   texto.value = ''
   pendiente.value = ''
+  ultimoEnviado.value = ''
   error.value = ''
   errorConversacion.value = ''
   enviando.value = false
@@ -115,10 +117,20 @@ async function abrirDesdeRuta() {
   }
 }
 
-async function enviar() {
+// La caja se vacía al enviar: el mensaje ya se ve en la conversación como "pendiente".
+function enviar() {
   const contenido = texto.value.trim()
   if (!contenido || enviando.value) return
+  texto.value = ''
+  return mandar(contenido)
+}
 
+function reintentar() {
+  if (ultimoEnviado.value && !enviando.value) return mandar(ultimoEnviado.value)
+}
+
+async function mandar(contenido) {
+  ultimoEnviado.value = contenido
   error.value = ''
   enviando.value = true
   pendiente.value = contenido
@@ -148,8 +160,8 @@ async function enviar() {
     if (gen !== generacion || conversacionId.value !== idEnviado) { cargarLista(); return }
 
     mensajes.value.push(mensaje_usuario, respuesta_ia)
-    texto.value = '' // solo se limpia si salió bien, así puedes reintentar
-    cargarLista()    // la conversación sube al primer lugar de la lista
+    ultimoEnviado.value = ''
+    cargarLista() // la conversación sube al primer lugar de la lista
   } catch (e) {
     if (gen === generacion) error.value = mensajeDeError(e)
   } finally {
@@ -203,8 +215,8 @@ watch(() => [route.params.conversacionId, route.query.guiaId], () => {
           </template>
         </div>
 
-        <!-- Error con reintento: el texto sigue en la caja, reintentar vuelve a enviarlo -->
-        <ChatErrorEnvio v-if="error" :mensaje="error" @reintentar="enviar" />
+        <!-- Error con reintento: reintentar vuelve a enviar el último mensaje (la caja ya se vació) -->
+        <ChatErrorEnvio v-if="error" :mensaje="error" @reintentar="reintentar" />
 
         <ChatEntrada v-model="texto" :deshabilitado="enviando || cargandoConversacion || Boolean(errorConversacion)"
           @enviar="enviar" />

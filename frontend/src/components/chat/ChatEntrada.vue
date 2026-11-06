@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { Send } from 'lucide-vue-next'
 
-// v-model: el texto vive en la vista (así, si el envío falla, el texto sigue ahí para reintentar).
+// v-model: el texto vive en la vista, que es quien lo vacía en cuanto se envía.
 const texto = defineModel({ type: String, default: '' })
 const props = defineProps({ deshabilitado: Boolean })
 const emit = defineEmits(['enviar'])
