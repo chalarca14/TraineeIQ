@@ -48,6 +48,13 @@ const routes = [
       {
         path: 'guias/:id',
         name: 'GuiaDetalle', component: () => import('../views/personal/GuiaDetalle.vue')
+      },
+
+      // Lista de mini proyectos (el detalle /mini-proyectos/:id se agrega en la Tarea 3)
+      {
+        path: 'mini-proyectos',
+        name: 'MiniProyectos',
+        component: () => import('../views/estudiante/MiniProyectos.vue')
       }
 
     ]

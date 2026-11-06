@@ -55,7 +55,7 @@ const esEstudiante = computed(() => authStore.rolUsuario !== 'instructor')
 const menuGrupo = [
     { etiqueta: 'Inicio', icono: Home, ruta: '/estudiante/dashboard', descripcion: 'Resumen del progreso y actividades recientes.' },
     { etiqueta: 'Mis grupos', icono: Users, ruta: null, descripcion: 'Lista de los grupos en los que estás inscrito.' },
-    { etiqueta: 'Mini proyectos', icono: Rocket, ruta: null, descripcion: 'Retos prácticos vinculados al aprendizaje, con niveles progresivos.' },
+    { etiqueta: 'Mini proyectos', icono: Rocket, ruta: '/estudiante/mini-proyectos', descripcion: 'Retos prácticos vinculados al aprendizaje, con niveles progresivos.' },
     { etiqueta: 'IA', icono: Bot, ruta: '/estudiante/ia', descripcion: 'Recomendaciones y chat guiado sobre las guías del grupo.' },
     { etiqueta: 'Historial · Perfil', icono: History, ruta: null, descripcion: 'Actividad anterior y datos de la cuenta.' }
 ]
@@ -64,7 +64,7 @@ const menuGrupo = [
 const menuPersonal = [
     { etiqueta: 'Inicio', icono: Home, ruta: '/estudiante/dashboard', descripcion: 'Resumen del aprendizaje personal.' },
     { etiqueta: 'Mis guías', icono: BookOpen, ruta: '/estudiante/guias', descripcion: 'Guías que tú has cargado, organizadas por temas.' },
-    { etiqueta: 'Mini proyectos', icono: Rocket, ruta: null, descripcion: 'Proyectos prácticos adecuados a tu nivel.' },
+    { etiqueta: 'Mini proyectos', icono: Rocket, ruta: '/estudiante/mini-proyectos', descripcion: 'Proyectos prácticos adecuados a tu nivel.' },
     { etiqueta: 'IA', icono: Bot, ruta: '/estudiante/ia', descripcion: 'Recomendaciones sobre tus guías y chat libre para resolver dudas.' },
     { etiqueta: 'Historial · Perfil', icono: History, ruta: null, descripcion: 'Actividad personal anterior y datos de la cuenta.' }
 ]
