@@ -1,5 +1,7 @@
 # Despliegue de TraineeIQ
 
+Render y Vercel despliegan la rama `main`, así que el proyecto debe estar fusionado allí antes de los pasos 2 y 3.
+
 Orden: primero la base de datos, luego el backend y por último el frontend. Cada paso necesita un dato del anterior.
 
 Los nombres de los botones pueden cambiar. Si un panel no coincide con esta guía, sigue la documentación oficial de ese servicio.
@@ -20,7 +22,7 @@ Nunca escribas claves en este archivo, en el código ni en un chat. Van solo en 
 
 | Campo | Valor |
 | --- | --- |
-| Rama | `rama-ia`, mientras no se fusione a `main` |
+| Rama | `main` |
 | Root Directory | `backend` |
 | Runtime | Docker |
 | Plan | Free |
@@ -70,7 +72,7 @@ No corras `migrate:fresh` ni `--seed` en producción: lo primero borra los datos
 
 | Campo | Valor |
 | --- | --- |
-| Rama de producción | `rama-ia`, mientras no se fusione a `main` |
+| Rama de producción | `main` |
 | Root Directory | `frontend` |
 | Framework | Vite |
 
