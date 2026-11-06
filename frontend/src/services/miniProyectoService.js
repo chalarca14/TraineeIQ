@@ -31,10 +31,19 @@ export async function getMiniProyecto(id) {
     return data.mini_proyecto
 }
 
-/** Devuelve la entrega del estudiante, o null si aún no guardó su repositorio. */
+/** Devuelve { entrega, intentos_restantes }. entrega es null si aún no guardó su repositorio. */
 export async function getEntrega(id) {
     const { data } = await api.get(`/mini-proyectos/${id}/entrega`)
-    return data.entrega
+    return data
+}
+
+/**
+ * Pide evaluar el código y devuelve { entrega, intentos_restantes }.
+ * El timeout supera los 180 s que el backend le da a esta petición.
+ */
+export async function pedirEvaluacion(id) {
+    const { data } = await api.post(`/mini-proyectos/${id}/entrega/evaluar`, null, { timeout: 200000 })
+    return data
 }
 
 /** Guarda o cambia el repositorio del estudiante. */
