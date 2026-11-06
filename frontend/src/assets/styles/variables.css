@@ -9,6 +9,20 @@
     font-family: 'Puritan', sans-serif;
 }
 
+/* Barra de desplazamiento global (se importa una sola vez desde main.js, así vale para toda la app).
+   - scrollbar-gutter: stable en <html> reserva el espacio de la barra aunque no aparezca, para que
+     la página no "salte" de ancho al cambiar de pestaña entre una lista corta y una larga.
+   - scrollbar-width y scrollbar-color están en * porque cada caja con su propio scroll
+     (chat, listas) necesita la regla; scrollbar-width no se hereda. */
+html {
+    scrollbar-gutter: stable;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) var(--color-background);
+}
+
 #app {
     width: 100%;
     min-height: 100vh;
@@ -29,6 +43,7 @@
     --color-success: #22C55E;
     --color-warning: #F59E0B;
     --color-danger: #EF4444;
+    --color-info: #3B82F6;
 
     --color-primary-light: #A855F7;
     --color-border: #1E2235;
