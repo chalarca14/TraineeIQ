@@ -29,26 +29,7 @@
                     {{ guiasConError === 1 ? 'guía' : 'guías' }}. Lo demás sí se muestra.
                 </p>
 
-                <div class="pestanas" role="tablist">
-                    <button v-for="p in PESTANAS" :key="p.clave" type="button" role="tab"
-                        :class="{ activa: pestana === p.clave }" :aria-selected="pestana === p.clave"
-                        @click="pestana = p.clave">
-                        {{ p.etiqueta }}
-                    </button>
-                </div>
-
-                <div class="herramientas">
-                    <label class="buscador">
-                        <Search :size="16" />
-                        <input v-model="busqueda" type="search" placeholder="Buscar proyecto..." />
-                    </label>
-                    <select v-model="orden" aria-label="Ordenar proyectos"
-                        title="Por tema: agrupados por tema, de básico a avanzado">
-                        <option value="tema">Por tema</option>
-                        <option value="recientes">Más recientes</option>
-                        <option value="antiguos">Más antiguos</option>
-                    </select>
-                </div>
+                <FiltrosProyectos v-model:pestana="pestana" v-model:busqueda="busqueda" v-model:orden="orden" />
 
                 <div v-if="encabezado" class="encabezado">
                     <h2>{{ encabezado.titulo }}</h2>
@@ -72,19 +53,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Code, Search } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Code } from 'lucide-vue-next'
+import FiltrosProyectos from '@/components/miniproyectos/FiltrosProyectos.vue'
 import ProyectoCard from '@/components/miniproyectos/ProyectoCard.vue'
 import ResumenProgreso from '@/components/miniproyectos/ResumenProgreso.vue'
 import { listarMisMiniProyectos } from '@/services/miniProyectoService'
 import { estadoDelProyecto } from '@/utils/progresoEjemplo'
 import { mensajeDeError } from '@/utils/errores'
-
-const PESTANAS = [
-    { clave: 'todos', etiqueta: 'Todos' },
-    { clave: 'en_progreso', etiqueta: 'En progreso' },
-    { clave: 'completado', etiqueta: 'Completados' },
-    { clave: 'por_iniciar', etiqueta: 'Por iniciar' }
-]
 
 const VACIO_POR_PESTANA = {
     todos: 'No hay proyectos para mostrar.',
@@ -93,6 +69,7 @@ const VACIO_POR_PESTANA = {
     por_iniciar: 'No tienes proyectos pendientes por iniciar.'
 }
 
+const router = useRouter()
 const crudos = ref([])
 const guiasConError = ref(0)
 const cargando = ref(true)
@@ -184,9 +161,9 @@ const encabezado = computed(() => {
     return textos[pestana.value] ?? null
 })
 
-function alAbrir() {
-    // TODO Tarea 3: navegar a /estudiante/mini-proyectos/:id cuando exista la ruta de detalle.
-    // Por ahora se ignora a propósito: no hay destino al que llevar al aprendiz.
+// La tarjeta solo avisa "abrir este proyecto"; la vista decide a dónde ir
+function alAbrir(proyecto) {
+    router.push({ name: 'MiniProyectoDetalle', params: { id: proyecto.id } })
 }
 
 onMounted(cargar)
@@ -238,73 +215,6 @@ onMounted(cargar)
     grid-template-columns: minmax(0, 1fr) 280px;
     gap: 1.2rem;
     align-items: start;
-}
-
-.pestanas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-    margin-bottom: 1rem;
-}
-
-.pestanas button {
-    padding: .45rem 1rem;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--color-text-secondary);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.pestanas button.activa {
-    background: var(--color-primary);
-    color: var(--color-text);
-}
-
-.herramientas {
-    display: flex;
-    gap: .6rem;
-    margin-bottom: 1rem;
-}
-
-/* min-width: 0 es la clave: sin él, un elemento flex no se encoge por debajo de su contenido
-   y el selector se salía de la tarjeta en pantallas de 360 px */
-.buscador {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    align-items: center;
-    gap: .5rem;
-    padding: 0 .8rem;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-}
-
-.buscador input,
-select {
-    border: none;
-    outline: none;
-    background: transparent;
-    color: var(--color-text);
-}
-
-.buscador input {
-    flex: 1;
-    min-width: 0;
-    padding: .6rem 0;
-}
-
-select {
-    flex-shrink: 0;
-    min-width: 0;
-    max-width: 45%;
-    padding: 0 .8rem;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-surface);
 }
 
 .encabezado {

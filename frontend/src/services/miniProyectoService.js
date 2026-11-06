@@ -67,3 +67,18 @@ export async function listarMisMiniProyectos() {
 
     return { proyectos, guiasConError }
 }
+
+/**
+ * Un mini proyecto del aprendiz, junto con la lista completa de los suyos.
+ *
+ * Se busca dentro de LOS PROYECTOS DEL APRENDIZ en vez de usar GET /mini-proyectos/{id}, porque
+ * ese endpoint no valida acceso (cualquiera podría leer el proyecto de otro por su id).
+ * Además la lista completa hace falta para saber si el proyecto está bloqueado, ya que eso
+ * depende de si se aprobó el nivel anterior del mismo tema.
+ * Devuelve { proyecto: null } si el id no es de este aprendiz.
+ */
+export async function obtenerMiniProyecto(id) {
+    const { proyectos } = await listarMisMiniProyectos()
+    const proyecto = proyectos.find((p) => p.id === Number(id)) ?? null
+    return { proyecto, todos: proyectos }
+}
