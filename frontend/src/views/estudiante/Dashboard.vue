@@ -61,25 +61,29 @@ const estadisticas = computed(() => [
         etiqueta: 'Guías activas',
         valor: errorGuias.value ? '—' : (totalGuias.value ?? '…'),
         detalle: errorGuias.value ? 'No se pudo cargar' : 'en Modo Personal',
-        icono: BookOpen
+        icono: BookOpen,
+        color: 'primary'
     },
     {
         etiqueta: 'Semana actual',
         valor: resumenEjemplo.semanaActual,
         detalle: `de ${resumenEjemplo.semanasTotales}`,
-        icono: CalendarDays
+        icono: CalendarDays,
+        color: 'info'
     },
     {
         etiqueta: 'XP acumulados',
         valor: resumenEjemplo.xp,
         detalle: `+${resumenEjemplo.xpEstaSemana} esta semana`,
-        icono: Star
+        icono: Star,
+        color: 'warning'
     },
     {
         etiqueta: 'Progreso general',
         valor: `${resumenEjemplo.progreso}%`,
         progreso: resumenEjemplo.progreso,
-        icono: Target
+        icono: Target,
+        color: 'success'
     }
 ])
 
@@ -88,7 +92,10 @@ const estadisticas = computed(() => [
 <style scoped>
 /* Contenedor central: limita el ancho para que no se estire en pantallas grandes */
 .dashboard-content {
-    padding: clamp(1.5rem, 4vw, 3rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    padding: clamp(1rem, 4vw, 3rem);
     max-width: 1100px;
     margin: 0 auto;
 }
@@ -98,7 +105,6 @@ const estadisticas = computed(() => [
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 1rem;
-    margin-bottom: 2rem;
 }
 
 /* Guía actual (más ancha) + siguiente paso, lado a lado */
@@ -107,7 +113,6 @@ const estadisticas = computed(() => [
     grid-template-columns: 2fr 1fr;
     gap: 1rem;
     align-items: stretch;
-    margin-bottom: 2rem;
 }
 
 /* Sin esto, la fila de temas con scroll ensancha la columna */

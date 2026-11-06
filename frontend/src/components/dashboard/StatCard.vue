@@ -1,5 +1,5 @@
 <template>
-    <article class="stat-card">
+    <article class="stat-card" :style="{ '--c': COLORES[color] ?? COLORES.primary }">
         <span class="stat-icon">
             <component :is="icono" :size="22" />
         </span>
@@ -24,8 +24,17 @@ defineProps({
     etiqueta: { type: String, required: true },
     valor: { type: [String, Number], required: true },
     detalle: String,
-    progreso: Number
+    progreso: Number,
+    // Color de la medalla: así cada estadística se distingue de un vistazo
+    color: { type: String, default: 'primary' }
 })
+
+const COLORES = {
+    primary: 'var(--color-primary-light)',
+    info: 'var(--color-info)',
+    success: 'var(--color-success)',
+    warning: 'var(--color-warning)'
+}
 </script>
 
 <style scoped>
@@ -35,13 +44,14 @@ defineProps({
     gap: 1rem;
     padding: 1.1rem;
     border: 1px solid var(--color-card);
-    border-radius: 14px;
-    background: var(--color-surface);
+    border-radius: 16px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-card) 55%, var(--color-surface)), var(--color-surface));
     transition: .2s;
 }
 
 .stat-card:hover {
-    border-color: var(--color-primary);
+    border-color: color-mix(in srgb, var(--c) 60%, transparent);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--c) 18%, transparent);
     transform: translateY(-3px);
 }
 
@@ -52,9 +62,10 @@ defineProps({
     width: 48px;
     height: 48px;
     flex-shrink: 0;
-    border-radius: 12px;
-    background: rgba(124, 58, 237, .18);
-    color: var(--color-primary);
+    border-radius: 14px;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--c) 30%, var(--color-card)), color-mix(in srgb, var(--c) 10%, var(--color-surface)));
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 28%, transparent);
+    color: var(--c);
 }
 
 .stat-body {
@@ -92,7 +103,7 @@ defineProps({
 .stat-bar-fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    background: var(--gradiente-primario);
     transition: width .4s ease;
 }
 </style>

@@ -1,8 +1,6 @@
 <template>
     <article class="siguiente-paso">
-        <span class="icono">
-            <Rocket :size="22" />
-        </span>
+        <Medalla :icono="Rocket" :size="48" />
 
         <div class="texto">
             <h2>Continúa donde quedaste</h2>
@@ -17,7 +15,7 @@
             </p>
         </div>
 
-        <RouterLink v-if="accion" :to="accion.ruta" class="btn-accion">
+        <RouterLink v-if="accion" :to="accion.ruta" class="btn btn-primario btn-accion">
             {{ accion.texto }}
             <ArrowRight :size="16" />
         </RouterLink>
@@ -27,6 +25,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Rocket, ArrowRight } from 'lucide-vue-next'
+import Medalla from '@/components/ui/Medalla.vue'
 import { temasHechos } from '@/utils/progresoEjemplo'
 
 const props = defineProps({
@@ -57,19 +56,10 @@ const accion = computed(() => {
     height: 100%;
     padding: 1.4rem;
     border: 1px solid var(--color-card);
-    border-radius: 14px;
-    background: linear-gradient(160deg, rgba(124, 58, 237, .22), var(--color-surface) 65%);
-}
-
-.icono {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: rgba(124, 58, 237, .25);
-    color: var(--color-primary-light);
+    border-radius: 16px;
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-card));
+    box-shadow: 0 0 32px color-mix(in srgb, var(--color-primary) 12%, transparent);
+    background: linear-gradient(160deg, color-mix(in srgb, var(--color-primary) 28%, var(--color-surface)), var(--color-surface) 65%);
 }
 
 h2 {
@@ -87,23 +77,8 @@ p strong {
     color: var(--color-text);
 }
 
+/* margin-top:auto empuja el botón al fondo si la tarjeta se estira */
 .btn-accion {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: .4rem;
-    /* margin-top:auto empuja el botón al fondo si la tarjeta se estira */
     margin-top: auto;
-    padding: .65rem 1rem;
-    border-radius: 10px;
-    background: var(--color-primary);
-    color: var(--color-text);
-    font-size: .88rem;
-    text-decoration: none;
-    transition: .2s;
-}
-
-.btn-accion:hover {
-    background: var(--color-primary-hover);
 }
 </style>

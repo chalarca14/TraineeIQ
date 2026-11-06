@@ -1,7 +1,7 @@
 <template>
     <article class="guia-actual">
         <h2>
-            <BookOpen :size="20" /> Mi guía actual
+            <Medalla :icono="BookOpen" /> Mi guía actual
         </h2>
 
         <!-- Tres estados: cargando, error, vacío y con datos. Solo se muestra uno -->
@@ -10,7 +10,7 @@
 
         <div v-else-if="!guia" class="mensaje vacio">
             <p>Aún no tienes guías.</p>
-            <RouterLink to="/estudiante/guias" class="btn-ver">Subir mi primera guía</RouterLink>
+            <RouterLink to="/estudiante/guias" class="btn btn-primario btn-sm">Subir mi primera guía</RouterLink>
         </div>
 
         <template v-else>
@@ -19,7 +19,7 @@
                     <h3>{{ guia.nombre }}</h3>
                     <span class="chip">Modo Personal</span>
                 </div>
-                <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn-ver">
+                <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn btn-primario btn-sm">
                     Ver detalles
                     <ArrowRight :size="16" />
                 </RouterLink>
@@ -45,6 +45,7 @@
 <script setup>
 import { computed } from 'vue'
 import { BookOpen, ArrowRight } from 'lucide-vue-next'
+import Medalla from '@/components/ui/Medalla.vue'
 import TemaEstado from '@/components/dashboard/TemaEstado.vue'
 import { temasHechos } from '@/utils/progresoEjemplo'
 
@@ -77,14 +78,14 @@ const porcentaje = computed(() => {
 .guia-actual {
     padding: 1.4rem;
     border: 1px solid var(--color-card);
-    border-radius: 14px;
-    background: var(--color-surface);
+    border-radius: 16px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-card) 55%, var(--color-surface)), var(--color-surface));
 }
 
 h2 {
     display: flex;
     align-items: center;
-    gap: .5rem;
+    gap: .6rem;
     margin-bottom: 1rem;
     font-size: 1.1rem;
 }
@@ -105,26 +106,9 @@ h2 {
 .chip {
     padding: .15rem .6rem;
     border-radius: 999px;
-    background: rgba(124, 58, 237, .2);
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
     color: var(--color-primary-light);
     font-size: .72rem;
-}
-
-.btn-ver {
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    padding: .55rem 1rem;
-    border-radius: 10px;
-    background: var(--color-primary);
-    color: var(--color-text);
-    font-size: .85rem;
-    text-decoration: none;
-    transition: .2s;
-}
-
-.btn-ver:hover {
-    background: var(--color-primary-hover);
 }
 
 /* Barra + porcentaje en una sola fila (el porcentaje no se encoge ni se parte en dos líneas) */
@@ -153,7 +137,7 @@ h2 {
 .relleno {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    background: var(--gradiente-primario);
     transition: width .4s ease;
 }
 
@@ -170,8 +154,6 @@ h4 {
     padding: 0 0 .5rem;
     list-style: none;
     overflow-x: auto;
-    scrollbar-width: thin;                                  /* barra delgada */
-    scrollbar-color: var(--color-primary) transparent;  
 }
 
 .temas li {

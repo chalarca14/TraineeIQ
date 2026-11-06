@@ -62,17 +62,18 @@ defineProps({
 
 .hecho .marca {
     border-color: var(--color-success);
-    background: rgba(34, 197, 94, .15);
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
     color: var(--color-success);
 }
 
 .actual {
     border-color: var(--color-primary);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 .actual .marca {
     border-color: var(--color-primary);
-    background: var(--color-primary);
+    background: var(--gradiente-primario);
     color: var(--color-text);
 }
 
