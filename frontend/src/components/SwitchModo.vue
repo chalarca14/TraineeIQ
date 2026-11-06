@@ -8,7 +8,7 @@
             :class="{ activo: modoStore.modoActivo === opcion.valor }"
             role="radio"
             :aria-checked="modoStore.modoActivo === opcion.valor"
-            @click="modoStore.cambiarModo(opcion.valor)"
+            @click="elegir(opcion.valor)"
         >
             <component :is="opcion.icono" :size="15" />
             <span>{{ opcion.etiqueta }}</span>
@@ -17,10 +17,22 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { Users, User } from 'lucide-vue-next'
 import { useModoStore } from '@/stores/modo'
 
 const modoStore = useModoStore()
+const router = useRouter()
+
+// Cada modo tiene contenido distinto (guías personales vs. de grupo), así que al cambiar de
+// modo volvemos al inicio en vez de dejar al aprendiz en una pantalla del modo anterior.
+// La navegación va aquí y no en el store: el store solo guarda datos, no conoce las rutas.
+async function elegir(modo) {
+    // Si pulsa el modo que ya está activo, no hay cambio y no lo movemos de pantalla
+    if (modo === modoStore.modoActivo) return
+    await modoStore.cambiarModo(modo)
+    router.push({ name: 'EstudianteDashboard' })
+}
 
 const opciones = [
     { valor: 'grupo', etiqueta: 'Grupo', icono: Users },
