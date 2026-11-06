@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/grupos', [GrupoController::class, 'store'])->middleware('EsInstructor');
     Route::get('/grupos/{id}', [GrupoController::class, 'show']);
     Route::patch('/grupos/{id}/semana-actual', [GrupoController::class, 'actualizarSemanaActual'])->middleware('EsInstructor');
+    Route::get('/grupos/{id}/entregas', [GrupoController::class, 'entregas'])->whereNumber('id')->middleware('EsInstructor');
     Route::post('/grupos/unirse', [GrupoController::class, 'unirse'])->middleware('EsEstudiante');
 
     // Guías de Estudio

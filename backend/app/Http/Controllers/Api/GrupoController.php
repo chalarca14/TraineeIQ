@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ActualizarSemanaActualRequest;
+use App\Models\EntregaMiniProyecto;
 use App\Models\Grupo;
 use App\Models\EstudianteGrupo;
 use Illuminate\Http\JsonResponse;
@@ -129,5 +130,30 @@ class GrupoController extends Controller
             'message'       => 'Semana actualizada correctamente',
             'semana_actual' => $grupo->semana_actual,
         ], 200);
+    }
+
+    /**
+     * Lista el repositorio y el puntaje de los estudiantes en los mini proyectos del grupo.
+     * Filtra por las guias del grupo, asi que nunca incluye entregas del Modo Personal.
+     */
+    public function entregas(int $id): JsonResponse
+    {
+        $grupo = Grupo::findOrFail($id);
+        Gate::authorize('verEntregas', $grupo);
+
+        $entregas = EntregaMiniProyecto::query()
+            ->select(['id', 'mini_proyecto_id', 'estudiante_id', 'repo_url', 'estado', 'puntaje', 'intentos', 'evaluado_en', 'updated_at'])
+            ->whereHas('miniProyecto.guia', fn ($guias) => $guias->where('grupo_id', $grupo->id))
+            ->with([
+                'estudiante:id,name,email',
+                'miniProyecto:id,guia_id,guia_semana_id,titulo,dificultad',
+                'miniProyecto.guia:id,nombre',
+                'miniProyecto.semana:id,numero_semana',
+            ])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->paginate(30);
+
+        return response()->json($entregas, 200);
     }
 }

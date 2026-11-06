@@ -26,4 +26,14 @@ class GrupoPolicy
     {
         return $grupo->instructor_id === $user->id;
     }
+
+    /**
+     * Solo el instructor dueño ve los repositorios y puntajes de sus estudiantes.
+     */
+    public function verEntregas(User $user, Grupo $grupo): Response
+    {
+        return $grupo->instructor_id === $user->id
+            ? Response::allow()
+            : Response::deny('Solo el instructor del grupo puede ver sus entregas.');
+    }
 }
