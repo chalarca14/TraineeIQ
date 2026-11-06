@@ -88,6 +88,15 @@ export function estadoDelProyecto(proyecto, todos) {
     return { estado, progreso, finalizado, bloqueado, bloqueadoPor: bloqueado ? nivelPrevio : null }
 }
 
+// EJEMPLO: reemplazar cuando el backend calcule el XP de cada mini proyecto.
+// Es solo una estimación por nivel que se muestra en "Información del proyecto".
+// Los XP reales los decide el backend al aprobar la entrega; el frontend nunca los otorga.
+const XP_ESTIMADO_EJEMPLO = { basico: 100, intermedio: 150, avanzado: 250 }
+
+export function xpEstimado(dificultad) {
+    return XP_ESTIMADO_EJEMPLO[dificultad] ?? 100
+}
+
 // EJEMPLO: reemplazar cuando exista el endpoint
 // Resumen que muestran las tarjetas de estadísticas del dashboard.
 export const RESUMEN_EJEMPLO = {

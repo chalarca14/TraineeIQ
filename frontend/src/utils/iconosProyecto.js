@@ -53,6 +53,30 @@ export function iconoDelProyecto(proyecto) {
     return GENERICO
 }
 
+// Tecnologías que se reconocen por palabras clave en el texto del proyecto.
+// El backend todavía NO manda etiquetas de tecnología (PENDIENTE: que el generador devuelva
+// `etiquetas`). Mientras tanto se detectan del título, el tema, la guía y la descripción;
+// cuando el backend las envíe, usar esas y dejar esta detección solo como respaldo.
+const TECNOLOGIAS = [
+    { etiqueta: 'Python', abrev: 'Py', patron: /python/, color: 'var(--color-info)' },
+    { etiqueta: 'JavaScript', abrev: 'JS', patron: /javascript|\bjs\b|\bnode(\.?js)?\b/, color: 'var(--color-warning)' },
+    { etiqueta: 'Java', abrev: 'Jv', patron: /\bjava\b/, color: 'var(--color-danger)' },
+    { etiqueta: 'C#', abrev: 'C#', patron: /c#|\.net\b|dotnet|csharp/, color: 'var(--color-primary-light)' },
+    { etiqueta: 'HTML', abrev: 'H5', patron: /html/, color: 'var(--color-danger)' },
+    { etiqueta: 'CSS', abrev: 'C3', patron: /\bcss\b/, color: 'var(--color-info)' },
+    { etiqueta: 'SQL', abrev: 'SQL', patron: /sql/, color: 'var(--color-info)' },
+    { etiqueta: 'Vue', abrev: 'V', patron: /\bvue\b/, color: 'var(--color-success)' },
+    { etiqueta: 'PHP', abrev: 'php', patron: /\bphp\b/, color: 'var(--color-primary)' }
+]
+
+/** Hasta 3 tecnologías reconocidas en el proyecto: [{ etiqueta, abrev, color }]. */
+export function tecnologiasDelProyecto(proyecto) {
+    const texto = normalizar([
+        proyecto.titulo, proyecto.tema?.nombre_tema, proyecto.guiaNombre, proyecto.descripcion
+    ].join(' '))
+    return TECNOLOGIAS.filter((t) => t.patron.test(texto)).slice(0, 3)
+}
+
 // Icono de caja por nivel: verde, azul y naranja (boceto 501)
 const NIVELES = {
     basico: 'var(--color-success)',
