@@ -25,6 +25,29 @@ export function mensajeDeErrorUnirse(err) {
     return mensajeDeError(err)
 }
 
+// Errores de guardar el repositorio y de evaluar. En estos códigos el backend manda un `message`
+// ya escrito en español y pensado para el aprendiz (422 sin repositorio o repositorio no público,
+// 409 ya se está evaluando, 429 tope diario, 503 GitHub o IA ocupados), así que se muestra SIEMPRE
+// ese texto. Si hay errores de validación por campo (errors.repo_url), se usa el primero.
+// Es texto plano: la vista lo pinta con {{ }}, nunca con v-html.
+const CODIGOS_CON_MENSAJE = [409, 422, 429, 500, 503]
+
+export function mensajeDeErrorEntrega(err) {
+    // La evaluación espera hasta 200 s. Si el navegador se cansa antes que el servidor, la
+    // evaluación puede haber terminado igual: se invita a revisar, no a repetir.
+    if (err.code === 'ECONNABORTED') {
+        return 'La evaluación está tardando más de lo esperado. Espera un momento y pulsa "Revisar de nuevo".'
+    }
+    const status = err.response?.status
+    if (CODIGOS_CON_MENSAJE.includes(status)) {
+        const datos = err.response.data
+        const porCampo = datos?.errors ? Object.values(datos.errors).flat()[0] : null
+        const mensaje = porCampo ?? datos?.message
+        if (typeof mensaje === 'string' && mensaje.trim()) return mensaje
+    }
+    return mensajeDeError(err)
+}
+
 // Traduce un error de axios a un mensaje para el usuario, según el código HTTP
 export function mensajeDeError(err) {
     const status = err.response?.status

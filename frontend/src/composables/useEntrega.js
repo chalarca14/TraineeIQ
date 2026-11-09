@@ -1,125 +1,117 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
-import { obtenerEntrega, enviarEntrega } from '@/services/entregaService'
-import { mensajeDeError } from '@/utils/errores'
-
-// La evaluación con IA tarda, así que el frontend NO deja una petición abierta esperando:
-// cada pocos segundos pregunta "¿ya terminó?" hasta que el estado cambie, con un máximo de
-// intentos para no consultar para siempre si algo se atascó en el servidor.
-const INTERVALO_MS = 3000
-const MAX_INTENTOS = 20 // 20 × 3 s = 1 minuto
-
-const ESTADOS_EN_CURSO = ['pendiente', 'evaluando']
+import { getEntrega, guardarRepo, pedirEvaluacion } from '@/services/miniProyectoService'
+import { mensajeDeError, mensajeDeErrorEntrega } from '@/utils/errores'
 
 /**
- * Estado y acciones de la entrega de UN mini proyecto.
+ * Estado y acciones de la entrega de UN mini proyecto, con el flujo del backend:
+ *   1. guardar(url)  → PUT del repositorio (409 si ya se está evaluando)
+ *   2. evaluar()     → POST de evaluar. La petición ESPERA el resultado (hasta ~200 s): no hay
+ *                      colas ni segundo plano en el backend, así que NO hay polling. Mientras
+ *                      espera, `evaluando` es true y la pantalla muestra el estado de carga.
+ *   3. revisar()     → una sola consulta manual ("Revisar de nuevo") por si el aprendiz salió
+ *                      y volvió mientras la entrega figuraba como "evaluando".
+ * Aquí no se decide nada (ni aprobación ni XP): se guarda lo que responde el backend.
+ *
  * @param {() => number|string} idProyecto  función que devuelve el id (puede cambiar con la ruta)
- * @param {() => object} contexto           datos que solo usa el servicio de prueba
  */
-export function useEntrega(idProyecto, contexto = () => ({})) {
-  const entrega = ref(null)          // null = todavía no entregó nada
-  // Empieza en true: así la pantalla muestra "cargando" y no parpadea "aún no has entregado"
-  // en el instante antes de que arranque la primera consulta
-  const cargando = ref(true)
-  const error = ref('')              // error al CARGAR la entrega
-  const enviando = ref(false)
-  const errorEnvio = ref('')         // error al ENVIAR (URL rechazada, 429, red...)
-  const sondeoAgotado = ref(false)   // se acabaron los intentos y sigue evaluando
+export function useEntrega(idProyecto) {
+    const entrega = ref(null)               // null = todavía no guardó su repositorio
+    const intentosRestantes = ref(null)     // evaluaciones que le quedan hoy (lo calcula el backend)
+    // Empieza en true: así la pantalla dice "cargando" y no parpadea "aún no has entregado"
+    const cargando = ref(true)
+    const error = ref('')                   // error al CARGAR la entrega
 
-  const enCurso = computed(() => ESTADOS_EN_CURSO.includes(entrega.value?.estado))
+    const guardando = ref(false)
+    const errorGuardar = ref('')
+    const evaluando = ref(false)            // hay una petición de evaluar abierta desde ESTA pantalla
+    const errorEvaluar = ref('')
+    const revisando = ref(false)
 
-  let temporizador = null
-  let intentos = 0
-  // Sube cada vez que se carga otra cosa: una respuesta que llega tarde de un envío o sondeo
-  // anterior compara su número y, si ya no coincide, se descarta.
-  let generacion = 0
+    // El backend dice "evaluando" pero esta pantalla no está esperando: la evaluó otra pestaña o
+    // se interrumpió. Se ofrece "Revisar de nuevo" en lugar de dejar un giro eterno.
+    const enCursoSinEspera = computed(() => entrega.value?.estado === 'evaluando' && !evaluando.value)
 
-  function detener() {
-    clearTimeout(temporizador)
-    temporizador = null
-  }
+    // Sube al salir de la pantalla: una respuesta que llega tarde compara su número y se descarta
+    let generacion = 0
 
-  function programarSondeo() {
-    detener()
-    // setTimeout encadenado (y no setInterval): la siguiente consulta se agenda solo cuando
-    // termina la anterior, así nunca hay dos peticiones solapadas si el servidor se demora.
-    if (enCurso.value) temporizador = setTimeout(sondear, INTERVALO_MS)
-  }
-
-  async function sondear() {
-    const gen = generacion
-    intentos++
-    try {
-      const nueva = await obtenerEntrega(idProyecto(), contexto())
-      if (gen !== generacion) return
-      entrega.value = nueva
-    } catch {
-      // Un fallo aislado del sondeo (red) no debe tumbar la pantalla: cuenta como un intento más
-      if (gen !== generacion) return
+    /** Carga la entrega. En modo silencioso no muestra "cargando" ni reemplaza errores previos. */
+    async function cargar({ silencioso = false } = {}) {
+        const gen = silencioso ? generacion : ++generacion
+        if (!silencioso) {
+            cargando.value = true
+            error.value = ''
+        }
+        try {
+            const resultado = await getEntrega(idProyecto())
+            if (gen !== generacion) return
+            entrega.value = resultado.entrega
+            intentosRestantes.value = resultado.intentos_restantes
+        } catch (e) {
+            if (gen === generacion && !silencioso) error.value = mensajeDeError(e)
+        } finally {
+            if (gen === generacion && !silencioso) cargando.value = false
+        }
     }
-    if (!enCurso.value) return // terminó: el estado ya cambió y no se agenda nada más
-    if (intentos >= MAX_INTENTOS) {
-      sondeoAgotado.value = true
-      return
+
+    /** Guarda el repositorio. Devuelve true si el backend lo aceptó. */
+    async function guardar(repoUrl) {
+        if (guardando.value || evaluando.value) return false // el botón ya está deshabilitado; esto es el seguro
+        errorGuardar.value = ''
+        guardando.value = true
+        const gen = generacion
+        try {
+            const nueva = await guardarRepo(idProyecto(), repoUrl)
+            if (gen !== generacion) return false
+            entrega.value = nueva
+            return true
+        } catch (e) {
+            if (gen === generacion) errorGuardar.value = mensajeDeErrorEntrega(e)
+            return false
+        } finally {
+            if (gen === generacion) guardando.value = false
+        }
     }
-    programarSondeo()
-  }
 
-  function iniciarSondeo() {
-    intentos = 0
-    sondeoAgotado.value = false
-    programarSondeo()
-  }
-
-  /** Carga la última entrega. Si todavía está evaluándose, empieza a sondear. */
-  async function cargar() {
-    const gen = ++generacion
-    detener()
-    cargando.value = true
-    error.value = ''
-    try {
-      const resultado = await obtenerEntrega(idProyecto(), contexto())
-      if (gen !== generacion) return
-      entrega.value = resultado
-      iniciarSondeo()
-    } catch (e) {
-      if (gen === generacion) error.value = mensajeDeError(e)
-    } finally {
-      if (gen === generacion) cargando.value = false
+    /** Pide evaluar el repositorio guardado y espera el resultado. Devuelve true si salió bien. */
+    async function evaluar() {
+        if (evaluando.value || guardando.value) return false
+        errorEvaluar.value = ''
+        evaluando.value = true
+        const gen = generacion
+        let bien = false
+        try {
+            const resultado = await pedirEvaluacion(idProyecto())
+            if (gen !== generacion) return false
+            entrega.value = resultado.entrega
+            intentosRestantes.value = resultado.intentos_restantes
+            bien = true
+        } catch (e) {
+            if (gen === generacion) errorEvaluar.value = mensajeDeErrorEntrega(e)
+        } finally {
+            if (gen === generacion) evaluando.value = false
+        }
+        // Tras un fallo el backend pudo dejar la entrega en "error" o seguir "evaluando":
+        // se consulta una vez para que la pantalla muestre el estado real (y los intentos que quedan)
+        if (!bien && gen === generacion) await cargar({ silencioso: true })
+        return bien
     }
-  }
 
-  /** Envía el enlace del repositorio. Devuelve true si el backend lo aceptó. */
-  async function enviar(repoUrl) {
-    if (enviando.value || enCurso.value) return false // el botón ya está deshabilitado; esto es el seguro
-    errorEnvio.value = ''
-    enviando.value = true
-    const gen = generacion
-    try {
-      const nueva = await enviarEntrega(idProyecto(), repoUrl)
-      if (gen !== generacion) return false
-      entrega.value = nueva
-      iniciarSondeo()
-      return true
-    } catch (e) {
-      // 429 y demás códigos se traducen a un mensaje en utils/errores.js
-      if (gen === generacion) errorEnvio.value = mensajeDeError(e)
-      return false
-    } finally {
-      if (gen === generacion) enviando.value = false
+    /** "Revisar de nuevo": UNA consulta, sin repetirse sola. */
+    async function revisar() {
+        if (revisando.value) return
+        revisando.value = true
+        try {
+            await cargar({ silencioso: true })
+        } finally {
+            revisando.value = false
+        }
     }
-  }
 
-  /** Reanuda las consultas cuando se agotaron los intentos ("Revisar de nuevo"). */
-  function reanudarSondeo() {
-    iniciarSondeo()
-    sondear()
-  }
+    onBeforeUnmount(() => { generacion++ })
 
-  // Al salir de la pantalla se cancela el temporizador y se descarta cualquier respuesta pendiente
-  onBeforeUnmount(() => {
-    generacion++
-    detener()
-  })
-
-  return { entrega, cargando, error, enviando, errorEnvio, sondeoAgotado, enCurso, cargar, enviar, reanudarSondeo }
+    return {
+        entrega, intentosRestantes, cargando, error,
+        guardando, errorGuardar, evaluando, errorEvaluar, revisando, enCursoSinEspera,
+        cargar, guardar, evaluar, revisar
+    }
 }
