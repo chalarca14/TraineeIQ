@@ -117,3 +117,14 @@ export async function guardarRepo(id, repoUrl) {
     const { data } = await api.put(`/mini-proyectos/${id}/entrega`, { repo_url: repoUrl })
     return data.entrega
 }
+/**
+ * Mini proyectos de UNA guía, con la entrega propia de cada uno (o null) en una sola consulta.
+ * GET /guias/{id}/mini-proyectos. Cada item trae: id, titulo, descripcion, dificultad, orden,
+ * semana { numero_semana, titulo } y entrega { estado, puntaje, mejor_puntaje, intentos, ... }.
+ * OJO: el backend solo manda los de semanas YA liberadas para este usuario; las no liberadas
+ * se conocen con getSemanas() (disponible: false).
+ */
+export async function getMiniProyectosGuia(id) {
+    const { data } = await api.get(`/guias/${id}/mini-proyectos`)
+    return data.mini_proyectos
+}
