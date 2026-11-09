@@ -38,6 +38,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/modo', [UserController::class, 'updateMode']);
         });
 
+    // Cambiar la contraseña: sirve para ambos roles y tiene limite de intentos
+    Route::patch('/usuario/password', [UserController::class, 'updatePassword'])->middleware('throttle:5,1');
+
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -55,7 +58,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/grupos/{id}', [GrupoController::class, 'show']);
     Route::patch('/grupos/{id}/semana-actual', [GrupoController::class, 'actualizarSemanaActual'])->middleware('EsInstructor');
     Route::get('/grupos/{id}/entregas', [GrupoController::class, 'entregas'])->whereNumber('id')->middleware('EsInstructor');
-    Route::post('/grupos/unirse', [GrupoController::class, 'unirse'])->middleware('EsEstudiante');
+    // Limite de intentos: evita probar codigos de acceso hasta acertar uno
+    Route::post('/grupos/unirse', [GrupoController::class, 'unirse'])->middleware(['EsEstudiante', 'throttle:10,1']);
 
     // Guías de Estudio
     Route::get('/guias', [GuiaController::class, 'index']);
