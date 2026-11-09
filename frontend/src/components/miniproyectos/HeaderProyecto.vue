@@ -4,7 +4,7 @@
         <template #etiquetas>
             <EtiquetaNivel :valor="proyecto.dificultad" />
             <TecnologiaChip v-for="t in tecnologias" :key="t.etiqueta" :tecnologia="t" />
-            <span v-if="etiquetaTema" class="tag" :title="etiquetaTema">{{ etiquetaTema }}</span>
+            <span v-if="etiquetaSemana" class="tag" :title="etiquetaSemana">{{ etiquetaSemana }}</span>
         </template>
     </EncabezadoPagina>
 </template>
@@ -20,7 +20,12 @@ const props = defineProps({ proyecto: { type: Object, required: true } })
 
 const visual = computed(() => iconoDelProyecto(props.proyecto))
 const tecnologias = computed(() => tecnologiasDelProyecto(props.proyecto))
-const etiquetaTema = computed(() => props.proyecto.tema?.nombre_tema ?? props.proyecto.guiaNombre ?? '')
+// GET /mini-proyectos/{id} trae la semana: "Semana 2: Funciones"
+const etiquetaSemana = computed(() => {
+    const s = props.proyecto.semana
+    if (!s) return ''
+    return s.titulo ? `Semana ${s.numero_semana}: ${s.titulo}` : `Semana ${s.numero_semana}`
+})
 </script>
 
 <style scoped>

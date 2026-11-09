@@ -7,7 +7,6 @@
             <p class="texto"><TextoConCodigo :texto="proyecto.descripcion" /></p>
             <dl>
                 <div><dt>Nivel</dt><dd><EtiquetaNivel :valor="proyecto.dificultad" /></dd></div>
-                <div><dt>XP estimado</dt><dd class="xp"><Star :size="15" /> +{{ xp }} XP</dd></div>
             </dl>
         </section>
 
@@ -18,17 +17,33 @@
             </ol>
         </section>
 
-        <!-- Requisitos del proyecto (boceto 503): se muestran SOLO si el backend los envía.
-             PENDIENTE DEL BACKEND: el generador de mini proyectos debe devolver una lista de
-             `requisitos` (hoy manda solo titulo, descripcion, dificultad y contenido). No se
-             inventan en el frontend. Son casillas de solo lectura: quien verifica es la IA. -->
-        <section v-if="proyecto.requisitos?.length" class="bloque">
+        <!-- Requisitos, buenas prácticas y criterios los genera la IA junto con el proyecto y llegan en
+             GET /mini-proyectos/{id}. Cada bloque se muestra solo si trae algo. Los requisitos son
+             casillas de solo lectura: quien verifica es la IA al evaluar. Todo se pinta como texto. -->
+        <section v-if="requisitos.length" class="bloque">
             <h3><Medalla :icono="ListChecks" color="success" /> Requisitos del proyecto</h3>
-            <ListaRequisitos :requisitos="proyecto.requisitos" />
+            <ListaRequisitos :requisitos="requisitos" />
+        </section>
+
+        <section v-if="practicas.length" class="bloque">
+            <h3><Medalla :icono="ShieldCheck" color="info" /> Buenas prácticas</h3>
+            <ul class="puntos">
+                <li v-for="(p, i) in practicas" :key="i"><Check :size="15" :stroke-width="3" /> <TextoConCodigo :texto="p" /></li>
+            </ul>
+        </section>
+
+        <section v-if="criterios.length" class="bloque">
+            <h3><Medalla :icono="Scale" color="warning" /> Cómo se evalúa</h3>
+            <p class="texto">La IA puntúa estos criterios; cada uno aporta su peso al puntaje (orientativo).</p>
+            <ul class="criterios">
+                <li v-for="(c, i) in criterios" :key="i">
+                    <span>{{ c.criterio }}</span><b>{{ c.peso }} %</b>
+                </li>
+            </ul>
         </section>
 
         <section class="entregar">
-            <div class="columnas" :class="{ una: !puedeEntregar }">
+            <div class="columnas">
                 <div class="vscode">
                     <h3><Medalla :icono="Rocket" /> Desarrolla tu proyecto</h3>
                     <p class="texto">Puedes trabajar en tu computador con Visual Studio Code.</p>
@@ -45,34 +60,42 @@
                     </p>
                 </div>
 
-                <!-- Un proyecto ya aprobado no se vuelve a entregar: el formulario ni se muestra -->
-                <EntregaForm v-if="puedeEntregar" :en-evaluacion="enEvaluacion" :error-externo="errorEntrega"
-                    @entregar="$emit('entregar', $event)" />
+                <!-- Guardar el repositorio y pedir la evaluación (dos pasos, ver EntregaProyecto) -->
+                <EntregaProyecto :entrega="entrega" :intentos-restantes="intentosRestantes" :guardando="guardando"
+                    :evaluando="evaluando" :error-guardar="errorGuardar" :error-evaluar="errorEvaluar"
+                    @guardar="$emit('guardar', $event)" @evaluar="$emit('evaluar')" />
             </div>
-            <p v-if="puedeEntregar" class="aviso"><Info :size="15" /> Asegúrate de que tu repositorio sea público y contenga todo el código del proyecto.</p>
+            <p class="aviso"><Info :size="15" /> Asegúrate de que tu repositorio sea público y contenga todo el código del proyecto.</p>
         </section>
     </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { Info, Code, ExternalLink, Rocket, Star, ListChecks } from 'lucide-vue-next'
+import { Info, Code, ExternalLink, Rocket, ListChecks, ShieldCheck, Scale, Check } from 'lucide-vue-next'
 import Medalla from '@/components/ui/Medalla.vue'
 import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
-import EntregaForm from '@/components/miniproyectos/EntregaForm.vue'
+import EntregaProyecto from '@/components/miniproyectos/EntregaProyecto.vue'
 import ListaRequisitos from '@/components/miniproyectos/ListaRequisitos.vue'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
-import { xpEstimado } from '@/utils/progresoEjemplo'
 
 const props = defineProps({
+    // GET /mini-proyectos/{id}
     proyecto: { type: Object, required: true },
-    puedeEntregar: { type: Boolean, default: true },
-    enEvaluacion: { type: Boolean, default: false },
-    errorEntrega: { type: String, default: '' }
+    // Estado de la entrega (viene de useEntrega) para el bloque de guardar y evaluar
+    entrega: { type: Object, default: null },
+    intentosRestantes: { type: Number, default: null },
+    guardando: { type: Boolean, default: false },
+    evaluando: { type: Boolean, default: false },
+    errorGuardar: { type: String, default: '' },
+    errorEvaluar: { type: String, default: '' }
 })
-defineEmits(['entregar'])
+defineEmits(['guardar', 'evaluar'])
 
-const xp = computed(() => xpEstimado(props.proyecto.dificultad))
+// Si el backend no manda alguna lista, su bloque simplemente no se muestra
+const requisitos = computed(() => props.proyecto.requisitos_funcionales ?? [])
+const practicas = computed(() => props.proyecto.buenas_practicas ?? [])
+const criterios = computed(() => props.proyecto.criterios_evaluacion ?? [])
 
 // "contenido" llega como texto: "1. Crea los botones.\n2. Guarda los números..."
 // Lo partimos por líneas y quitamos el "1." o "-" del inicio, porque la lista ya numera.
@@ -133,12 +156,42 @@ dt {
     font-size: .85rem;
 }
 
-.xp {
+/* Buenas prácticas y criterios: listas simples de solo lectura */
+.puntos,
+.criterios {
     display: flex;
-    align-items: center;
-    gap: .3rem;
-    color: var(--color-warning);
-    font-weight: 700;
+    flex-direction: column;
+    gap: .55rem;
+    list-style: none;
+}
+
+.puntos li {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    font-size: .9rem;
+}
+
+.puntos svg {
+    flex-shrink: 0;
+    margin-top: .2rem;
+    color: var(--color-success);
+}
+
+.criterios {
+    margin-top: .6rem;
+}
+
+.criterios li {
+    display: flex;
+    justify-content: space-between;
+    gap: .8rem;
+    font-size: .9rem;
+}
+
+.criterios b {
+    flex-shrink: 0;
+    color: var(--color-primary-light);
 }
 
 /* Instrucciones: números en círculos morados, como en el boceto */
@@ -182,16 +235,6 @@ ol li::before {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
     gap: 1.5rem;
-}
-
-/* Sin formulario (proyecto aprobado): el bloque de VS Code ocupa todo el ancho y pierde su divisor */
-.columnas.una {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-.columnas.una .vscode {
-    padding: 0;
-    border: none;
 }
 
 .vscode {
