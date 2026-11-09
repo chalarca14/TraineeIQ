@@ -15,17 +15,28 @@ use Illuminate\Support\Str;
 
 class GrupoController extends Controller
 {
-    //Listar los grupos del instructor o a los que pertenece el estudiante.
-
+    /**
+     * Lista los grupos del instructor o a los que pertenece el estudiante,
+     * con la cantidad de guías y de mini proyectos para las tarjetas de resumen.
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
 
         if ($user->rol === 'instructor') {
-            $grupos = Grupo::where('instructor_id', $user->id)->withCount('estudiantes')->get();
+            $grupos = Grupo::where('instructor_id', $user->id)
+                ->withCount(['estudiantes', 'guias', 'miniProyectos'])
+                ->get();
         } else {
-            // Si es estudiante, listar los grupos en los que está inscrito
-            $grupos = $user->gruposInscritos()->with('instructor:id,name')->get();
+            // El estudiante solo cuenta los mini proyectos de semanas ya liberadas,
+            // para que el número coincida con lo que puede abrir
+            $grupos = $user->gruposInscritos()
+                ->with('instructor:id,name')
+                ->withCount(['guias', 'miniProyectos' => fn ($proyectos) => $proyectos->whereHas(
+                    'semana',
+                    fn ($semanas) => $semanas->whereColumn('guia_semanas.numero_semana', '<=', 'grupos.semana_actual')
+                )])
+                ->get();
         }
 
         return response()->json([

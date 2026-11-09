@@ -40,4 +40,11 @@ class Grupo extends Model
     {
         return $this->hasMany(Guia::class, 'grupo_id');
     }
+
+    //Mini proyectos de todas las guías del grupo, pasando por la tabla guias.
+
+    public function miniProyectos()
+    {
+        return $this->hasManyThrough(MiniProyecto::class, Guia::class, 'grupo_id', 'guia_id');
+    }
 }
