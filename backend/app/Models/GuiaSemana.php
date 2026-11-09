@@ -22,7 +22,8 @@ class GuiaSemana extends Model
         'error_mensaje',
     ];
 
-    // El texto completo solo lo usa el backend: no viaja en las respuestas de la API
+    // Ocultos por defecto: el texto es pesado y solo lo muestran el detalle de la semana
+    // y la guia completa, despues de revisar que la semana este liberada. El hash nunca sale.
     protected $hidden = [
         'contenido_texto',
         'hash_contenido',

@@ -35,7 +35,8 @@ class GuiaSemanaController extends Controller
     }
 
     /**
-     * Devuelve las recomendaciones, los mini proyectos y los temas de una semana.
+     * Devuelve las recomendaciones, los mini proyectos, los temas y el texto de una semana.
+     * El texto es la transcripcion del PDF, porque el archivo no se guarda en produccion.
      * Una semana que aun no esta liberada responde 403.
      */
     public function show(Request $request, int $guiaId, int $numero): JsonResponse
@@ -47,9 +48,41 @@ class GuiaSemanaController extends Controller
         Gate::authorize('viewSemana', [$guia, $numero]);
 
         $this->marcarDisponible($semana, $guia, $request);
+        $semana->makeVisible('contenido_texto');
 
         return response()->json([
             'semana' => $semana->load(['recomendaciones', 'miniProyectos', 'temas']),
+        ], 200);
+    }
+
+    /**
+     * Devuelve la guia completa transcrita, semana por semana, para leerla como el PDF.
+     * Las semanas que el usuario aun no tiene liberadas llegan con su titulo, pero sin texto.
+     * Juntas, las semanas forman todo el texto del PDF: la portada queda en la semana 1.
+     */
+    public function texto(Request $request, int $guiaId): JsonResponse
+    {
+        $guia = Guia::with('grupo')->findOrFail($guiaId);
+        Gate::authorize('view', $guia);
+
+        $semanas = $guia->semanas()
+            ->select(['id', 'guia_id', 'numero_semana', 'titulo', 'contenido_texto'])
+            ->get()
+            ->map(function (GuiaSemana $semana) use ($guia, $request) {
+                $disponible = $guia->semanaLiberadaPara($request->user(), $semana->numero_semana);
+
+                return [
+                    'numero_semana'   => $semana->numero_semana,
+                    'titulo'          => $semana->titulo,
+                    'disponible'      => $disponible,
+                    // Una semana bloqueada no revela su texto
+                    'contenido_texto' => $disponible ? $semana->contenido_texto : null,
+                ];
+            });
+
+        return response()->json([
+            'guia'    => ['id' => $guia->id, 'nombre' => $guia->nombre, 'origen' => $guia->origen],
+            'semanas' => $semanas,
         ], 200);
     }
 

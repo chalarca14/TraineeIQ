@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/guias/{id}', [GuiaController::class, 'show']);
     Route::put('/guias/{id}', [GuiaController::class, 'update']);
     Route::get('/guias/{guiaId}/semanas', [GuiaSemanaController::class, 'index'])->whereNumber('guiaId');
+    Route::get('/guias/{guiaId}/texto', [GuiaSemanaController::class, 'texto'])->whereNumber('guiaId');
     Route::get('/guias/{guiaId}/semanas/{numero}', [GuiaSemanaController::class, 'show'])
         ->whereNumber(['guiaId', 'numero']);
     Route::post('/guias/{guiaId}/semanas/{numero}/generar', [GuiaSemanaController::class, 'generar'])
