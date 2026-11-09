@@ -1,41 +1,44 @@
 <template>
     <aside class="resumen">
         <section class="bloque">
-            <h2>Tu progreso en mini proyectos</h2>
+            <h2>Tu avance en mini proyectos</h2>
             <div class="anillo-fila">
-                <div class="anillo" role="img" :aria-label="`${resumen.completados} de ${resumen.total} completados`">
+                <div class="anillo" role="img" :aria-label="`${resumen.evaluados} de ${resumen.total} evaluados`">
                     <svg viewBox="0 0 100 100">
                         <circle class="fondo" cx="50" cy="50" :r="RADIO" />
                         <circle class="valor" cx="50" cy="50" :r="RADIO"
                             :stroke-dasharray="`${arco} ${CIRCUNFERENCIA}`" />
                     </svg>
                     <div class="centro">
-                        <strong>{{ resumen.completados }}/{{ resumen.total }}</strong>
-                        <small>completados</small>
+                        <strong>{{ resumen.evaluados }}/{{ resumen.total }}</strong>
+                        <small>evaluados</small>
                     </div>
                 </div>
                 <ul class="leyenda">
-                    <li class="completados">Completados <b>{{ resumen.completados }}</b></li>
-                    <li class="progreso">En progreso <b>{{ resumen.enProgreso }}</b></li>
-                    <li class="iniciar">Por iniciar <b>{{ resumen.porIniciar }}</b></li>
+                    <li class="evaluados">Evaluados <b>{{ resumen.evaluados }}</b></li>
+                    <li class="evaluando">Evaluando <b>{{ resumen.evaluando }}</b></li>
+                    <li class="por-entregar">Por entregar <b>{{ resumen.porEntregar }}</b></li>
                 </ul>
             </div>
         </section>
 
-        <section class="bloque">
-            <h2>Proyectos por nivel</h2>
-            <ul class="niveles">
-                <li v-for="nivel in NIVELES" :key="nivel.clave" :style="{ '--c': nivel.color }">
-                    <span class="nivel-icono" aria-hidden="true">
-                        <component :is="nivel.icono" :size="18" />
-                    </span>
-                    <div class="nivel-datos">
-                        <div class="nivel-texto">
-                            <span>{{ nivel.etiqueta }}</span>
-                            <b>{{ resumen.porNivel[nivel.clave].hechos }} / {{ resumen.porNivel[nivel.clave].total }}</b>
-                        </div>
-                        <div class="barra"><span :style="{ width: porcentaje(nivel.clave) + '%' }"></span></div>
+        <!-- Modo Personal: XP tal como llega del backend. Modo Grupo: solo evaluados sobre el total, sin XP -->
+        <section v-if="semanas.length" class="bloque">
+            <h2>{{ esPersonal ? 'Experiencia por semana' : 'Por semana' }}</h2>
+            <ul class="semanas">
+                <li v-for="s in semanas" :key="`${s.guiaId}-${s.numero_semana}`">
+                    <div class="semana-texto">
+                        <span :title="s.guiaNombre">
+                            Semana {{ s.numero_semana }}
+                            <small v-if="variasGuias">· {{ s.guiaNombre }}</small>
+                        </span>
+                        <b v-if="esPersonal">{{ s.xp_obtenido }} / {{ s.xp_maximo }} XP</b>
+                        <b v-else>{{ s.evaluados }} / {{ s.total }}</b>
                     </div>
+                    <div class="barra"><span :style="{ width: porcentaje(s) + '%' }"></span></div>
+                    <small v-if="esPersonal && s.xp_requerido != null" class="requerido">
+                        Para abrir la siguiente: {{ s.xp_requerido }} XP
+                    </small>
                 </li>
             </ul>
         </section>
@@ -44,29 +47,29 @@
 
 <script setup>
 import { computed } from 'vue'
-import { iconoDeNivel } from '@/utils/iconosProyecto'
 
-// resumen se CALCULA en la vista a partir de la misma lista de las tarjetas, nunca se guarda aparte
-const props = defineProps({ resumen: { type: Object, required: true } })
+// resumen y semanas se CALCULAN en la vista a partir de la misma lista real de las tarjetas,
+// nunca se guardan aparte: por eso los números no se contradicen. Del XP no se calcula nada:
+// xp_obtenido, xp_maximo y xp_requerido se muestran tal como llegan. La barra solo dibuja
+// esa proporción; no decide nada.
+const props = defineProps({
+    resumen: { type: Object, required: true },
+    semanas: { type: Array, default: () => [] },
+    esPersonal: { type: Boolean, default: false },
+    variasGuias: { type: Boolean, default: false }
+})
 
 const RADIO = 42
 const CIRCUNFERENCIA = 2 * Math.PI * RADIO
 
-// Icono y color de cada nivel salen de utils/iconosProyecto.js, así quedan iguales en toda la app
-const NIVELES = [
-    { clave: 'basico', etiqueta: 'Básico' },
-    { clave: 'intermedio', etiqueta: 'Intermedio' },
-    { clave: 'avanzado', etiqueta: 'Avanzado' }
-].map((n) => ({ ...n, ...iconoDeNivel(n.clave) }))
-
-// Largo del arco verde = fracción de completados × circunferencia (0 si no hay proyectos)
+// Largo del arco = fracción de evaluados × circunferencia (0 si no hay proyectos)
 const arco = computed(() =>
-    props.resumen.total ? (props.resumen.completados / props.resumen.total) * CIRCUNFERENCIA : 0
+    props.resumen.total ? (props.resumen.evaluados / props.resumen.total) * CIRCUNFERENCIA : 0
 )
 
-function porcentaje(clave) {
-    const { hechos, total } = props.resumen.porNivel[clave]
-    return total ? Math.round((hechos / total) * 100) : 0
+function porcentaje(s) {
+    const [parte, total] = props.esPersonal ? [s.xp_obtenido, s.xp_maximo] : [s.evaluados, s.total]
+    return total ? Math.min(100, Math.round((parte / total) * 100)) : 0
 }
 </script>
 
@@ -118,7 +121,7 @@ circle {
 }
 
 .valor {
-    stroke: var(--color-success);
+    stroke: var(--color-primary);
     stroke-linecap: round;
 }
 
@@ -137,7 +140,7 @@ circle {
 }
 
 .leyenda,
-.niveles {
+.semanas {
     display: flex;
     flex-direction: column;
     gap: .5rem;
@@ -165,38 +168,35 @@ circle {
     color: var(--color-text);
 }
 
-.leyenda .completados::before { background: var(--color-success); }
-.leyenda .progreso::before { background: var(--color-primary); }
+.leyenda .evaluados::before { background: var(--color-primary); }
+.leyenda .evaluando::before { background: var(--color-info); }
 
-.niveles li {
-    display: flex;
-    align-items: center;
-    gap: .6rem;
+/* Con muchas semanas (hasta 52) el panel no debe alargar toda la página */
+.semanas {
+    max-height: 280px;
+    padding-right: .3rem;
+    overflow-y: auto;
 }
 
-.nivel-icono {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-    border-radius: 8px;
-    color: var(--c);
-    background: color-mix(in srgb, var(--c) 16%, transparent);
-}
-
-.nivel-datos {
-    flex: 1;
-    min-width: 0;
-}
-
-.nivel-texto {
+.semana-texto {
     display: flex;
     justify-content: space-between;
+    gap: .5rem;
     margin-bottom: .3rem;
-    color: var(--c);
+    color: var(--color-text-secondary);
     font-size: .8rem;
+}
+
+.semana-texto b {
+    flex-shrink: 0;
+    color: var(--color-text);
+}
+
+.requerido {
+    display: block;
+    margin-top: .25rem;
+    color: var(--color-text-secondary);
+    font-size: .7rem;
 }
 
 .barra {
@@ -209,6 +209,6 @@ circle {
 .barra span {
     display: block;
     height: 100%;
-    background: var(--c);
+    background: var(--color-primary);
 }
 </style>
