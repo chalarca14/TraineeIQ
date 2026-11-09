@@ -46,6 +46,13 @@ const routes = [
       },
 
 
+      // Mis grupos: lista de grupos del aprendiz y unirse con código (el detalle llega en la Tarea 8)
+      {
+        path: 'grupos',
+        name: 'MisGrupos',
+        component: () => import('../views/estudiante/MisGrupos.vue')
+      },
+
       {
         path: 'guias',
         name: 'MisGuias',

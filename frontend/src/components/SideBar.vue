@@ -54,7 +54,7 @@ const esEstudiante = computed(() => authStore.rolUsuario !== 'instructor')
 // Menú del Modo Grupo (según el boceto del equipo)
 const menuGrupo = [
     { etiqueta: 'Inicio', icono: Home, ruta: '/estudiante/dashboard', descripcion: 'Resumen del progreso y actividades recientes.' },
-    { etiqueta: 'Mis grupos', icono: Users, ruta: null, descripcion: 'Lista de los grupos en los que estás inscrito.' },
+    { etiqueta: 'Mis grupos', icono: Users, ruta: '/estudiante/grupos', descripcion: 'Lista de los grupos en los que estás inscrito.' },
     { etiqueta: 'Mini proyectos', icono: Rocket, ruta: '/estudiante/mini-proyectos', descripcion: 'Retos prácticos vinculados al aprendizaje, con niveles progresivos.' },
     { etiqueta: 'IA', icono: Bot, ruta: '/estudiante/ia', descripcion: 'Recomendaciones y chat guiado sobre las guías del grupo.' },
     { etiqueta: 'Historial', icono: History, ruta: '/estudiante/historial', descripcion: 'Actividad anterior: chats con la IA y recomendaciones.' },
