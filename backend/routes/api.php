@@ -75,6 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mini Proyectos: los genera la IA por semana, aqui solo se leen
     Route::get('/mini-proyectos/{id}', [MiniProyectoController::class, 'show'])->whereNumber('id');
+    Route::get('/guias/{guiaId}/mini-proyectos', [MiniProyectoController::class, 'porGuia'])->whereNumber('guiaId');
 
     // Entrega del repositorio: es por estudiante
     Route::middleware('EsEstudiante')->whereNumber('id')->group(function () {
