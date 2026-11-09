@@ -6,6 +6,17 @@ export function mensajeDeErrorPassword(err) {
     return mensajeDeError(err)
 }
 
+// Errores de "Unirse a un grupo". Se decide por el código HTTP, no por el texto del backend (en inglés).
+// 422 = el código no existe; 400 = ya eres miembro; 429 = demasiados intentos (cuando el backend
+// ponga límite de intentos, pendiente anotado en Trello).
+export function mensajeDeErrorUnirse(err) {
+    const status = err.response?.status
+    if (status === 422) return 'No encontramos un grupo con ese código. Revisa que esté bien escrito y pídele el código a tu instructor.'
+    if (status === 400) return 'Ya eres miembro de este grupo. Lo encontrarás en tu lista.'
+    if (status === 429) return 'Hiciste muchos intentos seguidos. Espera un momento y vuelve a probar.'
+    return mensajeDeError(err)
+}
+
 // Traduce un error de axios a un mensaje para el usuario, según el código HTTP
 export function mensajeDeError(err) {
     const status = err.response?.status
