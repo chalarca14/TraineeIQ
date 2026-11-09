@@ -231,7 +231,8 @@ class EntregaMiniProyectoTest extends TestCase
     public function test_guia_personal_solo_la_entrega_su_dueno(): void
     {
         $guia = Guia::create(['nombre' => 'Mía', 'origen' => 'personal', 'usuario_id' => $this->estudiante->id]);
-        $this->proyecto = $this->crearProyecto($guia, 5);
+        // La semana 1 es la única abierta al empezar una guía personal
+        $this->proyecto = $this->crearProyecto($guia, 1);
 
         Sanctum::actingAs($this->estudiante);
         $this->guardar(self::REPO)->assertCreated();

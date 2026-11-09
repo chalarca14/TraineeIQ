@@ -144,9 +144,9 @@ class LecturaSemanasTest extends TestCase
     }
 
     /**
-     * En Modo Personal todas las semanas están liberadas desde el inicio.
+     * En Modo Personal solo la semana 1 empieza abierta: las demás se abren con experiencia.
      */
-    public function test_en_modo_personal_todas_las_semanas_estan_liberadas(): void
+    public function test_en_modo_personal_solo_la_primera_semana_empieza_liberada(): void
     {
         $guia = $this->guiaPersonal($this->estudiante);
         Sanctum::actingAs($this->estudiante);
@@ -154,9 +154,10 @@ class LecturaSemanasTest extends TestCase
         $this->getJson("/api/guias/{$guia->id}/semanas")
             ->assertOk()
             ->assertJsonPath('semanas.0.disponible', true)
-            ->assertJsonPath('semanas.2.disponible', true);
+            ->assertJsonPath('semanas.2.disponible', false);
 
-        $this->leerSemana($guia, 3)->assertOk();
+        $this->leerSemana($guia, 1)->assertOk();
+        $this->leerSemana($guia, 3)->assertForbidden();
     }
 
     /**
@@ -267,9 +268,10 @@ class LecturaSemanasTest extends TestCase
     }
 
     /**
-     * El instructor dueño y el Modo Personal reciben los temas de todas las semanas.
+     * El instructor dueño recibe los temas de todas las semanas; en Modo Personal
+     * solo llegan los de las semanas ya abiertas con experiencia.
      */
-    public function test_instructor_y_modo_personal_reciben_todos_los_temas(): void
+    public function test_instructor_recibe_todos_los_temas_y_modo_personal_los_abiertos(): void
     {
         Sanctum::actingAs($this->instructor);
         $this->getJson("/api/guias/{$this->guiaGrupo->id}")->assertOk()->assertJsonCount(3, 'guia.temas');
@@ -277,7 +279,7 @@ class LecturaSemanasTest extends TestCase
 
         $guia = $this->guiaPersonal($this->estudiante);
         Sanctum::actingAs($this->estudiante);
-        $this->getJson("/api/guias/{$guia->id}")->assertOk()->assertJsonCount(3, 'guia.temas');
+        $this->getJson("/api/guias/{$guia->id}")->assertOk()->assertJsonCount(1, 'guia.temas');
     }
 
     /**

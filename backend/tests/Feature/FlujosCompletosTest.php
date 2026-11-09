@@ -98,7 +98,7 @@ class FlujosCompletosTest extends TestCase
     }
 
     /**
-     * Estudiante solo: sube su guía, ve todas las semanas y nadie más puede verla.
+     * Estudiante solo: sube su guía, abre la semana 2 con experiencia y nadie más puede verla.
      */
     public function test_flujo_completo_personal(): void
     {
@@ -108,14 +108,27 @@ class FlujosCompletosTest extends TestCase
         $guiaId = $this->subirGuia();
         $this->generarSemanas($guiaId);
 
-        // En Modo Personal no hay que esperar a que liberen las semanas
+        // Al empezar solo está abierta la semana 1
         $this->getJson("/api/guias/{$guiaId}/semanas")
             ->assertOk()
             ->assertJsonPath('semanas.0.disponible', true)
-            ->assertJsonPath('semanas.1.disponible', true);
+            ->assertJsonPath('semanas.0.xp_requerido', 240)
+            ->assertJsonPath('semanas.1.disponible', false);
+        $this->getJson("/api/guias/{$guiaId}/semanas/2")->assertForbidden();
 
-        $proyectos = $this->getJson("/api/guias/{$guiaId}/semanas/2")->assertOk()->json('semana.mini_proyectos');
-        $this->entregarYEvaluar($proyectos[0]['id']);
+        // Cada evaluación da 80 XP: los 3 mini proyectos suman 240, justo la meta
+        $proyectos = $this->getJson("/api/guias/{$guiaId}/semanas/1")->assertOk()->json('semana.mini_proyectos');
+
+        foreach ($proyectos as $proyecto) {
+            $this->entregarYEvaluar($proyecto['id']);
+        }
+
+        $this->getJson("/api/guias/{$guiaId}/semanas")
+            ->assertOk()
+            ->assertJsonPath('semanas.0.xp_obtenido', 240)
+            ->assertJsonPath('semanas.1.disponible', true);
+        $this->getJson("/api/guias/{$guiaId}/semanas/2")->assertOk();
+        $this->getJson('/api/usuario/xp')->assertOk()->assertJsonPath('xp_total', 240);
 
         // Ni otro estudiante ni un instructor pueden ver la guía o el mini proyecto
         foreach (['estudiante', 'instructor'] as $rol) {
