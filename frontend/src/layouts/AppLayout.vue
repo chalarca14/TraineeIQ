@@ -48,6 +48,9 @@ const sidebarAbierto = ref(false)
     position: relative;
     overflow-y: auto;
     /* solo scrollea el contenido; NavBar y SideBar se quedan fijos */
+    /* reserva el espacio de SU barra para que el contenido no "salte" de ancho al pasar de una
+       vista corta a una larga (antes esto estaba en <html> y dejaba una franja vacía a la derecha) */
+    scrollbar-gutter: stable;
 }
 
 .backdrop {

@@ -10,14 +10,11 @@
 }
 
 /* Barra de desplazamiento global (se importa una sola vez desde main.js, así vale para toda la app).
-   - scrollbar-gutter: stable en <html> reserva el espacio de la barra aunque no aparezca, para que
-     la página no "salte" de ancho al cambiar de pestaña entre una lista corta y una larga.
    - scrollbar-width y scrollbar-color están en * porque cada caja con su propio scroll
-     (chat, listas) necesita la regla; scrollbar-width no se hereda. */
-html {
-    scrollbar-gutter: stable;
-}
-
+     (chat, listas) necesita la regla; scrollbar-width no se hereda.
+   - OJO: NO poner scrollbar-gutter en <html>. En la app autenticada la ventana no hace scroll
+     (el layout mide 100dvh y scrollea .app-main), así que reservarlo en <html> dejaba una franja
+     vacía a la derecha de todas las vistas. El gutter estable vive en .app-main (AppLayout.vue). */
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-primary) var(--color-background);
