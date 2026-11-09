@@ -9,12 +9,28 @@ use Symfony\Component\HttpFoundation\Response;
 class EsInstructor
 {
     /**
-     * Handle an incoming request.
+     * Autorizar únicamente a usuarios autenticados con rol instructor.
      *
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado',
+            ], 401);
+        }
+
+        if ($user->rol !== 'instructor') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para esta acción',
+            ], 403);
+        }
+
         return $next($request);
     }
 }

@@ -39,6 +39,27 @@ return [
     'key'            => env('GEMINI_API_KEY'),
     'model'          => env('GEMINI_MODEL', 'gemini-3.6-flash'),
     'fallback_model' => env('GEMINI_FALLBACK_MODEL', 'gemini-3.5-flash-lite'),
+    // Una guia mas larga se rechaza con un mensaje claro, en vez de recortarla en silencio
+    'max_caracteres_guia' => (int) env('GEMINI_MAX_CARACTERES_GUIA', 300000),
 ],
+
+    'github' => [
+        // Token del servidor: solo sube el limite de consultas, no da acceso a nada privado
+        'token' => env('GITHUB_TOKEN'),
+    ],
+
+    'evaluacion' => [
+        'por_dia'       => (int) env('EVALUACIONES_POR_DIA', 3),
+        'max_archivos'  => (int) env('EVALUACION_MAX_ARCHIVOS', 40),
+        'max_kb_archivo' => (int) env('EVALUACION_MAX_KB_ARCHIVO', 100),
+        'max_caracteres' => (int) env('EVALUACION_MAX_CARACTERES', 200000),
+        // El tope es diario para el estudiante, no para el reloj UTC del servidor
+        'zona_horaria'  => env('EVALUACION_ZONA_HORARIA', 'America/Bogota'),
+    ],
+
+    // Modo Personal: porcentaje del XP de una semana que abre la siguiente
+    'experiencia' => [
+        'porcentaje_desbloqueo' => (int) env('XP_PORCENTAJE_DESBLOQUEO', 80),
+    ],
 
 ];

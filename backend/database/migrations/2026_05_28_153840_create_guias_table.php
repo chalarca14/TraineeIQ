@@ -26,6 +26,8 @@ return new class extends Migration
 
             //Ruta del archivo PDF guardado en el servidor
             $table->string('archivo_pdf')->nullable();
+            //Hash del PDF: detecta que el mismo dueño sube dos veces el mismo archivo
+            $table->string('hash_archivo', 64)->nullable()->index();
             //Numero total de semanas que tiene la guia
             $table->integer('semanas_totales')->default(1);
             //Fechas de creacion y actualizacion automaticas

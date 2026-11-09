@@ -13,6 +13,7 @@ class GuiaTema extends Model
 
     protected $fillable = [
         'guia_id',
+        'guia_semana_id',
         'nombre_tema',
         'descripcion',
         'orden',
@@ -25,17 +26,10 @@ class GuiaTema extends Model
         return $this->belongsTo(Guia::class, 'guia_id');
     }
 
-    //Un tema tiene muchas recomendaciones de IA asociadas.
+    //Un tema pertenece a una semana de la guía.
 
-    public function recomendaciones()
+    public function semana()
     {
-        return $this->hasMany(Recomendacion::class, 'tema_id');
-    }
-
-    //Un tema tiene varios mini proyectos sugeridos.
-
-    public function miniProyectos()
-    {
-        return $this->hasMany(MiniProyecto::class, 'tema_id');
+        return $this->belongsTo(GuiaSemana::class, 'guia_semana_id');
     }
 }

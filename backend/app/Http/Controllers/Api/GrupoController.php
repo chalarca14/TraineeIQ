@@ -3,25 +3,40 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ActualizarSemanaActualRequest;
+use App\Models\EntregaMiniProyecto;
 use App\Models\Grupo;
 use App\Models\EstudianteGrupo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 class GrupoController extends Controller
 {
-    //Listar los grupos del profesor o a los que pertenece el estudiante.
-
+    /**
+     * Lista los grupos del instructor o a los que pertenece el estudiante,
+     * con la cantidad de guías y de mini proyectos para las tarjetas de resumen.
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        if ($user->role === 'profesor'){
-            $grupo = Grupo::where('profesor_id', $user->id)->withCount ('estudiantes')->get();
-            } else {
-            // Si es estudiante, listar los grupos en los que está inscrito
-            $grupos = $user->gruposInscritos()->with('profesor:id,name')->get();
+        if ($user->rol === 'instructor') {
+            $grupos = Grupo::where('instructor_id', $user->id)
+                ->withCount(['estudiantes', 'guias', 'miniProyectos'])
+                ->get();
+        } else {
+            // El estudiante solo cuenta los mini proyectos de semanas ya liberadas,
+            // para que el número coincida con lo que puede abrir
+            $grupos = $user->gruposInscritos()
+                ->with('instructor:id,name')
+                ->withCount(['guias', 'miniProyectos' => fn ($proyectos) => $proyectos->whereHas(
+                    'semana',
+                    fn ($semanas) => $semanas->whereColumn('guia_semanas.numero_semana', '<=', 'grupos.semana_actual')
+                )])
+                ->get();
         }
 
         return response()->json([
@@ -31,7 +46,7 @@ class GrupoController extends Controller
     }
 
     /**
-     * Crear un nuevo grupo (Solo profesores).
+     * Crear un nuevo grupo (Solo instructores).
      */
     public function store(Request $request)
     {
@@ -46,7 +61,7 @@ class GrupoController extends Controller
         } while (Grupo::where('codigo_acceso', $codigo)->exists());
 
         $grupo = Grupo::create([
-            'profesor_id' => Auth::id(),
+            'instructor_id' => Auth::id(),
             'nombre' => $request->nombre,
             'descripcion' => $request->descripcion,
             'codigo_acceso' => $codigo,
@@ -98,14 +113,58 @@ class GrupoController extends Controller
 
     /**
      * Ver detalles de un grupo específico y sus estudiantes inscritos.
+     * Solo lo ven su instructor y sus estudiantes, porque incluye nombres y correos.
      */
     public function show(int $id)
     {
-        $grupo = Grupo::with(['estudiantes:id,name,email', 'profesor:id,name'])->findOrFail($id);
+        $grupo = Grupo::with(['estudiantes:id,name,email', 'instructor:id,name'])->findOrFail($id);
+        Gate::authorize('view', $grupo);
 
         return response()->json([
             'success' => true,
             'data' => $grupo
         ], 200);
+    }
+
+    /**
+     * Libera semanas: los estudiantes del grupo pueden leer hasta la semana indicada.
+     * Aplica a todas las guias del grupo. Bajar el numero vuelve a bloquear las siguientes.
+     */
+    public function actualizarSemanaActual(ActualizarSemanaActualRequest $request, int $id): JsonResponse
+    {
+        $grupo = Grupo::findOrFail($id);
+        Gate::authorize('update', $grupo);
+
+        $grupo->update(['semana_actual' => $request->integer('semana_actual')]);
+
+        return response()->json([
+            'message'       => 'Semana actualizada correctamente',
+            'semana_actual' => $grupo->semana_actual,
+        ], 200);
+    }
+
+    /**
+     * Lista el repositorio y el puntaje de los estudiantes en los mini proyectos del grupo.
+     * Filtra por las guias del grupo, asi que nunca incluye entregas del Modo Personal.
+     */
+    public function entregas(int $id): JsonResponse
+    {
+        $grupo = Grupo::findOrFail($id);
+        Gate::authorize('verEntregas', $grupo);
+
+        $entregas = EntregaMiniProyecto::query()
+            ->select(['id', 'mini_proyecto_id', 'estudiante_id', 'repo_url', 'estado', 'puntaje', 'intentos', 'evaluado_en', 'updated_at'])
+            ->whereHas('miniProyecto.guia', fn ($guias) => $guias->where('grupo_id', $grupo->id))
+            ->with([
+                'estudiante:id,name,email',
+                'miniProyecto:id,guia_id,guia_semana_id,titulo,dificultad',
+                'miniProyecto.guia:id,nombre',
+                'miniProyecto.semana:id,numero_semana',
+            ])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->paginate(30);
+
+        return response()->json($entregas, 200);
     }
 }

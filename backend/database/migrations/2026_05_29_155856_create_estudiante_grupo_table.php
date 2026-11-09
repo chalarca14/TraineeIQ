@@ -21,11 +21,11 @@ return new class extends Migration
             //Llave foranea que referencia al grupo
             $table->foreignId('grupo_id')->constrained('grupos')->onDelete('cascade');
 
-            //Semana actual en la que se encuentra el estudiante
-            $table->integer('semana_actual')->default(1);
-
             //Fecha de creacion y actualizacion automatica
             $table->timestamps();
+
+            //Un estudiante solo puede estar una vez en cada grupo
+            $table->unique(['estudiante_id', 'grupo_id']);
         });
     }
 

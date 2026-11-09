@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\GuiaNoProcesableException;
+use App\Exceptions\IaNoDisponibleException;
+use App\Exceptions\RespuestaIaInvalidaException;
+use App\Exceptions\SemanasConEntregasException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReemplazarGuiaRequest;
+use App\Http\Requests\StoreGuiaRequest;
 use App\Models\Guia;
 use App\Models\Grupo;
-use App\Services\PdfTextExtractor;
-use App\Services\GeminiService;
+use App\Models\User;
+use App\Services\ProcesarGuiaService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Exception;
 
 class GuiaController extends Controller
 {
@@ -25,9 +29,9 @@ class GuiaController extends Controller
 
         if ($user->rol === 'instructor') {
             // El instructor ve las guías de sus grupos
-            $gruposIds = Grupo::where('profesor_id', $user->id)->pluck('id');
+            $gruposIds = Grupo::where('instructor_id', $user->id)->pluck('id');
             $guias = Guia::whereIn('grupo_id', $gruposIds)
-                ->with(['temas' => fn($q) => $q->orderBy('orden', 'asc')])
+                ->with($this->relacionesDeLectura())
                 ->paginate(15);
         } else {
             // El estudiante ve sus guías personales y las de los grupos donde está inscrito
@@ -37,126 +41,95 @@ class GuiaController extends Controller
                     $query->where('usuario_id', $user->id)
                           ->orWhereIn('grupo_id', $gruposInscritosIds);
                 })
-                ->with(['temas' => fn($q) => $q->orderBy('orden', 'asc')])
+                ->with($this->relacionesDeLectura())
                 ->paginate(15);
         }
+
+        $guias->getCollection()->each(fn (Guia $guia) => $this->prepararLectura($guia, $user));
 
         return response()->json($guias, 200);
     }
 
     /**
-     * Crear una nueva guía procesando un PDF con IA.
+     * Sube una guía y la divide en semanas pendientes. El contenido de cada semana
+     * se genera después, una por una, para no pasar el tiempo límite de la petición.
      */
-    public function store(Request $request)
+    public function store(StoreGuiaRequest $request, ProcesarGuiaService $servicio): JsonResponse
     {
         $user = $request->user();
+        $esInstructor = $user->rol === 'instructor';
 
-        // 1. Validaciones
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:255',
-            'archivo' => 'required|file|mimes:pdf|max:10240',
-            'grupo_id' => 'nullable|integer|exists:grupos,id',
-            'semanas_totales' => 'nullable|integer|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        // Determinación de origen y pertenencia de grupo según el rol
-        $origen = null;
-        $grupoId = null;
-        $usuarioId = null;
-
-        if ($user->rol === 'instructor') {
-            if (!$request->filled('grupo_id')) {
-                return response()->json(['message' => 'El instructor debe especificar un grupo_id.'], 403);
-            }
-
-            $grupo = Grupo::find($request->grupo_id);
-            if (!$grupo || $grupo->profesor_id !== $user->id) {
-                return response()->json(['message' => 'El grupo especificado no pertenece al instructor.'], 403);
-            }
-
-            $origen = 'grupo';
-            $grupoId = $grupo->id;
-        } else {
-            $origen = 'personal';
-            $usuarioId = $user->id;
-        }
-
-        // 2. Guardar el archivo temporalmente
-        $path = $request->file('archivo')->store('guias', 'public');
+        // El dueño sale de la sesión; nunca de lo que envía el frontend
+        $datos = [
+            'nombre'     => $request->nombre,
+            'origen'     => $esInstructor ? 'grupo' : 'personal',
+            'grupo_id'   => $esInstructor ? (int) $request->grupo_id : null,
+            'usuario_id' => $esInstructor ? null : $user->id,
+        ];
 
         try {
-            // 3. Extracción de texto del PDF
-            $fullPath = Storage::disk('public')->path($path);
-            $extractor = new PdfTextExtractor();
-            $textoExtraido = $extractor->extraer($fullPath);
-
-            if (empty(trim($textoExtraido))) {
-                Storage::disk('public')->delete($path);
-                return response()->json([
-                    'message' => 'El PDF no tiene texto legible. Sube un PDF que no sea una imagen escaneada.'
-                ], 422);
-            }
-
-            // 4. Segmentación con Gemini
-            $gemini = GeminiService::obtenerInstancia();
-            $temasSegmentados = $gemini->segmentarGuiaEnTemas($textoExtraido);
-
-        } catch (Exception $e) {
-            Log::error('Error procesando el PDF de la guía', [
-                'mensaje' => $e->getMessage(),
-                'archivo' => $e->getFile() . ':' . $e->getLine(),
-            ]);
-            Storage::disk('public')->delete($path);
-
-            if (str_contains($e->getMessage(), '503') || str_contains(strtolower($e->getMessage()), 'busy')) {
-                return response()->json(['message' => 'La IA está ocupada, intenta de nuevo en un momento.'], 503);
-            }
-
-            return response()->json(['message' => 'Error al crear la guía'], 500);
+            $resultado = $servicio->crear($datos, $request->file('archivo'), $request->integer('semanas_totales') ?: null);
+        } catch (\Throwable $e) {
+            return $this->responderError($e);
         }
 
-        // 5. Transacción de creación en base de datos
+        return response()->json([
+            'message'    => $resultado['creada'] ? 'Guía creada correctamente' : 'Esta guía ya estaba subida',
+            'ya_existia' => ! $resultado['creada'],
+            'guia'       => $this->cargarDetalle($resultado['guia']),
+        ], $resultado['creada'] ? 201 : 200);
+    }
+
+    /**
+     * Reemplaza el PDF de una guía. Solo vuelven a pendiente las semanas que cambiaron.
+     * Con archivos, el frontend debe enviar POST con _method=PUT: PHP no lee archivos en PUT.
+     */
+    public function update(ReemplazarGuiaRequest $request, ProcesarGuiaService $servicio, int $id): JsonResponse
+    {
+        $guia = Guia::findOrFail($id);
+        Gate::authorize('update', $guia);
+
         try {
-            $guia = DB::transaction(function () use ($request, $origen, $grupoId, $usuarioId, $temasSegmentados, $path) {
-                $nuevaGuia = Guia::create([
-                    'nombre' => $request->nombre,
-                    'origen' => $origen,
-                    'grupo_id' => $grupoId,
-                    'usuario_id' => $usuarioId,
-                    'archivo_pdf' => $path,
-                    'semanas_totales' => $request->input('semanas_totales', 1),
-                ]);
-
-                foreach ($temasSegmentados as $index => $tema) {
-                    $nuevaGuia->temas()->create([
-                        'nombre_tema' => $tema['nombre_tema'],
-                        'descripcion' => $tema['descripcion'],
-                        'orden' => $index + 1,
-                    ]);
-                }
-
-                return $nuevaGuia;
-            });
-
-            $guia->load(['temas' => fn($q) => $q->orderBy('orden', 'asc')]);
-
-            return response()->json([
-                'message' => 'Guía creada correctamente',
-                'guia' => $guia
-            ], 201);
-
-        } catch (Exception $e) {
-            Log::error('Error guardando la guía en la base de datos', [
-                'mensaje' => $e->getMessage(),
-                'archivo' => $e->getFile() . ':' . $e->getLine(),
-            ]);
-            Storage::disk('public')->delete($path);
-            return response()->json(['message' => 'Error al crear la guía'], 500);
+            $resultado = $servicio->reemplazar($guia, $request->file('archivo'), $request->boolean('confirmar_eliminacion'));
+        } catch (\Throwable $e) {
+            return $this->responderError($e);
         }
+
+        return response()->json([
+            'message'           => 'Guía actualizada correctamente',
+            'semanas_cambiadas' => $resultado['semanas_cambiadas'],
+            'guia'              => $this->cargarDetalle($resultado['guia']->refresh()),
+        ], 200);
+    }
+
+    /**
+     * Carga los temas y las semanas que devuelven las respuestas de subida.
+     */
+    private function cargarDetalle(Guia $guia): Guia
+    {
+        return $guia->load(['temas' => fn ($q) => $q->orderBy('orden', 'asc'), 'semanas']);
+    }
+
+    /**
+     * Traduce los errores del procesamiento a una respuesta amigable.
+     */
+    private function responderError(\Throwable $e): JsonResponse
+    {
+        if ($e instanceof GuiaNoProcesableException) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        if ($e instanceof SemanasConEntregasException) {
+            return response()->json(['message' => $e->getMessage(), 'semanas' => $e->semanas], 409);
+        }
+
+        Log::error('Error procesando la guía', ['mensaje' => $e->getMessage()]);
+
+        if ($e instanceof IaNoDisponibleException || $e instanceof RespuestaIaInvalidaException) {
+            return response()->json(['message' => 'La IA está ocupada, intenta de nuevo en un momento.'], 503);
+        }
+
+        return response()->json(['message' => 'Error al procesar la guía'], 500);
     }
 
     /**
@@ -164,29 +137,34 @@ class GuiaController extends Controller
      */
     public function show(Request $request, int $id)
     {
-        $user = $request->user();
-        $guia = Guia::with(['temas' => fn($q) => $q->orderBy('orden', 'asc')])->find($id);
+        $guia = Guia::with($this->relacionesDeLectura())->find($id);
 
         if (!$guia) {
             return response()->json(['message' => 'Guía no encontrada'], 404);
         }
 
-        if ($user->rol === 'instructor') {
-            $grupo = Grupo::find($guia->grupo_id);
-            if (!$grupo || $grupo->profesor_id !== $user->id) {
-                return response()->json(['message' => 'No tienes acceso a esta guía.'], 403);
-            }
-        } else {
-            $gruposInscritosIds = $user->gruposInscritos()->pluck('grupos.id')->toArray();
-            
-            $tieneAcceso = ($guia->usuario_id === $user->id) || 
-                        ($guia->grupo_id && in_array($guia->grupo_id, $gruposInscritosIds));
+        Gate::authorize('view', $guia);
 
-            if (!$tieneAcceso) {
-                return response()->json(['message' => 'No tienes acceso a esta guía.'], 403);
-            }
-        }
+        return response()->json(['guia' => $this->prepararLectura($guia, $request->user())], 200);
+    }
 
-        return response()->json(['guia' => $guia], 200);
+    /**
+     * Relaciones que necesitan las lecturas de guias. El grupo y la semana de cada
+     * tema se cargan aqui para decidir que temas puede ver el usuario sin hacer N+1.
+     */
+    private function relacionesDeLectura(): array
+    {
+        return [
+            'grupo',
+            'temas' => fn ($q) => $q->orderBy('orden', 'asc')->with('semana:id,numero_semana'),
+        ];
+    }
+
+    /**
+     * Deja la guia lista para responder: sin temas bloqueados y sin los datos del grupo.
+     */
+    private function prepararLectura(Guia $guia, User $user): Guia
+    {
+        return $guia->ocultarTemasBloqueadosPara($user)->makeHidden('grupo');
     }
 }

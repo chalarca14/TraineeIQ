@@ -51,7 +51,8 @@ class LibreStrategy implements ChatStrategy
 
     private function construirPrompt(string $historial, string $mensajeUsuario): string
     {
-        return "Eres un asistente academico del SENA en modo LIBRE, sin restriccion de tema.
+        return "Eres el asistente academico de TraineeIQ en modo LIBRE, sin restriccion de tema.
+        " . self::CONTEXTO_TRAINEEIQ . "
         Responde de forma clara y pedagogica a preguntas de programacion en general.
 
         Historial reciente de la conversacion:

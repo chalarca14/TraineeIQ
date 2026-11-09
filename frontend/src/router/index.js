@@ -109,7 +109,38 @@ const routes = [
     ]
   },
 
-  
+  // PRUEBA-BACKEND: inicio. Borrar este bloque cuando exista la vista definitiva
+  {
+    path: '/prueba',
+    component: () => import('../layouts/AppLayout.vue'),
+    meta: {
+      requiereAuth: true
+    },
+    children: [
+      {
+        path: 'guias',
+        name: 'GuiasPrueba',
+        component: () => import('../views/prueba/GuiasPrueba.vue')
+      },
+      {
+        path: 'guias/:id',
+        name: 'GuiaSemanasPrueba',
+        component: () => import('../views/prueba/GuiaSemanasPrueba.vue')
+      },
+      {
+        path: 'mini-proyectos/:id',
+        name: 'MiniProyectoPrueba',
+        component: () => import('../views/prueba/MiniProyectoPrueba.vue')
+      },
+      {
+        path: 'grupos/:id/entregas',
+        name: 'EntregasGrupoPrueba',
+        component: () => import('../views/prueba/EntregasGrupoPrueba.vue')
+      }
+    ]
+  },
+  // PRUEBA-BACKEND: fin
+
   // Ruta para paginas no encontradas
   {
     path: '/:pathMatch(.*)*',

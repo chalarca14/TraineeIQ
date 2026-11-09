@@ -23,6 +23,8 @@ return new class extends Migration
             $table->foreignId('instructor_id')->constrained('users')->onDelete('cascade');
             //codigo unico para que los estudiantes se unan al grupo
             $table->string('codigo_acceso')->unique();
+            //Semana que el instructor tiene habilitada; las siguientes se muestran como proximamente
+            $table->integer('semana_actual')->default(1);
             //Fechas de creacion y actualizacion automaticas
             $table->timestamps();
         });

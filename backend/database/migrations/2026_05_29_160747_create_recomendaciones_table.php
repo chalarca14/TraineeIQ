@@ -7,24 +7,27 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Tabla recomendaciones: donde se guardan las respuestas de Gemini
+     * Tabla recomendaciones: contenido generado por Gemini para una semana.
+     * Pertenece a la guia, no al estudiante: todo el grupo ve las mismas.
      */
     public function up(): void
     {
         Schema::create('recomendaciones', function (Blueprint $table) {
             //Llave primaria autoincremental
             $table->id();
-            //Llave foranea del estudiante en la tabla users
-            $table->foreignId('estudiante_id')->constrained('users')->onDelete('cascade');
             //Llave foranea de la guia
             $table->foreignId('guia_id')->constrained('guias')->onDelete('cascade');
-            //Semana a la que corresponde la recomendacion
-            $table->integer('semana')->nullable(); //Nullable para modo personal
+            //Llave foranea de la semana a la que corresponde la recomendacion
+            $table->foreignId('guia_semana_id')->constrained('guia_semanas')->onDelete('cascade');
+            //Posicion dentro de la semana; permite regenerar sin duplicar
+            $table->unsignedTinyInteger('orden');
             $table->enum('nivel', ['basico', 'recomendado', 'importante', 'avanzado'])->default('recomendado');
-            //Contenido JSON con la respuesta de Gemini
+            //Contenido JSON con el titulo y la descripcion
             $table->json('contenido');
             //Fechas de creacion y actualizacion automaticas
             $table->timestamps();
+
+            $table->unique(['guia_semana_id', 'orden']);
         });
     }
 

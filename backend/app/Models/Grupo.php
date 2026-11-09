@@ -16,6 +16,7 @@ class Grupo extends Model
         'descripcion',
         'instructor_id',
         'codigo_acceso',
+        'semana_actual',
     ];
 
     //Un grupo pertenece a un instructor (usuario).
@@ -30,7 +31,6 @@ class Grupo extends Model
     public function estudiantes()
     {
         return $this->belongsToMany(User::class, 'estudiante_grupo', 'grupo_id', 'estudiante_id')
-                    ->withPivot('semana_actual')
                     ->withTimestamps();
     }
 
@@ -39,5 +39,12 @@ class Grupo extends Model
     public function guias()
     {
         return $this->hasMany(Guia::class, 'grupo_id');
+    }
+
+    //Mini proyectos de todas las guías del grupo, pasando por la tabla guias.
+
+    public function miniProyectos()
+    {
+        return $this->hasManyThrough(MiniProyecto::class, Guia::class, 'grupo_id', 'guia_id');
     }
 }

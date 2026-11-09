@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -15,19 +14,12 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|min:8',
             'rol' => 'sometimes|string|in:estudiante,instructor',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         $user = User::create([
             'name' => $request->name,
@@ -47,32 +39,28 @@ class AuthController extends Controller
             'data' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',
+            // Mismas claves que login() (token, user): las usa el frontend para entrar al dashboard
+            'token' => $token,
+            'user' => $user,
         ], 201);
     }
 
     /**
      * Iniciar sesión.
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
+        $validated = $request->validated();
+        $user = User::where('email', $validated['email'])->first();
 
-        if ($validator->fails()) {
+        if (
+            ! $user
+            || $user->rol !== $validated['rol']
+            || ! Hash::check($validated['password'], $user->password)
+        ) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciales incorrectas'
+                'message' => 'Credenciales incorrectas',
             ], 401);
         }
 
@@ -82,16 +70,20 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Inicio de sesión exitoso',
             'token' => $token,
-            'user' => $user
+            'user' => $user,
         ]);
     }
-    public function logout(Request $request)
-{
-    $request->user()->currentAccessToken()->delete();
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Sesión cerrada correctamente'
-    ]);
-}
+    /**
+     * Cerrar sesión.
+     */
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión cerrada correctamente',
+        ]);
+    }
 }
