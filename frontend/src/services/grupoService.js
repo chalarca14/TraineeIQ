@@ -66,12 +66,6 @@ export async function crearGrupo({ nombre, descripcion = null }) {
     return data.data
 }
 
-/** Une al estudiante a un grupo con su código de acceso. */
-export async function unirseAGrupo(codigoAcceso) {
-    const { data } = await api.post('/grupos/unirse', { codigo_acceso: codigoAcceso })
-    return data.data
-}
-
 /** Borra un grupo con todas sus guías y entregas (solo su instructor). */
 export async function eliminarGrupo(id) {
     await api.delete(`/grupos/${id}`)
