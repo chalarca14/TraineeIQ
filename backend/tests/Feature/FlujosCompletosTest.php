@@ -247,6 +247,9 @@ class FlujosCompletosTest extends TestCase
                 'orden'       => $indice + 1,
                 'nivel'       => $nivel,
                 'titulo'      => 'Recomendación ' . ($indice + 1),
+                'tema'        => 'Tema extra ' . ($indice + 1),
+                'tema_semana' => 'Tema de la semana',
+                'por_que'     => 'Te recomiendo este tema porque ayuda con la semana.',
                 'descripcion' => 'Descripción de la recomendación.',
             ], $niveles, array_keys($niveles)),
             'mini_proyectos' => array_map(fn ($dificultad, $indice) => [

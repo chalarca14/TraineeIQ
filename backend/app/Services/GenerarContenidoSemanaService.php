@@ -161,6 +161,9 @@ class GenerarContenidoSemanaService
                     'nivel'     => $recomendacion['nivel'],
                     'contenido' => [
                         'titulo'      => $recomendacion['titulo'],
+                        'tema'        => $recomendacion['tema'],
+                        'tema_semana' => $recomendacion['tema_semana'],
+                        'por_que'     => $recomendacion['por_que'],
                         'descripcion' => $recomendacion['descripcion'],
                     ],
                 ]

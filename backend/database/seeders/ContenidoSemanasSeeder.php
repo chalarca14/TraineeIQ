@@ -86,6 +86,9 @@ class ContenidoSemanasSeeder extends Seeder
                 'nivel'     => $nivel,
                 'contenido' => [
                     'titulo'      => "Recomendación {$nivel}",
+                    'tema'        => "Tema complementario de nivel {$nivel}",
+                    'tema_semana' => $semana->titulo,
+                    'por_que'     => "Te recomiendo este tema porque te ayuda a entender {$semana->titulo}.",
                     'descripcion' => "Actividad de prueba de nivel {$nivel} sobre {$semana->titulo}.",
                 ],
             ]);

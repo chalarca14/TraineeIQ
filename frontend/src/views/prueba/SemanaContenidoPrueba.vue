@@ -33,6 +33,10 @@
                     <strong>{{ r.contenido.titulo }}</strong>
                     <EtiquetaNivel :valor="r.nivel" />
                 </div>
+                <p v-if="r.contenido.tema">
+                    <em>Estudia:</em> {{ r.contenido.tema }} · <em>Te ayuda con:</em> {{ r.contenido.tema_semana }}
+                </p>
+                <p v-if="r.contenido.por_que">{{ r.contenido.por_que }}</p>
                 <p>{{ r.contenido.descripcion }}</p>
             </article>
 

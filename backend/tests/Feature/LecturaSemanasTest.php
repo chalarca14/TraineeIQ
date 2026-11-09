@@ -303,6 +303,80 @@ class LecturaSemanasTest extends TestCase
     }
 
     /**
+     * El detalle de una semana liberada trae su texto transcrito del PDF.
+     */
+    public function test_el_detalle_de_la_semana_trae_su_texto(): void
+    {
+        Sanctum::actingAs($this->estudiante);
+
+        $respuesta = $this->leerSemana($this->guiaGrupo, 2)
+            ->assertOk()
+            ->assertJsonPath('semana.contenido_texto', 'Texto 2');
+
+        $this->assertArrayNotHasKey('hash_contenido', $respuesta->json('semana'));
+    }
+
+    /**
+     * La guía completa trae el texto de las semanas liberadas y solo el título de las bloqueadas.
+     */
+    public function test_la_guia_completa_oculta_el_texto_de_las_semanas_bloqueadas(): void
+    {
+        Sanctum::actingAs($this->estudiante);
+
+        $this->getJson("/api/guias/{$this->guiaGrupo->id}/texto")
+            ->assertOk()
+            ->assertJsonPath('guia.nombre', 'Guía')
+            ->assertJsonCount(3, 'semanas')
+            ->assertJsonPath('semanas.0.numero_semana', 1)
+            ->assertJsonPath('semanas.0.contenido_texto', 'Texto 1')
+            ->assertJsonPath('semanas.1.contenido_texto', 'Texto 2')
+            ->assertJsonPath('semanas.2.titulo', 'Semana 3')
+            ->assertJsonPath('semanas.2.disponible', false)
+            ->assertJsonPath('semanas.2.contenido_texto', null);
+    }
+
+    /**
+     * El instructor dueño lee la guía completa, también lo que no ha liberado.
+     */
+    public function test_el_instructor_lee_la_guia_completa(): void
+    {
+        Sanctum::actingAs($this->instructor);
+
+        $this->getJson("/api/guias/{$this->guiaGrupo->id}/texto")
+            ->assertOk()
+            ->assertJsonPath('semanas.2.contenido_texto', 'Texto 3');
+    }
+
+    /**
+     * En Modo Personal la guía completa respeta el desbloqueo por experiencia.
+     */
+    public function test_la_guia_completa_personal_respeta_la_experiencia(): void
+    {
+        $guia = $this->guiaPersonal($this->estudiante);
+        Sanctum::actingAs($this->estudiante);
+
+        $this->getJson("/api/guias/{$guia->id}/texto")
+            ->assertOk()
+            ->assertJsonPath('semanas.0.contenido_texto', 'Texto 1')
+            ->assertJsonPath('semanas.1.contenido_texto', null);
+    }
+
+    /**
+     * Nadie ajeno puede leer la guía completa: ni otro grupo ni la guía personal de otro.
+     */
+    public function test_la_guia_completa_rechaza_a_los_ajenos(): void
+    {
+        $guiaPersonal = $this->guiaPersonal($this->estudiante);
+
+        Sanctum::actingAs(User::factory()->create(['rol' => 'estudiante']));
+        $this->getJson("/api/guias/{$this->guiaGrupo->id}/texto")->assertForbidden();
+        $this->getJson("/api/guias/{$guiaPersonal->id}/texto")->assertForbidden();
+
+        Sanctum::actingAs($this->instructor);
+        $this->getJson("/api/guias/{$guiaPersonal->id}/texto")->assertForbidden();
+    }
+
+    /**
      * Pide liberar semanas en el grupo de prueba.
      */
     private function liberar(int $semana)

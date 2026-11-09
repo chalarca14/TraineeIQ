@@ -7,10 +7,14 @@ use App\Http\Requests\ActualizarSemanaActualRequest;
 use App\Models\EntregaMiniProyecto;
 use App\Models\Grupo;
 use App\Models\EstudianteGrupo;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class GrupoController extends Controller
@@ -79,8 +83,14 @@ class GrupoController extends Controller
      */
     public function unirse(Request $request)
     {
+        // Los códigos se generan en mayúsculas: así "abc123 " también funciona
+        $request->merge(['codigo_acceso' => Str::upper(trim((string) $request->input('codigo_acceso')))]);
+
         $request->validate([
             'codigo_acceso' => 'required|string|exists:grupos,codigo_acceso',
+        ], [
+            'codigo_acceso.required' => 'Escribe el código del grupo.',
+            'codigo_acceso.exists'   => 'Ese código no existe. Revisa que esté bien escrito.',
         ]);
 
         $grupo = Grupo::where('codigo_acceso', $request->codigo_acceso)->first();
@@ -92,22 +102,61 @@ class GrupoController extends Controller
             ->exists();
 
         if ($inscrito) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ya estás inscrito en este grupo.'
-            ], 400);
+            return $this->yaInscrito();
         }
 
-        // Registrar inscripción
-        EstudianteGrupo::create([
-            'grupo_id' => $grupo->id,
-            'estudiante_id' => $estudianteId,
-        ]);
+        try {
+            EstudianteGrupo::create([
+                'grupo_id' => $grupo->id,
+                'estudiante_id' => $estudianteId,
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            // Dos clics a la vez: la base ya tiene la inscripción
+            return $this->yaInscrito();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Te has unido al grupo exitosamente',
             'data' => $grupo
+        ], 200);
+    }
+
+    /**
+     * Respuesta cuando el estudiante ya pertenece al grupo.
+     */
+    private function yaInscrito(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Ya estás inscrito en este grupo.'
+        ], 409);
+    }
+
+    /**
+     * Borra el grupo (solo su instructor). La base borra en cascada sus inscripciones,
+     * sus guías con todo su contenido y las entregas de sus estudiantes, así que el
+     * código deja de funcionar. Después se borran los PDF del disco.
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $grupo = Grupo::findOrFail($id);
+        Gate::authorize('delete', $grupo);
+
+        $pdfs = $grupo->guias()->whereNotNull('archivo_pdf')->pluck('archivo_pdf')->all();
+
+        DB::transaction(fn () => $grupo->delete());
+
+        try {
+            Storage::disk('public')->delete($pdfs);
+        } catch (\Throwable $e) {
+            // El grupo ya se borró: un PDF que quede en disco no afecta a nadie
+            Log::warning('No se pudieron borrar los PDF del grupo', ['mensaje' => $e->getMessage()]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Grupo borrado correctamente',
         ], 200);
     }
 

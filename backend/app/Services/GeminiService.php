@@ -62,11 +62,14 @@ class GeminiService
                 'minItems' => self::TOTAL_RECOMENDACIONES,
                 'items'    => [
                     'type'       => 'object',
-                    'required'   => ['orden', 'nivel', 'titulo', 'descripcion'],
+                    'required'   => ['orden', 'nivel', 'titulo', 'tema', 'tema_semana', 'por_que', 'descripcion'],
                     'properties' => [
                         'orden'       => ['type' => 'integer'],
                         'nivel'       => ['type' => 'string', 'enum' => self::NIVELES],
                         'titulo'      => ['type' => 'string'],
+                        'tema'        => ['type' => 'string'],
+                        'tema_semana' => ['type' => 'string'],
+                        'por_que'     => ['type' => 'string'],
                         'descripcion' => ['type' => 'string'],
                     ],
                 ],
@@ -446,7 +449,8 @@ class GeminiService
     }
 
     /**
-     * Valida las recomendaciones: exactamente 4, en orden y con un nivel permitido.
+     * Valida las recomendaciones: exactamente 4, en orden, con un nivel permitido
+     * y con el tema recomendado, el tema de la semana al que ayuda y el porque.
      * Un valor fuera de la lista invalida la respuesta en vez de reemplazarse por
      * uno por defecto, porque este contenido lo ve todo el grupo.
      */
@@ -469,6 +473,9 @@ class GeminiService
                 'orden'       => $indice + 1,
                 'nivel'       => $nivel,
                 'titulo'      => $this->textoObligatorio($recomendacion, 'titulo'),
+                'tema'        => $this->textoObligatorio($recomendacion, 'tema'),
+                'tema_semana' => $this->textoObligatorio($recomendacion, 'tema_semana'),
+                'por_que'     => $this->textoObligatorio($recomendacion, 'por_que'),
                 'descripcion' => $this->textoObligatorio($recomendacion, 'descripcion'),
             ];
         }
