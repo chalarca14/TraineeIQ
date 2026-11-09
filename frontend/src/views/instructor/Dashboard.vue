@@ -82,4 +82,3 @@ const estadisticas = [
     margin: 0;
 }
 </style>
->>>>>>> origin/rama-frontend
