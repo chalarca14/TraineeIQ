@@ -214,6 +214,8 @@ class EvaluarEntregaService
             'estado'         => 'evaluado',
             'commit_sha'     => $commitSha,
             'puntaje'        => $puntaje,
+            // Es la experiencia del Modo Personal: nunca baja aunque se reevalue con menos
+            'mejor_puntaje'  => max($entrega->mejor_puntaje ?? 0, $puntaje),
             'evaluacion'     => $resultado + ['puntaje' => $puntaje, 'recortado' => $recortado],
             'evaluado_en'    => now(),
             'intentos'       => $entrega->intentos + 1,

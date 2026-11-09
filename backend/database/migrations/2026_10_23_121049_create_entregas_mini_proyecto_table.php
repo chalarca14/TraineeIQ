@@ -22,6 +22,8 @@ return new class extends Migration
             $table->enum('estado', ['pendiente', 'evaluando', 'evaluado', 'error'])->default('pendiente');
             // Lo calcula el backend con los pesos de los criterios, nunca Gemini
             $table->unsignedTinyInteger('puntaje')->nullable();
+            // Mejor puntaje historico: es la experiencia (XP) del Modo Personal y nunca baja
+            $table->unsignedTinyInteger('mejor_puntaje')->nullable();
             $table->json('evaluacion')->nullable();
             // Total historico de evaluaciones pedidas
             $table->unsignedInteger('intentos')->default(0);

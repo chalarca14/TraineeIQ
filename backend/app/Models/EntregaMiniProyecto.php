@@ -18,6 +18,7 @@ class EntregaMiniProyecto extends Model
         'commit_sha',
         'estado', // 'pendiente', 'evaluando', 'evaluado' o 'error'
         'puntaje',
+        'mejor_puntaje', // experiencia (XP) del Modo Personal
         'evaluacion',
         'intentos',
         'intentos_hoy',
