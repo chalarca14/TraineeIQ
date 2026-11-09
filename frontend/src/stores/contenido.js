@@ -21,6 +21,15 @@ export const useContenidoStore = defineStore('contenido', {
         cargandoContenido: false,
         // true mientras la cola está pidiendo semanas al backend
         procesandoCola: false,
+        // Modo Grupo: solo se piden las semanas liberadas. El backend genera también las bloqueadas
+        // (no lo impide), así que el filtro tiene que estar aquí o se gastaría Gemini en semanas que
+        // el aprendiz todavía no puede ver.
+        soloLiberadas: false,
+        // Número de la semana que ESTA pantalla está generando ahora mismo. Sirve para distinguirla de
+        // una que el servidor reporta "generando" por otra persona o porque quedó caída.
+        generandoAqui: null,
+        // true mientras "Revisar de nuevo" consulta el estado una vez
+        revisando: false,
         error: '',
         aviso: ''
     }),
@@ -34,10 +43,12 @@ export const useContenidoStore = defineStore('contenido', {
     },
 
     actions: {
-        // Carga las semanas de una guía, abre la primera disponible y lanza la cola
-        async abrirGuia(guiaId) {
+        // Carga las semanas de una guía, abre la primera disponible y lanza la cola.
+        // opciones.soloLiberadas = true en Modo Grupo: no pide generar semanas no liberadas.
+        async abrirGuia(guiaId, opciones = {}) {
             this.cerrarGuia()
             this.guiaId = guiaId
+            this.soloLiberadas = Boolean(opciones.soloLiberadas)
 
             let semanas
 
@@ -109,6 +120,7 @@ export const useContenidoStore = defineStore('contenido', {
             const id = ++idColaVigente
             const porGenerar = this.semanas
                 .filter((s) => ['pendiente', 'generando'].includes(s.estado_generacion))
+                .filter((s) => !this.soloLiberadas || s.disponible)
                 .map((s) => s.numero_semana)
 
             this.procesandoCola = true
@@ -146,6 +158,7 @@ export const useContenidoStore = defineStore('contenido', {
         async generar(numero, forzar) {
             const guiaId = this.guiaId
             this.actualizarSemana(numero, { estado_generacion: 'generando' })
+            this.generandoAqui = numero
 
             try {
                 const semana = await generarSemana(guiaId, numero, forzar)
@@ -168,6 +181,45 @@ export const useContenidoStore = defineStore('contenido', {
                 }
 
                 return false
+            } finally {
+                // Solo si sigue siendo la misma guía: si se cerró, $reset ya limpió el estado
+                if (guiaId === this.guiaId && this.generandoAqui === numero) {
+                    this.generandoAqui = null
+                }
+            }
+        },
+
+        // "Revisar de nuevo": UNA consulta de la lista de semanas (sin repetirse sola). Se usa cuando el
+        // servidor reporta una semana "generando" que esta pantalla no está generando. Un fallo se avisa
+        // con `aviso` y no con `error`, para no tumbar la pantalla entera.
+        async revisar() {
+            if (this.revisando) {
+                return
+            }
+
+            const guiaId = this.guiaId
+            this.revisando = true
+            this.aviso = ''
+
+            try {
+                const semanas = await getSemanas(guiaId)
+                if (guiaId !== this.guiaId) {
+                    return
+                }
+
+                this.semanas = semanas
+
+                if (this.semanaSeleccionada?.estado_generacion === 'listo' && !this.contenido) {
+                    await this.cargarContenido()
+                }
+            } catch (e) {
+                if (guiaId === this.guiaId) {
+                    this.aviso = e.response?.data?.message ?? 'No pudimos consultar el estado de la semana.'
+                }
+            } finally {
+                if (guiaId === this.guiaId) {
+                    this.revisando = false
+                }
             }
         },
 
