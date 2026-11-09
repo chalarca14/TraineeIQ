@@ -37,6 +37,7 @@
                 >
                     Semana {{ s.numero_semana }}
                     <small>{{ etiquetaEstado(s) }}</small>
+                    <small v-if="s.xp_maximo">XP {{ s.xp_obtenido }}/{{ s.xp_maximo }} (meta {{ s.xp_requerido }})</small>
                 </button>
             </nav>
 
@@ -83,7 +84,8 @@ const esDueno = computed(() => esInstructor.value || guia.value?.origen === 'per
 
 // Texto corto que acompaña a cada pestaña
 function etiquetaEstado(semana) {
-    if (!semana.disponible) return 'Próximamente'
+    // En Modo Personal la semana se abre con experiencia, no la libera un instructor
+    if (!semana.disponible) return guia.value?.origen === 'personal' ? 'Bloqueada' : 'Próximamente'
     const etiquetas = { pendiente: 'Preparando', generando: 'Preparando', listo: 'Lista', error: 'Con error' }
     return etiquetas[semana.estado_generacion]
 }

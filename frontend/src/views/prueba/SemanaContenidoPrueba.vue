@@ -4,7 +4,11 @@
         <h2>Semana {{ semana.numero_semana }}: {{ semana.titulo }}</h2>
         <p class="resumen">{{ semana.resumen }}</p>
 
-        <p v-if="!semana.disponible" class="aviso">
+        <p v-if="!semana.disponible && semana.xp_maximo !== undefined" class="aviso">
+            Bloqueada. Consigue la experiencia que pide la semana anterior para abrirla.
+        </p>
+
+        <p v-else-if="!semana.disponible" class="aviso">
             Próximamente. Tu instructor liberará esta semana cuando el grupo llegue a ella.
         </p>
 
