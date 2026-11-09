@@ -8,7 +8,7 @@ import DatosPersonales from '@/components/perfil/DatosPersonales.vue'
 import CambiarPasswordForm from '@/components/perfil/CambiarPasswordForm.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCerrarSesion } from '@/composables/useCerrarSesion'
-import { cambiarPassword, CAMBIO_PASSWORD_ES_EJEMPLO } from '@/services/usuarioService'
+import { cambiarPassword } from '@/services/usuarioService'
 import { mensajeDeErrorPassword } from '@/utils/errores'
 
 const authStore = useAuthStore()
@@ -36,9 +36,7 @@ async function alCambiar({ actual, nueva }) {
   exito.value = ''
   try {
     await cambiarPassword(actual, nueva)
-    exito.value = CAMBIO_PASSWORD_ES_EJEMPLO
-      ? 'Listo (simulación): no se cambió nada porque el endpoint aún no existe.'
-      : 'Tu contraseña se actualizó correctamente.'
+    exito.value = 'Tu contraseña se actualizó correctamente.'
     formulario.value?.limpiar() // no dejar las contraseñas escritas en pantalla
   } catch (err) {
     errorCambio.value = mensajeDeErrorPassword(err)
@@ -62,7 +60,7 @@ async function alCambiar({ actual, nueva }) {
 
       <template v-else>
         <CambiarPasswordForm ref="formulario" :enviando="enviando" :error-externo="errorCambio" :exito="exito"
-          :es-ejemplo="CAMBIO_PASSWORD_ES_EJEMPLO" @cambiar="alCambiar" />
+          @cambiar="alCambiar" />
 
         <section class="sesion">
           <h2><LogOut :size="20" /> Sesión</h2>

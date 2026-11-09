@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, onBeforeUnmount } from 'vue'
-import { KeyRound, Info } from 'lucide-vue-next'
+import { KeyRound } from 'lucide-vue-next'
 import { validarCambioPassword, MIN_PASSWORD } from '@/utils/validaciones'
 
 // Formulario de cambio de contraseña. Solo valida y avisa ("cambiar"); la vista es quien llama al
@@ -9,8 +9,7 @@ import { validarCambioPassword, MIN_PASSWORD } from '@/utils/validaciones'
 const props = defineProps({
   enviando: { type: Boolean, default: false },
   errorExterno: { type: String, default: '' },  // error del servidor (por código HTTP)
-  exito: { type: String, default: '' },         // mensaje de éxito
-  esEjemplo: { type: Boolean, default: false }  // el endpoint real aún no existe: se avisa en pantalla
+  exito: { type: String, default: '' }          // mensaje de éxito
 })
 const emit = defineEmits(['cambiar'])
 
@@ -46,12 +45,6 @@ onBeforeUnmount(limpiar)
 <template>
   <section class="cambio">
     <h2><KeyRound :size="20" /> Cambiar contraseña</h2>
-
-    <p v-if="esEjemplo" class="ejemplo" role="note">
-      <Info :size="16" />
-      <span>Función de ejemplo: todavía no se cambia la contraseña de verdad porque falta el endpoint
-        <code>PATCH /usuario/password</code> en el backend.</span>
-    </p>
 
     <!-- novalidate: validamos nosotros para mostrar el error junto al campo, no el globo del navegador -->
     <form novalidate @submit.prevent="enviar">
@@ -93,22 +86,6 @@ h2 {
 
 h2 svg {
   color: var(--color-primary-light);
-}
-
-.ejemplo {
-  display: flex;
-  gap: .5rem;
-  margin-bottom: 1rem;
-  padding: .6rem .8rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
-  color: var(--color-warning);
-  font-size: .82rem;
-}
-
-.ejemplo svg {
-  flex-shrink: 0;
-  margin-top: .15rem;
 }
 
 form {
