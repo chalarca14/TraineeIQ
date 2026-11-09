@@ -96,6 +96,11 @@ const routes = [
         path: 'grupos/:id/entregas',
         name: 'EntregasGrupoPrueba',
         component: () => import('../views/prueba/EntregasGrupoPrueba.vue')
+      },
+      {
+        path: 'notificaciones',
+        name: 'NotificacionesPrueba',
+        component: () => import('../views/prueba/NotificacionesPrueba.vue')
       }
     ]
   },
