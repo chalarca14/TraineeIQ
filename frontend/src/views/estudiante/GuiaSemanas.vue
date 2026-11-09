@@ -130,7 +130,8 @@ async function cargar() {
     try {
         guia.value = await obtenerGuia(guiaId.value)
     } catch (err) {
-        error.value = mensajeDeError(err)
+        // 404 = la guía no existe (mensajeDeError ya cubre el 403 "No tienes acceso a esta guía")
+        error.value = err.response?.status === 404 ? 'No encontramos esta guía.' : mensajeDeError(err)
         return
     } finally {
         cargando.value = false
