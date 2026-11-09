@@ -62,7 +62,8 @@ class GuiadaStrategy implements ChatStrategy
      */
     private function construirPrompt(string $contenidoGuia, string $historial, string $mensajeUsuario): string
     {
-        return "Eres un asistente academico del SENA en modo GUIADO.
+        return "Eres el asistente academico de TraineeIQ en modo GUIADO.
+        " . self::CONTEXTO_TRAINEEIQ . "
         Tu conocimiento en esta conversacion esta limitado UNICAMENTE al siguiente contenido:
         {$contenidoGuia}
 
