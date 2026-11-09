@@ -5,9 +5,13 @@
                 <Check v-if="r.cumplido !== false" :size="13" :stroke-width="3" />
                 <X v-else :size="13" :stroke-width="3" />
             </span>
-            <span class="texto"><TextoConCodigo :texto="r.texto" /></span>
+            <span class="texto">
+                <TextoConCodigo :texto="r.texto" />
+                <!-- Comentario de la IA sobre este punto (solo en la evaluación), en texto plano -->
+                <small v-if="r.comentario" class="comentario">{{ r.comentario }}</small>
+            </span>
             <!-- Solo en la evaluación: el resultado lo decide el backend, aquí únicamente se muestra -->
-            <small v-if="r.cumplido !== undefined">{{ r.cumplido ? 'Cumplido' : 'No cumplido' }}</small>
+            <small v-if="r.cumplido !== undefined" class="estado">{{ r.cumplido ? 'Cumplido' : 'No cumplido' }}</small>
         </li>
     </ul>
 </template>
@@ -17,7 +21,7 @@ import { computed } from 'vue'
 import { Check, X } from 'lucide-vue-next'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 
-// Acepta frases sueltas (requisitos de la descripción) u objetos { texto, cumplido }
+// Acepta frases sueltas (requisitos de la descripción) u objetos { texto, cumplido, comentario }
 // (resultado de la evaluación). Las casillas NO son interactivas: quien verifica es la IA.
 const props = defineProps({ requisitos: { type: Array, required: true } })
 
@@ -72,12 +76,20 @@ li.pendiente .marca {
     min-width: 0;
 }
 
-small {
+.estado {
+    flex-shrink: 0;
     color: var(--color-success);
     font-weight: 600;
 }
 
-li.pendiente small {
+li.pendiente .estado {
     color: var(--color-danger);
+}
+
+.comentario {
+    display: block;
+    margin-top: .15rem;
+    color: var(--color-text-secondary);
+    font-size: .78rem;
 }
 </style>

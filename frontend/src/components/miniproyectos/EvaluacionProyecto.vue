@@ -3,17 +3,16 @@
 
     <EstadoVista :cargando="cargando" :error="error" :vacio="!entrega" texto-cargando="Cargando la evaluación..."
       :icono="Star" texto-vacio="Aún no has entregado tu proyecto"
-      descripcion-vacio="Cuando entregues el enlace de tu repositorio, aquí verás la evaluación de la IA."
+      descripcion-vacio="Guarda el enlace de tu repositorio y pide la evaluación de la IA."
       @reintentar="$emit('recargar')">
       <template #vacio>
         <button type="button" class="btn btn-primario" @click="$emit('ir-descripcion')">Ir a Descripción</button>
       </template>
 
-      <!-- Cabecera de la entrega: cuándo, qué repositorio y qué intento -->
+      <!-- Cabecera de la entrega: qué repositorio y cuándo se evaluó -->
       <header class="entrega">
-        <span class="entregado"><CircleCheck :size="16" /> Proyecto entregado</span>
-        <span v-if="fecha" class="dato">{{ fecha }}</span>
-        <span v-if="entrega.intento" class="dato">Intento {{ entrega.intento }}</span>
+        <span class="entregado"><CircleCheck :size="16" /> Repositorio entregado</span>
+        <span v-if="fecha" class="dato">Evaluado: {{ fecha }}</span>
         <!-- Solo se enlaza si es un repositorio de GitHub: un valor raro del backend (por ejemplo
              "javascript:...") se muestra como texto, nunca como enlace. -->
         <a v-if="repoSeguro" class="repo" :href="repoSeguro" target="_blank" rel="noopener noreferrer">
@@ -22,13 +21,25 @@
         <span v-else-if="entrega.repo_url" class="repo">{{ entrega.repo_url }}</span>
       </header>
 
-      <EvaluacionEnCurso v-if="enCurso" :sondeo-agotado="sondeoAgotado" @revisar="$emit('revisar')" />
+      <!-- Estados según lo que diga el backend: evaluando (aquí o sin espera), evaluado, pendiente, error -->
+      <EvaluacionEnCurso v-if="evaluando || entrega.estado === 'evaluando'" :esperando="evaluando"
+        :revisando="revisando" @revisar="$emit('revisar')" />
 
-      <ResultadoEvaluacion v-else-if="resultado" :entrega="entrega" :siguiente-id="siguienteId"
-        @entregar-de-nuevo="$emit('ir-descripcion')" />
+      <ResultadoEvaluacion v-else-if="entrega.estado === 'evaluado' && entrega.evaluacion" :entrega="entrega"
+        :es-personal="esPersonal" @entregar-de-nuevo="$emit('ir-descripcion')" />
 
-      <EvaluacionError v-else :entrega="entrega" :enviando="enviando" @reintentar="$emit('reintentar-envio')"
-        @cambiar-enlace="$emit('ir-descripcion')" />
+      <section v-else-if="entrega.estado === 'pendiente'" class="pendiente">
+        <h2>Tu repositorio está guardado</h2>
+        <p>Todavía no lo has evaluado. Cuando quieras, pide la evaluación de la IA.</p>
+        <button type="button" class="btn btn-primario" :disabled="intentosRestantes === 0" @click="$emit('evaluar')">
+          Evaluar mi código
+        </button>
+        <p v-if="intentosRestantes === 0" class="nota">Ya usaste tus evaluaciones de hoy. Vuelve mañana.</p>
+        <p v-if="errorEvaluar" class="error-texto" role="alert">{{ errorEvaluar }}</p>
+      </section>
+
+      <EvaluacionError v-else :mensaje="errorEvaluar" :intentos-restantes="intentosRestantes" :evaluando="evaluando"
+        @reintentar="$emit('evaluar')" @cambiar-enlace="$emit('ir-descripcion')" />
     </EstadoVista>
   </div>
 </template>
@@ -40,31 +51,31 @@ import EstadoVista from '@/components/ui/EstadoVista.vue'
 import EvaluacionEnCurso from '@/components/miniproyectos/EvaluacionEnCurso.vue'
 import ResultadoEvaluacion from '@/components/miniproyectos/ResultadoEvaluacion.vue'
 import EvaluacionError from '@/components/miniproyectos/EvaluacionError.vue'
+import { esRepoGithub } from '@/services/miniProyectoService'
 import { formatearFecha, horaCorta } from '@/utils/fechas'
 
-// Pestaña Evaluación: decide cuál de los 5 estados mostrar según lo que diga el backend
-// (sin entrega · evaluando · necesita mejoras · aprobado · error). No calcula nada.
+// Pestaña Evaluación: decide cuál estado mostrar según lo que diga el backend
+// (sin entrega · pendiente · evaluando · evaluado · error). No calcula nada.
 const props = defineProps({
   entrega: { type: Object, default: null },
   cargando: { type: Boolean, default: false },
   error: { type: String, default: '' },
-  sondeoAgotado: { type: Boolean, default: false },
-  enviando: { type: Boolean, default: false },
-  siguienteId: { type: Number, default: null }
+  evaluando: { type: Boolean, default: false },   // esta pantalla espera la respuesta de evaluar
+  revisando: { type: Boolean, default: false },
+  errorEvaluar: { type: String, default: '' },
+  intentosRestantes: { type: Number, default: null },
+  esPersonal: { type: Boolean, default: false }
 })
-defineEmits(['recargar', 'ir-descripcion', 'revisar', 'reintentar-envio'])
-
-const enCurso = computed(() => ['pendiente', 'evaluando'].includes(props.entrega?.estado))
-const resultado = computed(() => ['aprobado', 'necesita_mejoras'].includes(props.entrega?.estado))
+defineEmits(['recargar', 'ir-descripcion', 'revisar', 'evaluar'])
 
 const fecha = computed(() => {
-  const dia = formatearFecha(props.entrega?.fecha_entrega)
-  return dia ? `${dia} · ${horaCorta(props.entrega.fecha_entrega)}` : ''
+  const f = formatearFecha(props.entrega?.evaluado_en)
+  const h = horaCorta(props.entrega?.evaluado_en)
+  return f ? `${f}${h ? `, ${h}` : ''}` : ''
 })
 
-const REPO_GITHUB = /^https:\/\/github\.com\/[^\s]+$/i
-const repoSeguro = computed(() => (REPO_GITHUB.test(props.entrega?.repo_url ?? '') ? props.entrega.repo_url : ''))
-const repoCorto = computed(() => repoSeguro.value.replace(/^https:\/\/github\.com\//i, ''))
+const repoSeguro = computed(() => (esRepoGithub(props.entrega?.repo_url ?? '') ? props.entrega.repo_url : ''))
+const repoCorto = computed(() => repoSeguro.value.replace('https://github.com/', ''))
 </script>
 
 <style scoped>
@@ -79,30 +90,54 @@ const repoCorto = computed(() => repoSeguro.value.replace(/^https:\/\/github\.co
   flex-wrap: wrap;
   align-items: center;
   gap: .5rem 1rem;
+  margin-bottom: 1rem;
   font-size: .85rem;
 }
 
 .entregado {
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  padding: .25rem .8rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  gap: .35rem;
   color: var(--color-success);
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.dato { color: var(--color-text-secondary); }
+.dato {
+  color: var(--color-text-secondary);
+}
 
 .repo {
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  max-width: 100%;
-  overflow: hidden;
+  gap: .35rem;
+  min-width: 0;
   color: var(--color-primary-light);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+.pendiente {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+  padding: 2.5rem 1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 16px;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.pendiente h2 {
+  color: var(--color-text);
+  font-size: 1.1rem;
+}
+
+.nota {
+  font-size: .85rem;
+}
+
+.error-texto {
+  color: var(--color-danger);
+  font-size: .85rem;
 }
 </style>

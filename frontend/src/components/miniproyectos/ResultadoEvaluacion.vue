@@ -1,74 +1,70 @@
 <template>
   <div class="resultado">
 
-    <!-- Puntaje, veredicto y resumen de la IA -->
-    <section class="tarjeta principal" :class="{ aprobado }">
-      <AnilloPuntaje :puntaje="entrega.puntaje" :calificacion="entrega.calificacion" :aprobado="aprobado" />
+    <!-- Puntaje y resumen de la IA. Siempre se dice que es orientativa. -->
+    <section class="tarjeta principal">
+      <AnilloPuntaje :puntaje="puntaje" />
 
       <div class="veredicto">
-        <span class="insignia" :class="{ aprobado }">
-          <component :is="aprobado ? CircleCheck : Wrench" :size="15" />
-          {{ aprobado ? 'Aprobado' : 'Necesita mejoras' }}
-        </span>
-        <!-- Títulos neutros a propósito: "Excelente" es una calificación y la decide el backend
-             (viene en `calificacion`); el frontend no debe afirmar una nota que no calculó. -->
-        <h2>{{ aprobado ? '¡Buen trabajo!' : 'Casi lo logras' }}</h2>
-        <p v-if="entrega.resumen">{{ entrega.resumen }}</p>
+        <span class="insignia"><Info :size="15" /> Evaluación orientativa</span>
+        <h2>Evaluado: {{ puntaje ?? '—' }}/100</h2>
+        <!-- Texto de la IA: se pinta con {{ }} (texto plano), nunca con v-html -->
+        <p v-if="evaluacion.resumen">{{ evaluacion.resumen }}</p>
       </div>
     </section>
 
-    <!-- Aprobado: XP y siguiente paso. Necesita mejoras: número de intento y entregar de nuevo.
-         Todo lo decide y calcula el BACKEND; aquí solo se muestra. -->
-    <section v-if="aprobado" class="tarjeta franja">
+    <!-- Si la IA solo pudo leer una parte del repositorio, el puntaje se debe leer con cuidado -->
+    <p v-if="evaluacion.recortado" class="aviso" role="note">
+      <TriangleAlert :size="16" /> Solo se revisó una parte de tu repositorio (era muy grande),
+      así que esta evaluación puede no reflejar todo tu código.
+    </p>
+
+    <section class="tarjeta franja">
       <div class="dato">
+        <Medalla :icono="RotateCcw" color="info" :size="44" />
+        <div>
+          <small>Evaluaciones de este proyecto</small>
+          <strong class="valor">{{ entrega.intentos }}</strong>
+        </div>
+      </div>
+      <!-- En Modo Personal el mejor puntaje cuenta como XP. Se muestra tal como llega: no se calcula -->
+      <div v-if="esPersonal && entrega.mejor_puntaje != null" class="dato">
         <Medalla :icono="Star" color="warning" :size="44" />
         <div>
-          <small>Experiencia obtenida</small>
-          <strong v-if="xp > 0" class="xp">+{{ xp }} XP</strong>
-          <strong v-else class="xp xp--ya">Ya los habías ganado</strong>
+          <small>XP de este proyecto (tu mejor puntaje)</small>
+          <strong class="valor">{{ entrega.mejor_puntaje }}</strong>
         </div>
       </div>
-      <RouterLink v-if="siguienteId" class="btn btn-primario"
-        :to="{ name: 'MiniProyectoDetalle', params: { id: siguienteId } }">
-        Continuar al siguiente nivel <ArrowRight :size="16" />
-      </RouterLink>
-      <RouterLink v-else class="btn btn-secundario" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
-    </section>
-
-    <section v-else class="tarjeta franja">
-      <div class="dato">
-        <Medalla :icono="RotateCcw" color="warning" :size="44" />
-        <div>
-          <small>Intento</small>
-          <strong class="xp">{{ entrega.intento }}</strong>
-        </div>
-      </div>
-      <button type="button" class="btn btn-primario" @click="$emit('entregar-de-nuevo')">
-        Entregar de nuevo <ArrowRight :size="16" />
+      <button type="button" class="btn btn-secundario" @click="$emit('entregar-de-nuevo')">
+        Cambiar o volver a evaluar <ArrowRight :size="16" />
       </button>
     </section>
 
     <div class="doble">
+      <section v-if="criterios.length" class="tarjeta">
+        <h3><Medalla :icono="Code" :size="30" /> Criterios de evaluación</h3>
+        <CriteriosEvaluados :criterios="criterios" />
+      </section>
+
       <section v-if="requisitos.length" class="tarjeta">
         <h3>
-          <Medalla :icono="ListChecks" color="success" :size="30" /> Revisión de requisitos
+          <Medalla :icono="ListChecks" color="success" :size="30" /> Requisitos
           <span class="conteo">{{ cumplidos }} / {{ requisitos.length }}</span>
         </h3>
         <ListaRequisitos :requisitos="requisitos" />
       </section>
-
-      <section v-if="analisis.length" class="tarjeta">
-        <h3><Medalla :icono="Code" :size="30" /> Análisis del código</h3>
-        <AnalisisCriterios :criterios="analisis" />
-      </section>
     </div>
 
-    <section v-if="recomendaciones.length" class="tarjeta">
-      <h3><Medalla :icono="Lightbulb" color="warning" :size="30" /> Recomendaciones de la IA</h3>
-      <ul class="recomendaciones">
-        <!-- Texto de la IA: se pinta con {{ }} (texto plano), nunca con v-html -->
-        <li v-for="(r, i) in recomendaciones" :key="i">
-          <Check :size="16" :stroke-width="3" /> <TextoConCodigo :texto="r" />
+    <section v-if="practicas.length" class="tarjeta">
+      <h3><Medalla :icono="ShieldCheck" color="info" :size="30" /> Buenas prácticas</h3>
+      <ListaRequisitos :requisitos="practicas" />
+    </section>
+
+    <section v-if="sugerencias.length" class="tarjeta">
+      <h3><Medalla :icono="Lightbulb" color="warning" :size="30" /> Sugerencias de la IA</h3>
+      <ul class="sugerencias">
+        <li v-for="(s, i) in sugerencias" :key="i">
+          <Check :size="16" :stroke-width="3" /> <TextoConCodigo :texto="s" />
         </li>
       </ul>
     </section>
@@ -77,27 +73,33 @@
 
 <script setup>
 import { computed } from 'vue'
-import { CircleCheck, Wrench, Star, ArrowRight, RotateCcw, ListChecks, Code, Lightbulb, Check } from 'lucide-vue-next'
+import { Info, TriangleAlert, Star, ArrowRight, RotateCcw, ListChecks, Code, Lightbulb, Check, ShieldCheck } from 'lucide-vue-next'
 import Medalla from '@/components/ui/Medalla.vue'
 import AnilloPuntaje from '@/components/miniproyectos/AnilloPuntaje.vue'
-import AnalisisCriterios from '@/components/miniproyectos/AnalisisCriterios.vue'
+import CriteriosEvaluados from '@/components/miniproyectos/CriteriosEvaluados.vue'
 import ListaRequisitos from '@/components/miniproyectos/ListaRequisitos.vue'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 
-// Resultado de una entrega ya evaluada: "aprobado" o "necesita_mejoras".
-// Se muestra exactamente lo que devolvió el backend; este componente no decide ni calcula nada.
+// Resultado de una entrega con estado "evaluado". Muestra exactamente lo que devolvió el backend
+// (entrega.evaluacion); este componente no decide ni calcula nada: sin umbrales, sin "aprobado".
 const props = defineProps({
   entrega: { type: Object, required: true },
-  siguienteId: { type: Number, default: null }
+  esPersonal: { type: Boolean, default: false }
 })
 defineEmits(['entregar-de-nuevo'])
 
-const aprobado = computed(() => props.entrega.estado === 'aprobado')
-const xp = computed(() => Number(props.entrega.xp_ganado) || 0)
-// Si el backend no manda alguna lista, la sección simplemente no se muestra
-const requisitos = computed(() => props.entrega.requisitos ?? [])
-const analisis = computed(() => props.entrega.analisis ?? [])
-const recomendaciones = computed(() => props.entrega.recomendaciones ?? [])
+const evaluacion = computed(() => props.entrega.evaluacion ?? {})
+const puntaje = computed(() => evaluacion.value.puntaje ?? props.entrega.puntaje ?? null)
+
+// El backend nombra los campos distinto a ListaRequisitos ({ requisito, cumple }): se traducen aquí.
+// Si alguna lista no llega, su sección simplemente no se muestra.
+const aItems = (lista, campoTexto, campoCumple) =>
+  (lista ?? []).map((x) => ({ texto: x[campoTexto], cumplido: Boolean(x[campoCumple]), comentario: x.comentario }))
+
+const criterios = computed(() => evaluacion.value.criterios ?? [])
+const requisitos = computed(() => aItems(evaluacion.value.requisitos, 'requisito', 'cumple'))
+const practicas = computed(() => aItems(evaluacion.value.buenas_practicas, 'practica', 'cumple'))
+const sugerencias = computed(() => evaluacion.value.sugerencias ?? [])
 const cumplidos = computed(() => requisitos.value.filter((r) => r.cumplido).length)
 </script>
 
@@ -119,13 +121,8 @@ const cumplidos = computed(() => requisitos.value.filter((r) => r.cumplido).leng
   display: flex;
   align-items: center;
   gap: 1.4rem;
-  border-color: color-mix(in srgb, var(--color-warning) 45%, transparent);
-  box-shadow: 0 0 32px color-mix(in srgb, var(--color-warning) 10%, transparent);
-}
-
-.principal.aprobado {
-  border-color: color-mix(in srgb, var(--color-success) 45%, transparent);
-  box-shadow: 0 0 32px color-mix(in srgb, var(--color-success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 .veredicto { min-width: 0; }
@@ -138,29 +135,37 @@ const cumplidos = computed(() => requisitos.value.filter((r) => r.cumplido).leng
   gap: .35rem;
   padding: .2rem .75rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-warning) 16%, transparent);
-  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-info) 16%, transparent);
+  color: var(--color-info);
   font-size: .78rem;
   font-weight: 700;
 }
 
-.insignia.aprobado {
-  background: color-mix(in srgb, var(--color-success) 16%, transparent);
-  color: var(--color-success);
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .7rem .9rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  color: var(--color-warning);
+  font-size: .85rem;
 }
+
+.aviso svg { flex-shrink: 0; margin-top: .1rem; }
 
 .franja {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.2rem;
 }
+
+.franja .btn { margin-left: auto; }
 
 .dato { display: flex; align-items: center; gap: .8rem; }
 .dato small { display: block; color: var(--color-text-secondary); font-size: .78rem; }
-.xp { color: var(--color-warning); font-size: 1.4rem; }
-.xp--ya { font-size: 1rem; }
+.valor { font-size: 1.4rem; }
 
 .doble {
   display: grid;
@@ -185,24 +190,24 @@ h3 {
   font-size: .78rem;
 }
 
-.recomendaciones {
+.sugerencias {
   display: flex;
   flex-direction: column;
   gap: .5rem;
   list-style: none;
 }
 
-.recomendaciones li {
+.sugerencias li {
   display: flex;
   align-items: flex-start;
   gap: .6rem;
   font-size: .9rem;
 }
 
-.recomendaciones svg { flex-shrink: 0; margin-top: .2rem; color: var(--color-success); }
+.sugerencias svg { flex-shrink: 0; margin-top: .2rem; color: var(--color-success); }
 
 @media (max-width: 520px) {
   .principal { flex-direction: column; text-align: center; }
-  .franja .btn { width: 100%; }
+  .franja .btn { width: 100%; margin-left: 0; justify-content: center; }
 }
 </style>

@@ -1,19 +1,19 @@
 <template>
   <section class="en-curso" role="status" aria-live="polite">
-    <span v-if="!sondeoAgotado" class="giro" aria-hidden="true"></span>
-    <span v-else class="giro giro--quieto" aria-hidden="true"><Clock :size="26" /></span>
-
-    <template v-if="!sondeoAgotado">
+    <!-- Esta pantalla tiene la petición abierta: el backend evalúa y responde al terminar (no hay polling) -->
+    <template v-if="esperando">
+      <span class="giro" aria-hidden="true"></span>
       <h2>La IA está revisando tu repositorio</h2>
-      <p>Esto puede tardar un momento. Puedes quedarte aquí: la pantalla se actualiza sola cuando termine.</p>
+      <p>Puede tardar hasta 3 minutos. No cierres esta pestaña: el resultado aparece aquí cuando termine.</p>
     </template>
 
-    <!-- Se acabaron los intentos de consulta (≈1 minuto) y sigue evaluando -->
+    <!-- El backend dice "evaluando" pero esta pantalla no espera: se evaluó desde otra pestaña o se interrumpió -->
     <template v-else>
-      <h2>La evaluación está tardando más de lo normal</h2>
-      <p>Tu entrega sigue en revisión. Puedes volver a consultar el estado.</p>
-      <button type="button" class="btn btn-secundario" @click="$emit('revisar')">
-        <RefreshCw :size="16" /> Revisar de nuevo
+      <span class="giro giro--quieto" aria-hidden="true"><Clock :size="26" /></span>
+      <h2>Tu entrega figura como "evaluando"</h2>
+      <p>Pudo terminar o haberse interrumpido. Consulta el estado una vez.</p>
+      <button type="button" class="btn btn-secundario" :disabled="revisando" @click="$emit('revisar')">
+        <RefreshCw :size="16" /> {{ revisando ? 'Revisando…' : 'Revisar de nuevo' }}
       </button>
     </template>
   </section>
@@ -22,7 +22,11 @@
 <script setup>
 import { Clock, RefreshCw } from 'lucide-vue-next'
 
-defineProps({ sondeoAgotado: { type: Boolean, default: false } })
+defineProps({
+  // true = esta pantalla tiene la petición de evaluar abierta
+  esperando: { type: Boolean, default: false },
+  revisando: { type: Boolean, default: false }
+})
 defineEmits(['revisar'])
 </script>
 
