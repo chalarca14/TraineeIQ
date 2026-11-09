@@ -33,9 +33,6 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Usuario registrado correctamente',
-            // Mismas claves que login() (token, user) para que el frontend entre directo al dashboard
-            'token' => $token,
-            'user' => $user,
             'data' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',
