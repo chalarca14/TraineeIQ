@@ -33,6 +33,8 @@ export function validarCambioPassword({ actual, nueva, confirmacion }) {
 export function validarRepoGitHub(valor) {
     const url = (valor ?? '').trim()
     if (!url) return 'Pega el enlace de tu repositorio.'
+    // GitHub entrega este final al copiar con "Clone", pero el backend NO lo acepta: se avisa claro
+    if (/\.git\/?$/i.test(url)) return 'Quita el ".git" del final del enlace: https://github.com/usuario/repositorio'
     if (!REPO_GITHUB.test(url) || /\/\.{1,2}(\.git)?\/?$/.test(url)) {
         return 'El enlace debe tener la forma https://github.com/usuario/repositorio'
     }

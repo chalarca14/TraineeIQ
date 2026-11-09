@@ -1,69 +1,59 @@
 <template>
-    <section class="entrega">
-        <h3><UploadCloud :size="20" /> Entrega tu repositorio</h3>
-        <p class="ayuda">Pega el enlace de tu repositorio de GitHub para que podamos evaluar tu proyecto.</p>
-
-        <!-- novalidate: validamos nosotros para mostrar el error junto al campo, no el globo del navegador -->
-        <form novalidate @submit.prevent="enviar">
-            <div class="fila">
-                <label class="campo" :class="{ invalido: error }">
-                    <Github :size="18" />
-                    <input v-model="url" type="url" inputmode="url" placeholder="https://github.com/usuario/proyecto"
-                        aria-label="Enlace del repositorio de GitHub" :aria-invalid="Boolean(error)"
-                        :disabled="deshabilitado" @input="error = ''" />
-                </label>
-                <button type="submit" class="btn btn-primario" :disabled="deshabilitado || enEvaluacion">
-                    <Upload :size="16" /> {{ enEvaluacion ? 'Evaluando…' : 'Subir entrega' }}
-                </button>
-            </div>
-            <!-- error local (URL mal escrita) o del servidor (429, repositorio rechazado...) -->
-            <p v-if="error || errorExterno" class="error" role="alert">{{ error || errorExterno }}</p>
-            <p v-if="enEvaluacion" class="nota">Hay una evaluación en curso. Espera a que termine para entregar de nuevo.</p>
-            <p v-else class="nota">Solo se aceptan repositorios públicos de GitHub.</p>
-        </form>
-    </section>
+    <!-- novalidate: validamos nosotros para mostrar el error junto al campo, no el globo del navegador -->
+    <form novalidate @submit.prevent="enviar">
+        <div class="fila">
+            <label class="campo" :class="{ invalido: error || errorExterno }">
+                <Github :size="18" />
+                <input v-model="url" type="url" inputmode="url" placeholder="https://github.com/usuario/proyecto"
+                    aria-label="Enlace del repositorio de GitHub" :aria-invalid="Boolean(error || errorExterno)"
+                    :disabled="deshabilitado || guardando" @input="error = ''" />
+            </label>
+            <button type="submit" class="btn btn-secundario" :disabled="sinCambios || deshabilitado || guardando">
+                <Save :size="16" />
+                {{ guardando ? 'Guardando…' : repoGuardado ? 'Cambiar repositorio' : 'Guardar repositorio' }}
+            </button>
+        </div>
+        <!-- error local (URL mal escrita) o el message del servidor (409, 422...) -->
+        <p v-if="error || errorExterno" class="error" role="alert">{{ error || errorExterno }}</p>
+        <p v-else class="nota">Solo repositorios públicos de GitHub, sin ".git" al final.</p>
+    </form>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Upload, UploadCloud, Github } from 'lucide-vue-next'
+import { ref, computed, watch } from 'vue'
+import { Save, Github } from 'lucide-vue-next'
 import { validarRepoGitHub } from '@/utils/validaciones'
 
 const props = defineProps({
+    // Repositorio que ya tiene guardado el aprendiz (para mostrarlo y saber si cambió)
+    repoGuardado: { type: String, default: '' },
+    guardando: { type: Boolean, default: false },
+    // Hay una evaluación corriendo: el backend rechaza (409) cambiar el repositorio mientras tanto
     deshabilitado: { type: Boolean, default: false },
-    // Hay una evaluación corriendo: no se puede entregar otra hasta que termine
-    enEvaluacion: { type: Boolean, default: false },
-    // Error que viene del servidor al enviar (el de la URL mal escrita se calcula aquí mismo)
+    // Error que viene del servidor al guardar (el de la URL mal escrita se calcula aquí mismo)
     errorExterno: { type: String, default: '' }
 })
-const emit = defineEmits(['entregar'])
+const emit = defineEmits(['guardar'])
 
 const url = ref('')
 const error = ref('')
 
+// La entrega llega después de montar el formulario: se rellena el campo con el repositorio guardado
+// solo si el aprendiz todavía no escribió nada, para no pisar lo que está tecleando
+watch(() => props.repoGuardado, (valor) => { if (!url.value) url.value = valor ?? '' }, { immediate: true })
+
+const sinCambios = computed(() => url.value.trim() === props.repoGuardado)
+
 // Validamos ANTES de avisar a la vista: una URL mal escrita nunca sale del formulario
 function enviar() {
-    if (props.enEvaluacion || props.deshabilitado) return // seguro extra: el botón ya está deshabilitado
+    if (props.guardando || props.deshabilitado) return // seguro extra: el botón ya está deshabilitado
     error.value = validarRepoGitHub(url.value)
     if (error.value) return
-    emit('entregar', url.value.trim())
+    emit('guardar', url.value.trim())
 }
 </script>
 
 <style scoped>
-h3 {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    margin-bottom: .2rem;
-    font-size: 1rem;
-}
-
-h3 svg {
-    color: var(--color-primary-light);
-}
-
-.ayuda,
 .nota {
     color: var(--color-text-secondary);
     font-size: .82rem;
@@ -126,6 +116,7 @@ input:disabled {
     }
 
     .btn {
+        justify-content: center;
         padding: .75rem 1rem;
     }
 }
