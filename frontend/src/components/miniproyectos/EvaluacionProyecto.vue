@@ -21,6 +21,13 @@
         <span v-else-if="entrega.repo_url" class="repo">{{ entrega.repo_url }}</span>
       </header>
 
+      <!-- El message del backend (422, 409, 429, 503) se muestra SIEMPRE. En "pendiente" y "error" lo
+           pintan sus propios bloques; en los demás estados (por ejemplo, volver a evaluar un proyecto
+           ya evaluado) se muestra aquí, si no el error quedaría invisible detrás del resultado anterior. -->
+      <p v-if="errorEvaluar && !['pendiente', 'error'].includes(entrega.estado)" class="aviso-error" role="alert">
+        <TriangleAlert :size="16" /> {{ errorEvaluar }}
+      </p>
+
       <!-- Estados según lo que diga el backend: evaluando (aquí o sin espera), evaluado, pendiente, error -->
       <EvaluacionEnCurso v-if="evaluando || entrega.estado === 'evaluando'" :esperando="evaluando"
         :revisando="revisando" @revisar="$emit('revisar')" />
@@ -46,7 +53,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Star, CircleCheck, Github, ExternalLink } from 'lucide-vue-next'
+import { Star, CircleCheck, Github, ExternalLink, TriangleAlert } from 'lucide-vue-next'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
 import EvaluacionEnCurso from '@/components/miniproyectos/EvaluacionEnCurso.vue'
 import ResultadoEvaluacion from '@/components/miniproyectos/ResultadoEvaluacion.vue'
@@ -139,5 +146,23 @@ const repoCorto = computed(() => repoSeguro.value.replace('https://github.com/',
 .error-texto {
   color: var(--color-danger);
   font-size: .85rem;
+}
+
+.aviso-error {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  margin-bottom: 1rem;
+  padding: .7rem .9rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+  font-size: .88rem;
+  overflow-wrap: anywhere;
+}
+
+.aviso-error svg {
+  flex-shrink: 0;
+  margin-top: .1rem;
 }
 </style>
