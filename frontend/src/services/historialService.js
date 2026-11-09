@@ -5,7 +5,8 @@
 // Forma de una entrada:
 //   { clave, categoria: 'ia' | 'guia', titulo, descripcion, etiqueta, fecha, ruta }
 import { listarConversacionesPagina } from './chatIaService'
-import { obtenerHistorialRecomendaciones, leerContenido } from './recomendacionServices'
+import { obtenerHistorialRecomendaciones } from './recomendacionServices'
+import { leerContenido } from '@/utils/recomendaciones'
 
 const PREFIJO_GUIADA = 'Conversacion sobre '
 

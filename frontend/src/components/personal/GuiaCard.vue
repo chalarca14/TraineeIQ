@@ -18,7 +18,7 @@
         </ul>
 
         <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn btn-secundario btn-sm">
-            Ver temas <ArrowRight :size="15" />
+            Ver guía <ArrowRight :size="15" />
         </RouterLink>
     </article>
 </template>
