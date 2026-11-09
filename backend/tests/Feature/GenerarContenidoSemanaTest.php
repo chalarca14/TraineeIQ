@@ -32,6 +32,9 @@ class GenerarContenidoSemanaTest extends TestCase
             ->assertJsonCount(4, 'semana.recomendaciones')
             ->assertJsonCount(3, 'semana.mini_proyectos')
             ->assertJsonPath('semana.recomendaciones.0.contenido.titulo', 'Recomendación 1')
+            ->assertJsonPath('semana.recomendaciones.0.contenido.tema', 'Tema extra 1')
+            ->assertJsonPath('semana.recomendaciones.0.contenido.tema_semana', 'Tema de la semana')
+            ->assertJsonPath('semana.recomendaciones.0.contenido.por_que', 'Te recomiendo este tema porque ayuda con la semana.')
             ->assertJsonPath('semana.mini_proyectos.2.dificultad', 'avanzado')
             ->assertJsonPath('semana.mini_proyectos.0.criterios_evaluacion.0.peso', 60);
 
@@ -134,6 +137,15 @@ class GenerarContenidoSemanaTest extends TestCase
             }],
             'título vacío' => [function (array &$c) {
                 $c['recomendaciones'][1]['titulo'] = '   ';
+            }],
+            'recomendación sin porqué' => [function (array &$c) {
+                unset($c['recomendaciones'][2]['por_que']);
+            }],
+            'tema de la semana vacío' => [function (array &$c) {
+                $c['recomendaciones'][3]['tema_semana'] = '';
+            }],
+            'tema recomendado que no es texto' => [function (array &$c) {
+                $c['recomendaciones'][0]['tema'] = ['Arreglos'];
             }],
         ];
     }
@@ -437,6 +449,9 @@ class GenerarContenidoSemanaTest extends TestCase
                 'orden'       => $indice + 1,
                 'nivel'       => $nivel,
                 'titulo'      => 'Recomendación ' . ($indice + 1),
+                'tema'        => 'Tema extra ' . ($indice + 1),
+                'tema_semana' => 'Tema de la semana',
+                'por_que'     => 'Te recomiendo este tema porque ayuda con la semana.',
                 'descripcion' => 'Descripción de la recomendación.',
             ], $niveles, array_keys($niveles)),
             'mini_proyectos' => array_map(fn ($dificultad, $indice) => [
