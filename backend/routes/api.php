@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
 use App\Http\Controllers\Api\GuiaSemanaController;
 use App\Http\Controllers\Api\MiniProyectoController;
+use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatIaController;
 use App\Http\Controllers\UserController;
@@ -84,5 +85,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/mini-proyectos/{id}/entrega', [EntregaMiniProyectoController::class, 'show']);
         Route::put('/mini-proyectos/{id}/entrega', [EntregaMiniProyectoController::class, 'guardar']);
         Route::post('/mini-proyectos/{id}/entrega/evaluar', [EntregaMiniProyectoController::class, 'evaluar']);
+    });
+
+    // Notificaciones de la campanita: hoy solo las recibe el instructor
+    Route::middleware('EsInstructor')->prefix('notificaciones')->group(function () {
+        Route::get('/', [NotificacionController::class, 'index']);
+        Route::patch('/leidas', [NotificacionController::class, 'marcarTodas']);
+        Route::patch('/{id}/leida', [NotificacionController::class, 'marcarLeida'])->whereNumber('id');
     });
 });

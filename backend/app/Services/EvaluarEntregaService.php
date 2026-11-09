@@ -10,6 +10,7 @@ use App\Models\EntregaMiniProyecto;
 use App\Models\MiniProyecto;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Evalua el repositorio de una entrega. La fila solo se bloquea en transacciones
@@ -26,10 +27,12 @@ class EvaluarEntregaService
     private const TIEMPO_MAXIMO_SEGUNDOS = 180;
 
     /**
-     * Recibe el lector de GitHub por inyeccion de dependencias.
+     * Recibe el lector de GitHub y el servicio de avisos por inyeccion de dependencias.
      */
-    public function __construct(private GitHubService $github)
-    {
+    public function __construct(
+        private GitHubService $github,
+        private NotificacionService $notificaciones
+    ) {
     }
 
     /**
@@ -65,7 +68,7 @@ class EvaluarEntregaService
             throw $e;
         }
 
-        $this->siSigueEvaluando($entrega, fn (EntregaMiniProyecto $fila) => $this->guardar(
+        $guardada = $this->siSigueEvaluando($entrega, fn (EntregaMiniProyecto $fila) => $this->guardar(
             $fila,
             $miniProyecto,
             $resultado,
@@ -73,7 +76,30 @@ class EvaluarEntregaService
             $repositorio['recortado']
         ));
 
-        return $entrega->fresh();
+        $entrega = $entrega->fresh();
+
+        // Solo una evaluacion nueva avisa al instructor; el mismo commit no repite el aviso
+        if ($guardada) {
+            $this->avisarAlInstructor($entrega);
+        }
+
+        return $entrega;
+    }
+
+    /**
+     * Avisa al instructor sin poner en riesgo la evaluacion: si el aviso falla,
+     * el estudiante igual recibe su resultado y el error queda en el log.
+     */
+    private function avisarAlInstructor(EntregaMiniProyecto $entrega): void
+    {
+        try {
+            $this->notificaciones->avisarEvaluacion($entrega);
+        } catch (\Throwable $e) {
+            Log::error('No se pudo crear el aviso de la evaluacion', [
+                'entrega_id' => $entrega->id,
+                'mensaje'    => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -178,15 +204,20 @@ class EvaluarEntregaService
     /**
      * Ejecuta la accion solo si la entrega sigue en 'evaluando'. Asi una peticion
      * que tardo demasiado no pisa el resultado de otra que ya la retomo.
+     * Devuelve true si la accion se ejecuto.
      */
-    private function siSigueEvaluando(EntregaMiniProyecto $entrega, callable $accion): void
+    private function siSigueEvaluando(EntregaMiniProyecto $entrega, callable $accion): bool
     {
-        DB::transaction(function () use ($entrega, $accion) {
+        return DB::transaction(function () use ($entrega, $accion) {
             $fila = EntregaMiniProyecto::lockForUpdate()->find($entrega->id);
 
             if ($fila?->estado === 'evaluando' && $fila->repo_url === $entrega->repo_url) {
                 $accion($fila);
+
+                return true;
             }
+
+            return false;
         });
     }
 
