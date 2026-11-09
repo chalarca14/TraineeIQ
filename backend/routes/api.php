@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->group(function () {
             Route::get('/modo', [UserController::class, 'showMode']);
             Route::patch('/modo', [UserController::class, 'updateMode']);
+            Route::get('/xp', [UserController::class, 'experiencia']);
         });
 
     // Cambiar la contraseña: sirve para ambos roles y tiene limite de intentos

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CambiarPasswordRequest;
 use App\Http\Requests\UpdatePreferredModeRequest;
+use App\Services\ExperienciaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -35,6 +36,17 @@ class UserController extends Controller
             'success' => true,
             'modo_preferido' => $user->modo_preferido,
         ]);
+    }
+
+    /**
+     * Devuelve la experiencia total del estudiante en sus guias personales.
+     */
+    public function experiencia(Request $request, ExperienciaService $experiencia): JsonResponse
+    {
+        return response()->json([
+            'success'  => true,
+            'xp_total' => $experiencia->xpTotal($request->user()),
+        ], 200);
     }
 
     /**
