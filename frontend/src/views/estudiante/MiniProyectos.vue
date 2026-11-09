@@ -2,36 +2,54 @@
     <main class="mini-proyectos">
 
         <EncabezadoPagina titulo="Mini Proyectos" :icono="Code"
-            descripcion="Aplica lo que aprendiste con proyectos prácticos y lleva tu conocimiento al siguiente nivel." />
+            descripcion="Aplica lo que aprendiste con proyectos prácticos, entrega tu repositorio y recibe una evaluación orientativa." />
 
-        <EstadoVista :cargando="cargando" :error="error" :vacio="proyectos.length === 0" :icono="Code"
-            texto-cargando="Cargando tus mini proyectos..." texto-vacio="Aún no tienes mini proyectos."
-            descripcion-vacio='Abre una de tus guías y pulsa "Comenzar proyecto" para que la IA los cree.' @reintentar="cargar">
-        <div class="contenido">
-            <section class="principal">
-                <p v-if="guiasConError" class="aviso">
-                    No se pudieron cargar los proyectos de {{ guiasConError }}
-                    {{ guiasConError === 1 ? 'guía' : 'guías' }}. Lo demás sí se muestra.
-                </p>
+        <EstadoVista :cargando="cargando" :error="error" :vacio="bloques.length === 0" :icono="Code"
+            texto-cargando="Cargando tus mini proyectos..." :texto-vacio="textoVacio"
+            :descripcion-vacio="descripcionVacio" @reintentar="cargar">
+            <div class="contenido">
+                <section class="principal">
+                    <FiltrosProyectos v-model:pestana="pestana" v-model:busqueda="busqueda" />
 
-                <FiltrosProyectos v-model:pestana="pestana" v-model:busqueda="busqueda" v-model:orden="orden" />
+                    <p v-if="sinResultados" class="vacio-pestana">
+                        {{ busqueda ? 'Ningún proyecto coincide con tu búsqueda.' : VACIO_POR_PESTANA[pestana] }}
+                    </p>
 
-                <div v-if="encabezado" class="encabezado">
-                    <h2>{{ encabezado.titulo }}</h2>
-                    <p>{{ encabezado.texto }}</p>
-                </div>
+                    <section v-for="bloque in vista" :key="bloque.guia.id" class="guia">
+                        <h2 :title="bloque.guia.nombre">{{ bloque.guia.nombre }}</h2>
 
-                <p v-if="visibles.length === 0" class="vacio-pestana">
-                    {{ busqueda ? 'Ningún proyecto coincide con tu búsqueda.' : VACIO_POR_PESTANA[pestana] }}
-                </p>
+                        <!-- Una guía que falla no tumba las demás: aviso propio con su reintento -->
+                        <div v-if="bloque.fallo" class="aviso" role="alert">
+                            <span>No se pudieron cargar los proyectos de esta guía.</span>
+                            <button type="button" class="btn btn-secundario btn-sm"
+                                :disabled="reintentando.includes(bloque.guia.id)" @click="reintentar(bloque.guia.id)">
+                                {{ reintentando.includes(bloque.guia.id) ? 'Reintentando...' : 'Reintentar' }}
+                            </button>
+                        </div>
 
-                <div v-else class="cuadricula">
-                    <ProyectoCard v-for="p in visibles" :key="p.id" :proyecto="p" @abrir="alAbrir" />
-                </div>
-            </section>
+                        <div v-for="item in bloque.semanas" :key="item.semana.numero_semana" class="semana">
+                            <SemanaBloqueada v-if="!item.semana.disponible" :semana="item.semana"
+                                :anterior="item.anterior" :es-personal="esPersonal" />
 
-            <ResumenProgreso :resumen="resumen" />
-        </div>
+                            <template v-else>
+                                <h3>Semana {{ item.semana.numero_semana }}<template v-if="item.semana.titulo">: {{ item.semana.titulo }}</template></h3>
+                                <p v-if="item.proyectos.length === 0" class="vacio-semana">
+                                    {{ item.semana.estado_generacion === 'listo'
+                                        ? 'Esta semana no tiene mini proyectos.'
+                                        : 'El contenido de esta semana aún se está preparando.' }}
+                                </p>
+                                <div v-else class="cuadricula">
+                                    <ProyectoCard v-for="p in item.proyectos" :key="p.id" :proyecto="p"
+                                        :es-personal="esPersonal" @abrir="alAbrir" />
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                </section>
+
+                <ResumenProgreso :resumen="resumen" :semanas="semanasResumen" :es-personal="esPersonal"
+                    :varias-guias="bloques.length > 1" />
+            </div>
         </EstadoVista>
 
     </main>
@@ -45,109 +63,104 @@ import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
 import FiltrosProyectos from '@/components/miniproyectos/FiltrosProyectos.vue'
 import ProyectoCard from '@/components/miniproyectos/ProyectoCard.vue'
+import SemanaBloqueada from '@/components/miniproyectos/SemanaBloqueada.vue'
 import ResumenProgreso from '@/components/miniproyectos/ResumenProgreso.vue'
-import { listarMisMiniProyectos } from '@/services/miniProyectoService'
-import { estadoDelProyecto } from '@/utils/progresoEjemplo'
-import { mensajeDeError } from '@/utils/errores'
+import { useMiniProyectosSemanas } from '@/composables/useMiniProyectosSemanas'
+import { useModoStore } from '@/stores/modo'
+import { pestanaDe } from '@/utils/estadoEntrega'
 
 const VACIO_POR_PESTANA = {
     todos: 'No hay proyectos para mostrar.',
-    en_progreso: 'Aún no tienes proyectos en progreso.',
-    completado: 'Aún no tienes proyectos completados.',
-    por_iniciar: 'No tienes proyectos pendientes por iniciar.'
+    por_entregar: 'No tienes proyectos pendientes por entregar.',
+    evaluando: 'No tienes proyectos en evaluación ahora.',
+    evaluado: 'Aún no tienes proyectos evaluados.'
 }
 
 const router = useRouter()
-const crudos = ref([])
-const guiasConError = ref(0)
-const cargando = ref(true)
-const error = ref('')
+const modoStore = useModoStore()
+const { bloques, proyectos, cargando, error, cargar, reintentarGuia } = useMiniProyectosSemanas()
+
 const pestana = ref('todos')
 const busqueda = ref('')
-const orden = ref('tema') // por defecto: agrupado por tema, de básico a avanzado
+const reintentando = ref([]) // ids de guías que se están reintentando
 
-async function cargar() {
-    cargando.value = true
-    error.value = ''
-    try {
-        const resultado = await listarMisMiniProyectos()
-        crudos.value = resultado.proyectos
-        guiasConError.value = resultado.guiasConError
-    } catch (err) {
-        error.value = mensajeDeError(err)
-    } finally {
-        cargando.value = false
-    }
-}
+const esPersonal = computed(() => modoStore.esModoPersonal)
 
-// UNA sola lista con el estado ya calculado: tarjetas y resumen salen de aquí,
-// por eso los números nunca se contradicen entre pestañas.
-const proyectos = computed(() =>
-    crudos.value.map((p) => ({ ...p, ...estadoDelProyecto(p, crudos.value) }))
+const textoVacio = computed(() =>
+    esPersonal.value ? 'Aún no tienes guías en Modo Personal.' : 'Tus grupos aún no tienen guías.'
+)
+const descripcionVacio = computed(() =>
+    esPersonal.value
+        ? 'Sube una guía en "Mis guías": la IA crea los mini proyectos de cada semana.'
+        : 'Cuando tu instructor suba una guía y libere semanas, sus proyectos aparecerán aquí.'
 )
 
-// "Más recientes": por fecha de creación si existe; si no (o si empatan), por id descendente
-function compararRecientes(a, b) {
-    const fa = Date.parse(a.created_at)
-    const fb = Date.parse(b.created_at)
-    if (!Number.isNaN(fa) && !Number.isNaN(fb) && fa !== fb) return fb - fa
-    return b.id - a.id
-}
-
-// Orden por tema: primero por guía, luego por tema y dentro de cada tema de básico a avanzado.
-// El backend no manda el campo "orden" del tema en este endpoint; usamos tema_id porque los
-// temas se crean en el orden de la guía. Los proyectos de toda la guía (sin tema) van primero.
-const NIVEL = { basico: 0, intermedio: 1, avanzado: 2 }
-function compararPorTema(a, b) {
-    return a.guia_id - b.guia_id
-        || (a.tema_id ?? 0) - (b.tema_id ?? 0)
-        || (NIVEL[a.dificultad] ?? 0) - (NIVEL[b.dificultad] ?? 0)
-        || a.id - b.id
-}
-
-// La pestaña es solo un FILTRO de la misma lista
-const visibles = computed(() => {
+// La pestaña y la búsqueda solo FILTRAN la lista real; no cambian los datos
+const coincide = (p) => {
     const texto = busqueda.value.trim().toLowerCase()
-    const lista = proyectos.value.filter((p) =>
-        (pestana.value === 'todos' || p.estado === pestana.value) &&
+    return (pestana.value === 'todos' || pestanaDe(p) === pestana.value) &&
         (!texto || p.titulo.toLowerCase().includes(texto))
-    )
-    if (orden.value === 'tema') return lista.sort(compararPorTema)
-    lista.sort(compararRecientes)
-    return orden.value === 'antiguos' ? lista.reverse() : lista
+}
+
+// Lo que se pinta: por guía, sus semanas con los proyectos que pasan el filtro.
+// Las semanas con candado y las "en preparación" solo se ven en "Todos" y sin búsqueda,
+// porque no tienen proyectos que filtrar.
+const vista = computed(() => {
+    const filtrando = pestana.value !== 'todos' || busqueda.value.trim() !== ''
+    return bloques.value
+        .map((bloque) => ({
+            ...bloque,
+            semanas: bloque.semanas
+                .map((semana, i) => ({
+                    semana,
+                    anterior: i > 0 ? bloque.semanas[i - 1] : null,
+                    proyectos: semana.proyectos.filter(coincide)
+                }))
+                .filter((it) => (it.semana.disponible && it.proyectos.length > 0) || !filtrando)
+        }))
+        // Una guía sin nada que mostrar no deja su título solo; la que falló sí se queda para avisar
+        .filter((b) => b.fallo || b.semanas.length > 0)
 })
+
+const sinResultados = computed(() => vista.value.every((b) => !b.fallo && b.semanas.length === 0))
 
 // Resumen de la derecha: se calcula de la lista completa (sin filtros de pestaña ni búsqueda)
 const resumen = computed(() => {
-    const cuenta = (estado) => proyectos.value.filter((p) => p.estado === estado).length
-    const porNivel = {}
-    for (const nivel of ['basico', 'intermedio', 'avanzado']) {
-        const delNivel = proyectos.value.filter((p) => p.dificultad === nivel)
-        porNivel[nivel] = { total: delNivel.length, hechos: delNivel.filter((p) => p.estado === 'completado').length }
-    }
+    const cuenta = (clave) => proyectos.value.filter((p) => pestanaDe(p) === clave).length
     return {
         total: proyectos.value.length,
-        completados: cuenta('completado'),
-        enProgreso: cuenta('en_progreso'),
-        porIniciar: cuenta('por_iniciar'),
-        porNivel
+        evaluados: cuenta('evaluado'),
+        evaluando: cuenta('evaluando'),
+        porEntregar: cuenta('por_entregar')
     }
 })
 
-const encabezado = computed(() => {
-    const textos = {
-        en_progreso: {
-            titulo: `${resumen.value.enProgreso} ${resumen.value.enProgreso === 1 ? 'proyecto' : 'proyectos'} en progreso`,
-            texto: 'Retoma donde te dejaste'
-        },
-        completado: { titulo: 'Tus proyectos finalizados', texto: 'Puedes revisar tus proyectos completados.' },
-        por_iniciar: {
-            titulo: 'Proyectos disponibles para comenzar',
-            texto: 'Los niveles intermedio y avanzado se desbloquean al cumplir los requisitos previos.'
-        }
+// Una fila por semana abierta con proyectos. Los datos de XP se pasan tal cual llegaron
+const semanasResumen = computed(() =>
+    bloques.value.flatMap((b) =>
+        b.semanas
+            .filter((s) => s.disponible && s.proyectos.length > 0)
+            .map((s) => ({
+                guiaId: b.guia.id,
+                guiaNombre: b.guia.nombre,
+                numero_semana: s.numero_semana,
+                total: s.proyectos.length,
+                evaluados: s.proyectos.filter((p) => pestanaDe(p) === 'evaluado').length,
+                xp_obtenido: s.xp_obtenido,
+                xp_maximo: s.xp_maximo,
+                xp_requerido: s.xp_requerido
+            }))
+    )
+)
+
+async function reintentar(guiaId) {
+    reintentando.value.push(guiaId)
+    try {
+        await reintentarGuia(guiaId)
+    } finally {
+        reintentando.value = reintentando.value.filter((id) => id !== guiaId)
     }
-    return textos[pestana.value] ?? null
-})
+}
 
 // La tarjeta solo avisa "abrir este proyecto"; la vista decide a dónde ir
 function alAbrir(proyecto) {
@@ -167,8 +180,8 @@ onMounted(cargar)
     padding: clamp(1rem, 4vw, 2.5rem);
 }
 
-.encabezado p,
-.vacio-pestana {
+.vacio-pestana,
+.vacio-semana {
     color: var(--color-text-secondary);
 }
 
@@ -179,12 +192,30 @@ onMounted(cargar)
     align-items: start;
 }
 
-.encabezado {
-    margin-bottom: 1rem;
+.guia {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
-.encabezado h2 {
-    font-size: 1.05rem;
+.guia h2 {
+    overflow: hidden;
+    font-size: 1.1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.semana {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+}
+
+.semana h3 {
+    color: var(--color-text-secondary);
+    font-size: .95rem;
+    overflow-wrap: anywhere;
 }
 
 .cuadricula {
@@ -194,7 +225,11 @@ onMounted(cargar)
 }
 
 .aviso {
-    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .6rem;
     padding: .6rem .8rem;
     border-radius: 10px;
     background: color-mix(in srgb, var(--color-warning) 14%, transparent);
