@@ -15,12 +15,12 @@ export function mensajeDeErrorPassword(err) {
 }
 
 // Errores de "Unirse a un grupo". Se decide por el código HTTP, no por el texto del backend (en inglés).
-// 422 = el código no existe; 400 = ya eres miembro; 429 = demasiados intentos (cuando el backend
-// ponga límite de intentos, pendiente anotado en Trello).
+// 422 = el código no existe; 409 = ya eres miembro (antes era 400); 429 = más de 10 intentos por minuto.
+// El backend normaliza el código (mayúsculas y sin espacios), así que aquí no hace falta tocarlo.
 export function mensajeDeErrorUnirse(err) {
     const status = err.response?.status
     if (status === 422) return 'No encontramos un grupo con ese código. Revisa que esté bien escrito y pídele el código a tu instructor.'
-    if (status === 400) return 'Ya eres miembro de este grupo. Lo encontrarás en tu lista.'
+    if (status === 409) return 'Ya eres miembro de este grupo. Lo encontrarás en tu lista.'
     if (status === 429) return 'Hiciste muchos intentos seguidos. Espera un momento y vuelve a probar.'
     return mensajeDeError(err)
 }
