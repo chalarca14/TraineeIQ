@@ -44,22 +44,6 @@ export async function listarMisGuias() {
     return data.data.filter((guia) => guia.origen === 'personal')
 }
 
-/**
- * Devuelve TODAS las guías a las que el aprendiz tiene acceso (personales + de sus grupos).
- * Aparte de listarMisGuias() porque esa filtra solo las personales para la vista "Mis guías"
- * y los mini proyectos deben salir de cualquier guía, sin romper esa pantalla.
- * Nota: el backend pagina de 15 en 15 y aquí solo se lee la primera página.
- */
-export async function listarTodasMisGuias() {
-    if (USAR_DATOS_PRUEBA) {
-        await esperar(400)
-        return [...guiasPrueba]
-    }
-
-    const { data } = await api.get('/guias')
-    return data.data
-}
-
 /** Sube un PDF; el backend lo lee y lo divide en temas. */
 export async function subirGuia({ nombre, archivo }) {
     if (USAR_DATOS_PRUEBA) {
