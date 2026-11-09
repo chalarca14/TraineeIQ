@@ -18,7 +18,7 @@
                         v-if="item.ruta"
                         :to="item.ruta"
                         class="sidebar-link"
-                        active-class="activo"
+                        :class="{ activo: esActiva(item.ruta) }"
                         :title="item.descripcion"
                         @click="$emit('cerrar')"
                     >
@@ -39,6 +39,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { Home, BookOpen, Rocket, Bot, History, User, Users, Upload } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useModoStore } from '@/stores/modo'
@@ -46,8 +47,14 @@ import { useModoStore } from '@/stores/modo'
 defineProps({ abierto: Boolean })
 defineEmits(['cerrar'])
 
+const route = useRoute()
 const authStore = useAuthStore()
 const modoStore = useModoStore()
+
+// Una entrada del menú se resalta en su pantalla Y en las que cuelgan de ella por la URL (el detalle de una
+// guía, de un mini proyecto o un chat reabierto). El RouterLink solo marca activa la ruta exacta o sus hijas
+// en el router, y esas pantallas son rutas hermanas, así que se compara por prefijo de la ruta.
+const esActiva = (ruta) => route.path === ruta || route.path.startsWith(`${ruta}/`)
 
 const esEstudiante = computed(() => authStore.rolUsuario !== 'instructor')
 
