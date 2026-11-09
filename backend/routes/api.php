@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/grupos', [GrupoController::class, 'index']);
     Route::post('/grupos', [GrupoController::class, 'store'])->middleware('EsInstructor');
     Route::get('/grupos/{id}', [GrupoController::class, 'show']);
+    Route::delete('/grupos/{id}', [GrupoController::class, 'destroy'])->whereNumber('id')->middleware('EsInstructor');
     Route::patch('/grupos/{id}/semana-actual', [GrupoController::class, 'actualizarSemanaActual'])->middleware('EsInstructor');
     Route::get('/grupos/{id}/entregas', [GrupoController::class, 'entregas'])->whereNumber('id')->middleware('EsInstructor');
     // Limite de intentos: evita probar codigos de acceso hasta acertar uno

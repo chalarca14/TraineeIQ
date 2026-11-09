@@ -28,6 +28,16 @@ class GrupoPolicy
     }
 
     /**
+     * Solo el instructor dueño puede borrar su grupo.
+     */
+    public function delete(User $user, Grupo $grupo): Response
+    {
+        return $grupo->instructor_id === $user->id
+            ? Response::allow()
+            : Response::deny('Solo el instructor del grupo puede borrarlo.');
+    }
+
+    /**
      * Solo el instructor dueño ve los repositorios y puntajes de sus estudiantes.
      */
     public function verEntregas(User $user, Grupo $grupo): Response
