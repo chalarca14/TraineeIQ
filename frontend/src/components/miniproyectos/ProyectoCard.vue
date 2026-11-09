@@ -1,11 +1,14 @@
 <template>
-    <article class="proyecto" :class="{ bloqueado: proyecto.bloqueado }">
+    <article class="proyecto">
         <div class="cabecera">
             <EtiquetaNivel :valor="proyecto.dificultad" />
+            <!-- Error: etiqueta roja, pero el proyecto sigue en "Por entregar" (el aprendiz puede reintentar) -->
+            <span v-if="conError" class="etiqueta-error"><CircleAlert :size="13" /> Error</span>
+            <span v-else-if="estado" class="etiqueta-estado">{{ estado }}</span>
         </div>
 
-        <!-- El tema va en su propia línea, encima del título: así cabe el texto completo y no compite con el nivel -->
-        <p v-if="etiqueta" class="tema" :title="etiqueta">{{ etiqueta }}</p>
+        <!-- La guía va en su propia línea, encima del título: así cabe el texto completo -->
+        <p v-if="proyecto.guiaNombre" class="tema" :title="proyecto.guiaNombre">{{ proyecto.guiaNombre }}</p>
 
         <div class="titulo-fila">
             <span class="icono" :style="{ '--c': visual.color }" aria-hidden="true">
@@ -19,56 +22,47 @@
             <TecnologiaChip v-for="t in tecnologias" :key="t.etiqueta" :tecnologia="t" />
         </div>
 
-        <!-- La barra solo tiene sentido si el proyecto ya se empezó o terminó -->
-        <div v-if="!proyecto.bloqueado" class="progreso" :aria-label="`Progreso ${proyecto.progreso}%`">
-            <div class="barra"><span :style="{ width: proyecto.progreso + '%' }"></span></div>
-            <small>{{ proyecto.progreso }}%</small>
-        </div>
+        <!-- Puntaje orientativo del backend, en color neutro: sin colores por rango (no hay "bueno" ni "malo") -->
+        <ul v-if="evaluado" class="datos">
+            <li><strong>{{ entrega.puntaje }}/100</strong> <span>puntaje orientativo</span></li>
+            <li v-if="fecha">Evaluado: {{ fecha }}</li>
+            <!-- En Modo Personal, el mejor puntaje es el XP. Se muestra tal como llega, nunca se calcula -->
+            <li v-if="esPersonal && entrega.mejor_puntaje != null">XP: {{ entrega.mejor_puntaje }}</li>
+        </ul>
 
-        <p v-if="proyecto.estado === 'completado'" class="finalizado">
-            <Check :size="14" /> Finalizado: {{ fechaFinalizado }}
-        </p>
-
-        <p v-if="proyecto.bloqueado" class="candado">
-            <Lock :size="14" /> Completa el nivel {{ NOMBRES_NIVEL[proyecto.bloqueadoPor] ?? 'anterior' }}
-        </p>
-
-        <!-- No es un RouterLink: la ruta de detalle aún no existe (Tarea 3). Solo avisamos a la vista. -->
-        <button type="button" class="btn btn-primario btn-sm accion" :disabled="proyecto.bloqueado"
-            @click="$emit('abrir', proyecto)">
-            <template v-if="proyecto.bloqueado">Bloqueado</template>
-            <template v-else>{{ ETIQUETA_BOTON[proyecto.estado] }} <ArrowRight :size="15" /></template>
+        <button type="button" class="btn btn-primario btn-sm accion" @click="$emit('abrir', proyecto)">
+            {{ textoBoton(proyecto) }} <ArrowRight :size="15" />
         </button>
     </article>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { Check, Lock, ArrowRight } from 'lucide-vue-next'
+import { ArrowRight, CircleAlert } from 'lucide-vue-next'
 import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
 import TecnologiaChip from '@/components/miniproyectos/TecnologiaChip.vue'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 import { iconoDelProyecto, tecnologiasDelProyecto } from '@/utils/iconosProyecto'
 import { formatearFecha } from '@/utils/fechas'
+import { hayError, etiquetaDeEstado, textoBoton } from '@/utils/estadoEntrega'
 
 const props = defineProps({
-    // Proyecto ya enriquecido con estado, progreso, bloqueado, etc.
-    proyecto: { type: Object, required: true }
+    // Proyecto de GET /guias/{id}/mini-proyectos, con su `entrega` (o null)
+    proyecto: { type: Object, required: true },
+    // El XP solo existe en Modo Personal
+    esPersonal: { type: Boolean, default: false }
 })
 defineEmits(['abrir'])
 
-const ETIQUETA_BOTON = { por_iniciar: 'Comenzar', en_progreso: 'Continuar', completado: 'Ver proyecto' }
-const NOMBRES_NIVEL = { basico: 'básico', intermedio: 'intermedio', avanzado: 'avanzado' }
+const entrega = computed(() => props.proyecto.entrega)
+const evaluado = computed(() => entrega.value?.estado === 'evaluado')
+const conError = computed(() => hayError(props.proyecto))
+const estado = computed(() => etiquetaDeEstado(props.proyecto))
+const fecha = computed(() => formatearFecha(entrega.value?.evaluado_en))
 
 const visual = computed(() => iconoDelProyecto(props.proyecto))
 // Máximo 2 en la tarjeta para que no crezca demasiado; el detalle muestra hasta 3
 const tecnologias = computed(() => tecnologiasDelProyecto(props.proyecto).slice(0, 2))
-
-const fechaFinalizado = computed(() => formatearFecha(props.proyecto.finalizado))
-
-// Texto de la etiqueta de arriba (ej. "Semana 1: Introducción..."). Se recorta con "…" por falta
-// de espacio, así que el texto completo va también en el atributo title.
-const etiqueta = computed(() => props.proyecto.tema?.nombre_tema ?? props.proyecto.guiaNombre ?? '')
 </script>
 
 <style scoped>
@@ -83,7 +77,7 @@ const etiqueta = computed(() => props.proyecto.tema?.nombre_tema ?? props.proyec
     transition: border-color .2s, box-shadow .2s, transform .2s;
 }
 
-.proyecto:not(.bloqueado):hover {
+.proyecto:hover {
     border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
     box-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary) 18%, transparent);
     transform: translateY(-2px);
@@ -94,6 +88,27 @@ const etiqueta = computed(() => props.proyecto.tema?.nombre_tema ?? props.proyec
     align-items: center;
     justify-content: space-between;
     gap: .5rem;
+}
+
+.etiqueta-error,
+.etiqueta-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .15rem .6rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.etiqueta-error {
+    background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+    color: var(--color-danger);
+}
+
+.etiqueta-estado {
+    background: var(--color-card);
+    color: var(--color-text-secondary);
 }
 
 .tema {
@@ -133,42 +148,18 @@ h3 {
     font-size: .85rem;
 }
 
-.progreso {
+.datos {
     display: flex;
-    align-items: center;
-    gap: .6rem;
-}
-
-.barra {
-    flex: 1;
-    height: 6px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: var(--color-card);
-}
-
-.barra span {
-    display: block;
-    height: 100%;
-    background: var(--color-primary);
-}
-
-.progreso small,
-.finalizado,
-.candado {
+    flex-direction: column;
+    gap: .15rem;
+    list-style: none;
     color: var(--color-text-secondary);
-    font-size: .75rem;
+    font-size: .78rem;
 }
 
-.finalizado,
-.candado {
-    display: flex;
-    align-items: center;
-    gap: .3rem;
-}
-
-.finalizado {
-    color: var(--color-success);
+.datos strong {
+    color: var(--color-text);
+    font-size: 1rem;
 }
 
 .accion {
@@ -179,9 +170,5 @@ h3 {
     display: flex;
     flex-wrap: wrap;
     gap: .35rem;
-}
-
-.bloqueado h3 {
-    color: var(--color-text-secondary);
 }
 </style>
