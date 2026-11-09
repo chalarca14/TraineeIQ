@@ -55,4 +55,11 @@ class GuiaSemana extends Model
     {
         return $this->hasMany(MiniProyecto::class, 'guia_semana_id')->orderBy('orden');
     }
+
+    //Entregas de los mini proyectos de la semana; con ellas se suma la experiencia.
+
+    public function entregas()
+    {
+        return $this->hasManyThrough(EntregaMiniProyecto::class, MiniProyecto::class, 'guia_semana_id', 'mini_proyecto_id');
+    }
 }

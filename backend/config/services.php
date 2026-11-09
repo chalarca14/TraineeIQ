@@ -57,4 +57,9 @@ return [
         'zona_horaria'  => env('EVALUACION_ZONA_HORARIA', 'America/Bogota'),
     ],
 
+    // Modo Personal: porcentaje del XP de una semana que abre la siguiente
+    'experiencia' => [
+        'porcentaje_desbloqueo' => (int) env('XP_PORCENTAJE_DESBLOQUEO', 80),
+    ],
+
 ];

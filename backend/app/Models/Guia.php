@@ -2,14 +2,19 @@
 
 namespace App\Models;
 
+use App\Services\ExperienciaService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class Guia extends Model
 {
     use HasFactory;
 
     protected $table = 'guias';
+
+    // XP por semana de una guia personal. Se calcula una vez por peticion
+    private ?Collection $progresoExperiencia = null;
 
     protected $fillable = [
         'nombre',
@@ -22,17 +27,33 @@ class Guia extends Model
     ];
 
     /**
-     * Indica si una semana ya esta liberada para este usuario. En Modo Personal y para
-     * el instructor del grupo todas lo estan. El estudiante de grupo llega hasta la
-     * semana_actual que fija el instructor: conserva las pasadas y no ve las futuras.
+     * Indica si una semana ya esta liberada para este usuario. El instructor del grupo
+     * ve todas. El estudiante de grupo llega hasta la semana_actual que fija el
+     * instructor: conserva las pasadas y no ve las futuras. En Modo Personal cada
+     * semana se abre con la experiencia ganada en la anterior.
      */
     public function semanaLiberadaPara(User $user, int $numeroSemana): bool
     {
-        if ($this->origen === 'personal' || $this->grupo?->instructor_id === $user->id) {
+        if ($this->origen === 'personal') {
+            $ultima = app(ExperienciaService::class)->ultimaSemanaLiberada($this->progresoExperiencia());
+
+            return $numeroSemana <= $ultima;
+        }
+
+        if ($this->grupo?->instructor_id === $user->id) {
             return true;
         }
 
         return $numeroSemana <= (int) $this->grupo?->semana_actual;
+    }
+
+    /**
+     * XP de cada semana de esta guia personal. Se guarda en la instancia para no
+     * consultar la base cada vez que se revisa una semana o un tema.
+     */
+    public function progresoExperiencia(): Collection
+    {
+        return $this->progresoExperiencia ??= app(ExperienciaService::class)->progresoSemanas($this);
     }
 
     /**

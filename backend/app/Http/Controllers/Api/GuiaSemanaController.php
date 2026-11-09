@@ -99,9 +99,20 @@ class GuiaSemanaController extends Controller
 
     /**
      * Agrega a la semana el dato disponible, que el frontend usa para bloquearla.
+     * En las guias personales agrega tambien su experiencia: obtenida, maxima y requerida.
      */
     private function marcarDisponible(GuiaSemana $semana, Guia $guia, Request $request): void
     {
         $semana->setAttribute('disponible', $guia->semanaLiberadaPara($request->user(), $semana->numero_semana));
+
+        if ($guia->origen !== 'personal') {
+            return;
+        }
+
+        $xp = $guia->progresoExperiencia()->get($semana->numero_semana, []);
+
+        foreach ($xp as $campo => $valor) {
+            $semana->setAttribute($campo, $valor);
+        }
     }
 }
