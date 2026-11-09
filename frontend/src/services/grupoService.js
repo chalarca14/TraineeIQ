@@ -17,3 +17,26 @@ export async function liberarSemana(id, semanaActual) {
     const { data } = await api.patch(`/grupos/${id}/semana-actual`, { semana_actual: semanaActual })
     return data.semana_actual
 }
+
+/** Lista los grupos del usuario: los suyos si es instructor, en los que está si es estudiante. */
+export async function listarGrupos() {
+    const { data } = await api.get('/grupos')
+    return data.data
+}
+
+/** Crea un grupo (solo instructor). El backend genera el código de acceso. */
+export async function crearGrupo({ nombre, descripcion = null }) {
+    const { data } = await api.post('/grupos', { nombre, descripcion })
+    return data.data
+}
+
+/** Une al estudiante a un grupo con su código de acceso. */
+export async function unirseAGrupo(codigoAcceso) {
+    const { data } = await api.post('/grupos/unirse', { codigo_acceso: codigoAcceso })
+    return data.data
+}
+
+/** Borra un grupo con todas sus guías y entregas (solo su instructor). */
+export async function eliminarGrupo(id) {
+    await api.delete(`/grupos/${id}`)
+}
