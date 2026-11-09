@@ -58,9 +58,16 @@ const routes = [
         name: 'MisGuias',
         component: () => import('../views/personal/MisGuias.vue')
       },
+      // La guía por semanas: UNA sola vista para la guía personal y la de un grupo
       {
         path: 'guias/:id',
-        name: 'GuiaDetalle', component: () => import('../views/personal/GuiaDetalle.vue')
+        name: 'GuiaDetalle',
+        component: () => import('../views/estudiante/GuiaSemanas.vue')
+      },
+      {
+        path: 'grupos/:grupoId/guias/:guiaId',
+        name: 'GrupoGuiaSemanas',
+        component: () => import('../views/estudiante/GuiaSemanas.vue')
       },
 
       // Lista de mini proyectos y su detalle (Descripción + Evaluación)
