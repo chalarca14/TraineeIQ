@@ -8,11 +8,12 @@ const pestana = defineModel('pestana', { type: String, required: true })
 const dias = defineModel('dias', { type: Number, default: 30 })
 const busqueda = defineModel('busqueda', { type: String, default: '' })
 
+// El Historial solo tiene chats con la IA: las pestañas filtran por TIPO de chat
+// (la clave es la `categoria` de cada entrada, ver historialService.js)
 const PESTANAS = [
   { clave: 'todos', etiqueta: 'Todos' },
-  { clave: 'guia', etiqueta: 'Guías' },
-  { clave: 'miniproyecto', etiqueta: 'Mini proyectos' },
-  { clave: 'ia', etiqueta: 'IA' }
+  { clave: 'libre', etiqueta: 'Chats libres' },
+  { clave: 'guiada', etiqueta: 'Guiados' }
 ]
 
 // 0 = sin límite. Es número (no texto) para pasarlo directo a dentroDeUltimosDias.

@@ -1,12 +1,11 @@
-// Servicio del Historial: junta dos fuentes distintas del backend (conversaciones con la IA y
-// recomendaciones) en UNA sola lista de "entradas" con la misma forma. Así la vista y los filtros
-// no necesitan saber de dónde vino cada cosa.
+// Servicio del Historial: SOLO conversaciones con la IA. Antes también mezclaba las recomendaciones
+// (GET /recomendaciones/historial), pero ese endpoint ya no existe: ahora las recomendaciones llegan
+// dentro de cada semana de la guía. Cada conversación se convierte en una "entrada" con la forma
+// que esperan la lista y los filtros, así la vista no conoce el formato del backend.
 //
 // Forma de una entrada:
-//   { clave, categoria: 'ia' | 'guia', titulo, descripcion, etiqueta, fecha, ruta }
+//   { clave, categoria: 'libre' | 'guiada', titulo, descripcion, etiqueta, fecha, ruta }
 import { listarConversacionesPagina } from './chatIaService'
-import { obtenerHistorialRecomendaciones } from './recomendacionServices'
-import { leerContenido } from '@/utils/recomendaciones'
 
 const PREFIJO_GUIADA = 'Conversacion sobre '
 
@@ -22,7 +21,8 @@ export function entradaDeConversacion(c) {
   const guia = guiada ? nombreDeGuia(c.titulo) : ''
   return {
     clave: `conv-${c.id}`,
-    categoria: 'ia',
+    // La categoría es el tipo de chat: así las pestañas "Chats libres" y "Guiados" filtran por ella
+    categoria: guiada ? 'guiada' : 'libre',
     titulo: 'Conversación con la IA',
     descripcion: guiada
       ? `Chat guiado sobre la guía ${guia || 'seleccionada'}.`
@@ -35,58 +35,11 @@ export function entradaDeConversacion(c) {
   }
 }
 
-// Cada vez que el aprendiz pide recomendaciones el backend guarda varias filas del mismo tema.
-// Mostrarlas una por una llenaría el historial, así que se agrupan cuando coinciden la guía,
-// el tema Y la hora de creación (así dos generaciones del mismo tema en horas distintas
-// siguen siendo dos entradas). `created_at` viene en ISO ("2026-11-06T15:04:05Z"):
-// sus primeros 13 caracteres llegan hasta la hora ("2026-11-06T15").
-export function agruparRecomendaciones(filas) {
-  const grupos = new Map()
-  for (const r of filas ?? []) {
-    const clave = `rec-${r.guia_id}-${r.tema_id}-${String(r.created_at).slice(0, 13)}`
-    if (!grupos.has(clave)) grupos.set(clave, [])
-    grupos.get(clave).push(r)
-  }
-
-  return [...grupos].map(([clave, grupo]) => {
-    const primera = grupo[0]
-    const tema = primera.tema?.nombre_tema ?? 'un tema de tu guía'
-    return {
-      clave,
-      categoria: 'guia',
-      titulo: `Recomendaciones: ${tema}`,
-      descripcion: `La IA te dio ${grupo.length} ${grupo.length === 1 ? 'recomendación' : 'recomendaciones'}, por ejemplo: «${leerContenido(primera).titulo}».`,
-      etiqueta: 'Recomendaciones',
-      fecha: primera.created_at,
-      ruta: { name: 'GuiaDetalle', params: { id: primera.guia_id } }
-    }
-  })
-}
-
-// Primera carga: las dos fuentes en paralelo. Se usa allSettled (no Promise.all) para que si una
-// falla la otra igual se muestre; la vista avisa de lo que faltó en vez de quedarse en blanco.
-export async function cargarHistorialInicial() {
-  const [conv, rec] = await Promise.allSettled([
-    listarConversacionesPagina(1),
-    obtenerHistorialRecomendaciones()
-  ])
-
-  return {
-    conversaciones: conv.status === 'fulfilled' ? conv.value.items.map(entradaDeConversacion) : [],
-    recomendaciones: rec.status === 'fulfilled' ? agruparRecomendaciones(rec.value) : [],
-    hayMas: conv.status === 'fulfilled' ? conv.value.hayMas : false,
-    // Texto de las fuentes que fallaron, para el aviso parcial
-    fallos: [
-      conv.status === 'rejected' ? 'tus conversaciones' : null,
-      rec.status === 'rejected' ? 'tus recomendaciones' : null
-    ].filter(Boolean),
-    // Si fallaron las dos se necesita el error real para traducirlo por código HTTP
-    errores: [conv, rec].filter((r) => r.status === 'rejected').map((r) => r.reason)
-  }
-}
-
-// "Cargar más": solo las conversaciones paginan (las recomendaciones llegan completas)
-export async function cargarMasConversaciones(pagina) {
+/**
+ * Una página de conversaciones ya convertidas en entradas. `hayMas` sale de `next_page_url` del
+ * paginador de Laravel (lo calcula chatIaService): el botón "Cargar más" solo aparece si hay otra página.
+ */
+export async function cargarPaginaConversaciones(pagina = 1) {
   const { items, hayMas } = await listarConversacionesPagina(pagina)
-  return { conversaciones: items.map(entradaDeConversacion), hayMas }
+  return { entradas: items.map(entradaDeConversacion), hayMas }
 }

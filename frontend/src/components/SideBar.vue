@@ -64,7 +64,7 @@ const menuGrupo = [
     { etiqueta: 'Mis grupos', icono: Users, ruta: '/estudiante/grupos', descripcion: 'Lista de los grupos en los que estás inscrito.' },
     { etiqueta: 'Mini proyectos', icono: Rocket, ruta: '/estudiante/mini-proyectos', descripcion: 'Retos prácticos vinculados al aprendizaje, con niveles progresivos.' },
     { etiqueta: 'IA', icono: Bot, ruta: '/estudiante/ia', descripcion: 'Recomendaciones y chat guiado sobre las guías del grupo.' },
-    { etiqueta: 'Historial', icono: History, ruta: '/estudiante/historial', descripcion: 'Actividad anterior: chats con la IA y recomendaciones.' },
+    { etiqueta: 'Historial', icono: History, ruta: '/estudiante/historial', descripcion: 'Tus conversaciones anteriores con la IA.' },
     { etiqueta: 'Perfil', icono: User, ruta: '/estudiante/perfil', descripcion: 'Datos de la cuenta y cambio de contraseña.' }
 ]
 
@@ -74,7 +74,7 @@ const menuPersonal = [
     { etiqueta: 'Mis guías', icono: BookOpen, ruta: '/estudiante/guias', descripcion: 'Guías que tú has cargado, organizadas por temas.' },
     { etiqueta: 'Mini proyectos', icono: Rocket, ruta: '/estudiante/mini-proyectos', descripcion: 'Proyectos prácticos adecuados a tu nivel.' },
     { etiqueta: 'IA', icono: Bot, ruta: '/estudiante/ia', descripcion: 'Recomendaciones sobre tus guías y chat libre para resolver dudas.' },
-    { etiqueta: 'Historial', icono: History, ruta: '/estudiante/historial', descripcion: 'Actividad personal anterior: chats con la IA y recomendaciones.' },
+    { etiqueta: 'Historial', icono: History, ruta: '/estudiante/historial', descripcion: 'Tus conversaciones anteriores con la IA.' },
     { etiqueta: 'Perfil', icono: User, ruta: '/estudiante/perfil', descripcion: 'Datos de la cuenta y cambio de contraseña.' }
 ]
 

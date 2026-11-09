@@ -11,11 +11,12 @@ const props = defineProps({
   entrada: { type: Object, required: true }
 })
 
+// Icono y color según el tipo de chat: libre (burbuja) o guiado (libro)
 const VISUAL = {
-  ia: { icono: MessageSquare, color: 'primary' },
-  guia: { icono: BookOpen, color: 'info' }
+  libre: { icono: MessageSquare, color: 'primary' },
+  guiada: { icono: BookOpen, color: 'info' }
 }
-const visual = computed(() => VISUAL[props.entrada.categoria] ?? VISUAL.ia)
+const visual = computed(() => VISUAL[props.entrada.categoria] ?? VISUAL.libre)
 
 const cuando = computed(() =>
   [fechaRelativa(props.entrada.fecha), horaCorta(props.entrada.fecha)].filter(Boolean).join(' · ')
