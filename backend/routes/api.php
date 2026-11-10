@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\EntregaMiniProyectoController;
+use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
 use App\Http\Controllers\Api\GuiaSemanaController;
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+// "Continuar con Google": entrar y, si la cuenta es nueva, completar el registro
+Route::post('/auth/google', [GoogleAuthController::class, 'entrar'])->middleware('throttle:10,1');
+Route::post('/auth/google/completar', [GoogleAuthController::class, 'completarRegistro'])->middleware('throttle:10,1');
 
 /*
 |--------------------------------------------------------------------------

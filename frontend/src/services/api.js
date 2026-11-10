@@ -37,7 +37,9 @@ api.interceptors.response.use(
         // Si la petición que falló NO era el propio login,
         // significa que el token expiró en medio de la sesión.
         // Ahí sí tiene sentido limpiar todo y mandar al login.
-        const esPeticionDeLogin = error.config?.url?.includes('/login')
+        // "Continuar con Google" también es un login: su 401 es "no pudimos verificar tu cuenta"
+        const url = error.config?.url ?? ''
+        const esPeticionDeLogin = url.includes('/login') || url.includes('/auth/google')
 
         if (error.response?.status === 401 && !esPeticionDeLogin) {
             localStorage.removeItem('token')

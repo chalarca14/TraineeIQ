@@ -21,6 +21,12 @@
 
         </div>
 
+        <!-- Continuar con Google: usa el rol de la pestaña, igual que el formulario -->
+        <BotonGoogle :cargando="cargandoGoogle" :error="errorGoogle" @credencial="alRecibirCredencial" />
+
+        <CompletarRegistroGoogleModal v-if="registroPendiente" :registro="registroPendiente"
+            @cerrar="cancelarRegistro" @registrado="entrarAlDashboard" />
+
         <form @submit.prevent="iniciarSesion">
 
             <div class="field-group">
@@ -103,6 +109,9 @@ import RoleSelector from '../auth/RoleSelector.vue'
 import BaseInput from './BaseInput.vue'
 import BaseButton from './BaseButton.vue'
 import BaseLink from './BaseLink.vue'
+import BotonGoogle from '../auth/BotonGoogle.vue'
+import CompletarRegistroGoogleModal from '../auth/CompletarRegistroGoogleModal.vue'
+import { useEntrarConGoogle } from '@/composables/useEntrarConGoogle'
 
 import { Mail, Lock, Eye, EyeOff } from 'lucide-vue-next'
 
@@ -112,6 +121,10 @@ const authStore = useAuthStore()
 const correo = ref('')
 const password = ref('')
 const rol = ref('estudiante')
+
+// Continuar con Google: la lógica está en el composable, compartida con el registro
+const { cargandoGoogle, errorGoogle, registroPendiente, alRecibirCredencial, entrarAlDashboard, cancelarRegistro } =
+    useEntrarConGoogle(rol)
 const mostrarPassword = ref(false)
 const cargando = ref(false)
 
