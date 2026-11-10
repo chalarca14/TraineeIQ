@@ -7,6 +7,7 @@ use App\Exceptions\IaNoDisponibleException;
 use App\Exceptions\RespuestaIaInvalidaException;
 use App\Exceptions\SemanasConEntregasException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListarGuiasRequest;
 use App\Http\Requests\ReemplazarGuiaRequest;
 use App\Http\Requests\StoreGuiaRequest;
 use App\Models\Guia;
@@ -22,28 +23,32 @@ class GuiaController extends Controller
 {
     /**
      * Listar guías con acceso autorizado.
+     * Con ?grupo_id= solo trae las de ese grupo; el filtro se aplica después de
+     * limitar a las guías del usuario, así que nunca muestra guías ajenas.
      */
-    public function index(Request $request)
+    public function index(ListarGuiasRequest $request)
     {
         $user = $request->user();
 
         if ($user->rol === 'instructor') {
             // El instructor ve las guías de sus grupos
             $gruposIds = Grupo::where('instructor_id', $user->id)->pluck('id');
-            $guias = Guia::whereIn('grupo_id', $gruposIds)
-                ->with($this->relacionesDeLectura())
-                ->paginate(15);
+            $consulta = Guia::whereIn('grupo_id', $gruposIds);
         } else {
             // El estudiante ve sus guías personales y las de los grupos donde está inscrito
             $gruposInscritosIds = $user->gruposInscritos()->pluck('grupos.id');
-            
-            $guias = Guia::where(function ($query) use ($user, $gruposInscritosIds) {
-                    $query->where('usuario_id', $user->id)
-                          ->orWhereIn('grupo_id', $gruposInscritosIds);
-                })
-                ->with($this->relacionesDeLectura())
-                ->paginate(15);
+
+            $consulta = Guia::where(function ($query) use ($user, $gruposInscritosIds) {
+                $query->where('usuario_id', $user->id)
+                      ->orWhereIn('grupo_id', $gruposInscritosIds);
+            });
         }
+
+        $guias = $consulta
+            ->when($request->filled('grupo_id'), fn ($q) => $q->where('grupo_id', $request->integer('grupo_id')))
+            ->with($this->relacionesDeLectura())
+            ->paginate(15)
+            ->withQueryString(); // los enlaces de otras páginas conservan el filtro
 
         $guias->getCollection()->each(fn (Guia $guia) => $this->prepararLectura($guia, $user));
 
