@@ -6,6 +6,15 @@ export async function actualizarModo(modo) {
     return data
 }
 
+/**
+ * XP total del aprendiz en el Modo Personal (GET /usuario/xp → xp_total).
+ * El backend lo calcula con los mejores puntajes; aquí solo se lee. En Modo Grupo no se usa.
+ */
+export async function getXp() {
+    const { data } = await api.get('/usuario/xp')
+    return data.xp_total
+}
+
 // ---------------------------------------------------------------------------
 // Cambio de contraseña
 // ---------------------------------------------------------------------------
