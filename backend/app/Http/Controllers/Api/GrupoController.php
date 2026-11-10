@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ActualizarSemanaActualRequest;
+use App\Http\Requests\FiltrarEntregasGrupoRequest;
 use App\Models\EntregaMiniProyecto;
 use App\Models\Grupo;
 use App\Models\EstudianteGrupo;
@@ -163,10 +164,14 @@ class GrupoController extends Controller
     /**
      * Ver detalles de un grupo específico y sus estudiantes inscritos.
      * Solo lo ven su instructor y sus estudiantes, porque incluye nombres y correos.
+     * ultima_semana es la semana más alta entre las guías del grupo (null si no tiene guías):
+     * sirve para saber hasta dónde se puede liberar.
      */
     public function show(int $id)
     {
-        $grupo = Grupo::with(['estudiantes:id,name,email', 'instructor:id,name'])->findOrFail($id);
+        $grupo = Grupo::with(['estudiantes:id,name,email', 'instructor:id,name'])
+            ->withMax('guias as ultima_semana', 'semanas_totales')
+            ->findOrFail($id);
         Gate::authorize('view', $grupo);
 
         return response()->json([
@@ -195,8 +200,9 @@ class GrupoController extends Controller
     /**
      * Lista el repositorio y el puntaje de los estudiantes en los mini proyectos del grupo.
      * Filtra por las guias del grupo, asi que nunca incluye entregas del Modo Personal.
+     * Acepta filtros opcionales por mini proyecto, estudiante y estado; se suman entre si.
      */
-    public function entregas(int $id): JsonResponse
+    public function entregas(FiltrarEntregasGrupoRequest $request, int $id): JsonResponse
     {
         $grupo = Grupo::findOrFail($id);
         Gate::authorize('verEntregas', $grupo);
@@ -204,6 +210,9 @@ class GrupoController extends Controller
         $entregas = EntregaMiniProyecto::query()
             ->select(['id', 'mini_proyecto_id', 'estudiante_id', 'repo_url', 'estado', 'puntaje', 'intentos', 'evaluado_en', 'updated_at'])
             ->whereHas('miniProyecto.guia', fn ($guias) => $guias->where('grupo_id', $grupo->id))
+            ->when($request->filled('mini_proyecto_id'), fn ($q) => $q->where('mini_proyecto_id', $request->integer('mini_proyecto_id')))
+            ->when($request->filled('estudiante_id'), fn ($q) => $q->where('estudiante_id', $request->integer('estudiante_id')))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->input('estado')))
             ->with([
                 'estudiante:id,name,email',
                 'miniProyecto:id,guia_id,guia_semana_id,titulo,dificultad',
@@ -212,7 +221,8 @@ class GrupoController extends Controller
             ])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
-            ->paginate(30);
+            ->paginate(30)
+            ->withQueryString(); // los enlaces de otras páginas conservan los filtros
 
         return response()->json($entregas, 200);
     }
