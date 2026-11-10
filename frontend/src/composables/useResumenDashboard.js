@@ -3,7 +3,7 @@ import { useModoStore } from '@/stores/modo'
 import { useMiniProyectosSemanas } from '@/composables/useMiniProyectosSemanas'
 import { listarMisGrupos } from '@/services/grupoService'
 import { getXp } from '@/services/usuarioService'
-import { pestanaDe } from '@/utils/estadoEntrega'
+import { pestanaDe, puntajePromedio } from '@/utils/estadoEntrega'
 
 // Datos del dashboard del aprendiz, según el modo.
 //
@@ -77,12 +77,9 @@ export function useResumenDashboard() {
     const proyectos = computed(() => bloques.value.flatMap((b) => b.semanas.flatMap((s) => s.proyectos)))
     const evaluados = computed(() => proyectos.value.filter((p) => pestanaDe(p) === 'evaluado'))
 
-    // Promedio de la última evaluación de cada proyecto (puntaje de 0 a 100, orientativo). null = "—"
-    const puntajePromedio = computed(() => {
-        const puntajes = evaluados.value.map((p) => p.entrega?.puntaje).filter((n) => typeof n === 'number')
-        if (!puntajes.length) return null
-        return Math.round(puntajes.reduce((a, b) => a + b, 0) / puntajes.length)
-    })
+    // Promedio de la última evaluación de cada proyecto (puntaje de 0 a 100, orientativo). null = "—".
+    // La cuenta está en utils/estadoEntrega.js para que el detalle del grupo diga lo mismo
+    const promedio = computed(() => puntajePromedio(proyectos.value))
 
     // Primer proyecto sin evaluar de una semana abierta, en el orden guía → semana → orden
     const siguiente = computed(() => {
@@ -133,6 +130,6 @@ export function useResumenDashboard() {
     return {
         esPersonal, cargar, cargando, error, vacio,
         grupos, grupoId, grupo, xp, errorXp,
-        bloques, proyectos, evaluados, puntajePromedio, siguiente, guiaActual, semanaActual
+        bloques, proyectos, evaluados, puntajePromedio: promedio, siguiente, guiaActual, semanaActual
     }
 }
