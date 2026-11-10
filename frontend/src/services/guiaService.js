@@ -110,3 +110,14 @@ export async function generarSemana(guiaId, numero, forzar = false) {
     const { data } = await api.post(`/guias/${guiaId}/semanas/${numero}/generar`, { forzar }, { timeout: 200000 })
     return data.semana
 }
+
+/**
+ * Devuelve el texto de TODAS las semanas de la guía, en orden, para leerla como un documento continuo.
+ * Cada semana trae numero_semana, titulo, disponible y contenido_texto. Las que no están liberadas
+ * llegan con su título pero con contenido_texto en null: el backend no revela su texto.
+ * Se pide una sola vez y solo cuando el aprendiz abre "Ver guía completa", porque el texto es pesado.
+ */
+export async function getTextoGuia(guiaId) {
+    const { data } = await api.get(`/guias/${guiaId}/texto`)
+    return data.semanas
+}
