@@ -46,11 +46,18 @@ const routes = [
       },
 
 
-      // Mis grupos: lista de grupos del aprendiz y unirse con código (el detalle llega en la Tarea 8)
+      // Mis grupos: lista de grupos del aprendiz y unirse con código
       {
         path: 'grupos',
         name: 'MisGrupos',
         component: () => import('../views/estudiante/MisGrupos.vue')
+      },
+      // Detalle de un grupo: cabecera, tarjetas y pestañas Guías / Proyectos / Mi progreso.
+      // El sidebar resalta "Mis grupos" solo, porque la ruta empieza por /estudiante/grupos/
+      {
+        path: 'grupos/:id',
+        name: 'GrupoDetalle',
+        component: () => import('../views/estudiante/GrupoDetalle.vue')
       },
 
       {
