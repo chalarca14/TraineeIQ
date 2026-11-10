@@ -31,6 +31,9 @@
                         </EstadoVista>
                     </section>
                 </div>
+
+                <AvanceGrupo :bloques="mini.bloques.value" :cargando="mini.cargando.value" :error="!!mini.error.value"
+                    :semana-actual="grupo.semana_actual" :ultima-semana="grupo.ultima_semana" />
             </div>
         </EstadoVista>
     </main>
@@ -47,6 +50,7 @@ import TarjetasGrupo from '@/components/grupos/TarjetasGrupo.vue'
 import GuiasGrupo from '@/components/grupos/GuiasGrupo.vue'
 import ProyectosGrupo from '@/components/grupos/ProyectosGrupo.vue'
 import MiProgresoGrupo from '@/components/grupos/MiProgresoGrupo.vue'
+import AvanceGrupo from '@/components/grupos/AvanceGrupo.vue'
 import { getGrupo } from '@/services/grupoService'
 import { useMiniProyectosSemanas } from '@/composables/useMiniProyectosSemanas'
 import { mensajeDeError } from '@/utils/errores'
