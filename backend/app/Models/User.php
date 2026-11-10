@@ -42,6 +42,7 @@ class User extends Authenticatable
         'password',
         'rol',
         'modo_preferido',
+        'google_id',
     ];
 
     /**
@@ -56,6 +57,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'google_id', // identificador interno de Google: el frontend no lo necesita
     ];
 
     /**
