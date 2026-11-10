@@ -17,6 +17,14 @@
                         <EtiquetaNivel :valor="r.nivel" />
                     </div>
                     <p><TextoConCodigo :texto="r.leido.descripcion" /></p>
+                    <!-- Campos nuevos: las semanas generadas antes no los traen, por eso cada uno lleva v-if.
+                         Todo se pinta con {{ }} (texto), nunca con v-html, porque viene de la IA. -->
+                    <p v-if="r.leido.tema || r.leido.tema_semana" class="relacion">
+                        <template v-if="r.leido.tema"><strong>Estudia:</strong> {{ r.leido.tema }}</template>
+                        <template v-if="r.leido.tema && r.leido.tema_semana"> · </template>
+                        <template v-if="r.leido.tema_semana"><strong>Te ayuda con:</strong> {{ r.leido.tema_semana }}</template>
+                    </p>
+                    <p v-if="r.leido.por_que" class="por-que">{{ r.leido.por_que }}</p>
                 </article>
             </div>
         </section>
@@ -120,6 +128,18 @@ h4 {
     color: var(--color-text-secondary);
     font-size: .85rem;
     overflow-wrap: anywhere;
+}
+
+/* La línea "Estudia / Te ayuda con" se distingue de la descripción sin usar colores nuevos */
+.tarjeta .relacion {
+    flex: none;
+    color: var(--color-text);
+    font-size: .8rem;
+}
+
+.tarjeta .por-que {
+    flex: none;
+    font-style: italic;
 }
 
 .tarjeta .btn {
