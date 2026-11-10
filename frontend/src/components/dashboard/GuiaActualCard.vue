@@ -4,38 +4,43 @@
             <Medalla :icono="BookOpen" /> Mi guía actual
         </h2>
 
-        <!-- Tres estados: cargando, error, vacío y con datos. Solo se muestra uno -->
-        <p v-if="cargando" class="mensaje">Cargando tu guía...</p>
-        <p v-else-if="error" class="mensaje error">No se pudo cargar tu guía. Intenta de nuevo más tarde.</p>
-
-        <div v-else-if="!guia" class="mensaje vacio">
-            <p>Aún no tienes guías.</p>
-            <RouterLink to="/estudiante/guias" class="btn btn-primario btn-sm">Subir mi primera guía</RouterLink>
-        </div>
+        <!-- Si la guía no cargó, se avisa aquí sin tumbar el resto del dashboard -->
+        <p v-if="!bloque" class="mensaje error">No pudimos cargar tu guía. Intenta de nuevo más tarde.</p>
 
         <template v-else>
             <div class="resumen">
                 <div>
-                    <h3>{{ guia.nombre }}</h3>
-                    <span class="chip">Modo Personal</span>
+                    <h3>{{ bloque.guia.nombre }}</h3>
+                    <div class="etiquetas">
+                        <span class="chip">{{ esPersonal ? 'Guía personal' : 'Guía del grupo' }}</span>
+                        <span v-if="!esPersonal && instructor" class="dato">Instructor: {{ instructor }}</span>
+                    </div>
                 </div>
-                <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn btn-primario btn-sm">
-                    Ver detalles
-                    <ArrowRight :size="16" />
+                <RouterLink :to="rutaGuia" class="btn btn-primario btn-sm">
+                    Ver guía
+                    <ArrowRight :size="16" aria-hidden="true" />
                 </RouterLink>
             </div>
 
-            <div class="progreso">
-                <div class="barra">
+            <!-- Avance real de ESTA guía: evaluados sobre los proyectos de sus semanas abiertas -->
+            <div v-if="total" class="progreso">
+                <div class="barra" role="img" :aria-label="`${evaluados} de ${total} proyectos evaluados`">
                     <div class="relleno" :style="{ width: porcentaje + '%' }"></div>
                 </div>
-                <span>{{ porcentaje }}%</span>
+                <span>{{ evaluados }} de {{ total }} evaluados</span>
             </div>
 
-            <h4>Temas de la guía</h4>
-            <ul class="temas">
-                <li v-for="(tema, i) in temasConEstado" :key="tema.id">
-                    <TemaEstado :numero="i + 1" :nombre="tema.nombre_tema" :estado="tema.estado" />
+            <h4>Semanas</h4>
+            <!-- Estado tal como lo manda el backend (Lista, Próximamente…), con el mismo chip de la guía -->
+            <ul class="semanas">
+                <li v-for="semana in bloque.semanas" :key="semana.numero_semana"
+                    :class="{ bloqueada: !semana.disponible }">
+                    <span class="numero">{{ semana.numero_semana }}</span>
+                    <span class="datos">
+                        <!-- El título se corta si es largo: el title lo deja leer completo -->
+                        <span class="titulo" :title="semana.titulo">{{ semana.titulo }}</span>
+                        <ChipEstadoSemana :semana="semana" />
+                    </span>
                 </li>
             </ul>
         </template>
@@ -46,32 +51,29 @@
 import { computed } from 'vue'
 import { BookOpen, ArrowRight } from 'lucide-vue-next'
 import Medalla from '@/components/ui/Medalla.vue'
-import TemaEstado from '@/components/dashboard/TemaEstado.vue'
-import { temasHechos } from '@/utils/progresoEjemplo'
+import ChipEstadoSemana from '@/components/guias/ChipEstadoSemana.vue'
+import { pestanaDe } from '@/utils/estadoEntrega'
 
 const props = defineProps({
-    guia: { type: Object, default: null },
-    cargando: { type: Boolean, default: false },
-    error: { type: Boolean, default: false }
+    // { guia, semanas: [{ ...semana, proyectos }], fallo } de useMiniProyectosSemanas
+    bloque: { type: Object, default: null },
+    esPersonal: { type: Boolean, default: false },
+    // Modo Grupo: el grupo elegido, para el nombre del instructor
+    grupo: { type: Object, default: null }
 })
 
-// DATO DE EJEMPLO: el backend aún no guarda qué temas completó el estudiante.
-// Se reemplaza por el progreso real cuando exista el endpoint.
+const instructor = computed(() => props.grupo?.instructor?.name ?? '')
 
-const temasConEstado = computed(() => {
-    const temas = props.guia?.temas ?? []
-    const hechos = temasHechos(temas.length)
-    return temas.map((tema, i) => ({
-        ...tema,
-        estado: i < hechos ? 'hecho' : i === hechos ? 'actual' : 'pendiente'
-    }))
+// Cada modo abre la guía en su propia ruta (Tarea 9): la de grupo lleva la migaja del grupo
+const rutaGuia = computed(() => {
+    const guia = props.bloque.guia
+    return props.esPersonal ? `/estudiante/guias/${guia.id}` : `/estudiante/grupos/${guia.grupo_id}/guias/${guia.id}`
 })
 
-const porcentaje = computed(() => {
-    const total = temasConEstado.value.length
-    if (total === 0) return 0
-    return Math.round((temasHechos(total) / total) * 100)
-})
+const proyectos = computed(() => props.bloque?.semanas.flatMap((s) => s.proyectos) ?? [])
+const total = computed(() => proyectos.value.length)
+const evaluados = computed(() => proyectos.value.filter((p) => pestanaDe(p) === 'evaluado').length)
+const porcentaje = computed(() => (total.value ? Math.round((evaluados.value / total.value) * 100) : 0))
 </script>
 
 <style scoped>
@@ -96,11 +98,19 @@ h2 {
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
-    margin-bottom: 1.2rem; /* aire entre el título de la guía y la barra de progreso */
+    margin-bottom: 1.2rem;
 }
 
 .resumen h3 {
     margin-bottom: .5rem;
+    overflow-wrap: anywhere;
+}
+
+.etiquetas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
 }
 
 .chip {
@@ -111,7 +121,12 @@ h2 {
     font-size: .72rem;
 }
 
-/* Barra + porcentaje en una sola fila (el porcentaje no se encoge ni se parte en dos líneas) */
+.dato {
+    color: var(--color-text-secondary);
+    font-size: .8rem;
+}
+
+/* Barra + texto en una sola fila (el texto no se encoge) */
 .progreso {
     display: flex;
     align-items: center;
@@ -121,9 +136,8 @@ h2 {
 
 .progreso span {
     flex-shrink: 0;
-    font-size: .85rem;
-    font-weight: 600;
-    color: var(--color-text);
+    font-size: .8rem;
+    color: var(--color-text-secondary);
 }
 
 .barra {
@@ -147,8 +161,8 @@ h4 {
     color: var(--color-text-secondary);
 }
 
-/* Fila horizontal con scroll: en celular no se rompe ni se apila */
-.temas {
+/* Fila horizontal con scroll: con muchas semanas (hasta 52) no alarga la tarjeta ni rompe en celular */
+.semanas {
     display: flex;
     gap: .7rem;
     padding: 0 0 .5rem;
@@ -156,8 +170,49 @@ h4 {
     overflow-x: auto;
 }
 
-.temas li {
+.semanas li {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
     flex: 0 0 auto;
+    max-width: 220px;
+    padding: .6rem .8rem;
+    border: 1px solid var(--color-card);
+    border-radius: 12px;
+    background: var(--color-surface);
+}
+
+.semanas li.bloqueada {
+    opacity: .75;
+}
+
+.numero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--color-card);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.datos {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .3rem;
+    min-width: 0;
+}
+
+.titulo {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: .8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .mensaje {
@@ -167,12 +222,5 @@ h4 {
 
 .mensaje.error {
     color: var(--color-danger);
-}
-
-.vacio {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: .8rem;
 }
 </style>

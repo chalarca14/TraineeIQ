@@ -23,6 +23,10 @@
             <section class="stats-grid">
                 <StatCard v-for="stat in estadisticas" :key="stat.etiqueta" v-bind="stat" />
             </section>
+
+            <div class="fila-principal">
+                <GuiaActualCard :bloque="guiaActual" :es-personal="esPersonal" :grupo="grupo" />
+            </div>
         </EstadoVista>
     </main>
 </template>
@@ -35,12 +39,13 @@ import { useResumenDashboard } from '@/composables/useResumenDashboard'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import BannerBienvenida from '@/components/dashboard/BannerBienvenida.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import GuiaActualCard from '@/components/dashboard/GuiaActualCard.vue'
 
 const authStore = useAuthStore()
 const {
     esPersonal, cargar, cargando, error, vacio,
     grupos, grupoId, grupo, xp, errorXp,
-    bloques, proyectos, evaluados, puntajePromedio, semanaActual
+    bloques, proyectos, evaluados, puntajePromedio, semanaActual, guiaActual
 } = useResumenDashboard()
 
 // Por si el usuario no trae nombre
@@ -154,6 +159,18 @@ onMounted(cargar)
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 1rem;
+}
+
+/* Mi guía actual (y, al lado, el siguiente paso). min-width:0 evita que la fila de semanas
+   con scroll ensanche la columna */
+.fila-principal {
+    display: grid;
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.fila-principal>* {
+    min-width: 0;
 }
 
 .selector-grupo {
