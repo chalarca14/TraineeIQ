@@ -4,7 +4,8 @@
         <template v-if="esGrupo">
             <RouterLink to="/estudiante/grupos">Mis grupos</RouterLink>
             <ChevronRight :size="14" aria-hidden="true" />
-            <span v-if="grupo">{{ grupo.nombre }}</span>
+            <!-- El nombre del grupo lleva de vuelta a su detalle (Tarea 8) -->
+            <RouterLink v-if="grupo" :to="{ name: 'GrupoDetalle', params: { id: grupo.id } }">{{ grupo.nombre }}</RouterLink>
             <ChevronRight v-if="grupo" :size="14" aria-hidden="true" />
             <span>Guías</span>
         </template>

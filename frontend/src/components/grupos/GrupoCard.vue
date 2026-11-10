@@ -14,10 +14,11 @@
 
             <p class="descripcion">{{ grupo.descripcion || 'Este grupo aún no tiene descripción.' }}</p>
 
-            <!-- Deshabilitado hasta la Tarea 8 (detalle del grupo): no existe la ruta a la que llevar -->
-            <button type="button" class="btn btn-secundario" disabled title="Disponible próximamente">
-                Ver grupo <ArrowRight :size="16" />
-            </button>
+            <!-- RouterLink y no botón: es navegación, así funciona abrir en otra pestaña y el lector de pantalla
+                 lo anuncia como enlace. El nombre de la ruta evita escribir la URL a mano -->
+            <RouterLink :to="{ name: 'GrupoDetalle', params: { id: grupo.id } }" class="btn btn-secundario">
+                Ver grupo <ArrowRight :size="16" aria-hidden="true" />
+            </RouterLink>
         </div>
     </article>
 </template>
