@@ -26,6 +26,7 @@
 
             <div class="fila-principal">
                 <GuiaActualCard :bloque="guiaActual" :es-personal="esPersonal" :grupo="grupo" />
+                <SiguientePaso :siguiente="siguiente" :hay-proyectos="proyectos.length > 0" />
             </div>
         </EstadoVista>
     </main>
@@ -40,12 +41,13 @@ import StatCard from '@/components/dashboard/StatCard.vue'
 import BannerBienvenida from '@/components/dashboard/BannerBienvenida.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
 import GuiaActualCard from '@/components/dashboard/GuiaActualCard.vue'
+import SiguientePaso from '@/components/dashboard/SiguientePaso.vue'
 
 const authStore = useAuthStore()
 const {
     esPersonal, cargar, cargando, error, vacio,
     grupos, grupoId, grupo, xp, errorXp,
-    bloques, proyectos, evaluados, puntajePromedio, semanaActual, guiaActual
+    bloques, proyectos, evaluados, puntajePromedio, semanaActual, guiaActual, siguiente
 } = useResumenDashboard()
 
 // Por si el usuario no trae nombre
@@ -165,12 +167,20 @@ onMounted(cargar)
    con scroll ensanche la columna */
 .fila-principal {
     display: grid;
+    grid-template-columns: 2fr 1fr;
     gap: 1rem;
     align-items: stretch;
 }
 
 .fila-principal>* {
     min-width: 0;
+}
+
+/* Celular / tablet: se apilan, y "Continúa donde quedaste" queda debajo de la guía */
+@media (max-width: 900px) {
+    .fila-principal {
+        grid-template-columns: 1fr;
+    }
 }
 
 .selector-grupo {
