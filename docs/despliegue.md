@@ -1,6 +1,6 @@
 # Despliegue de TraineeIQ
 
-Render y Vercel despliegan la rama `main`, así que el proyecto debe estar fusionado allí antes de los pasos 2 y 3.
+Por ahora Render despliega `rama-ia` (desde el 2026-11-09), mientras se fusiona todo a `main`. Cuando esté fusionado, se cambia la rama siguiendo la sección 7.
 
 Orden: primero la base de datos, luego el backend y por último el frontend. Cada paso necesita un dato del anterior.
 
@@ -30,7 +30,7 @@ Para crearla de nuevo:
 
 | Campo | Valor |
 | --- | --- |
-| Rama | `main` |
+| Rama | `rama-ia` (temporal; luego `main`) |
 | Root Directory | `backend` |
 | Runtime | Docker |
 | Región | Virginia (US East), la misma de la base |
@@ -124,3 +124,27 @@ Registra usuarios nuevos desde la pantalla de registro y recorre estos flujos.
 - Apache atiende 6 peticiones a la vez. Si 6 personas evalúan al mismo tiempo, las demás esperan.
 - TiDB Cloud gratis da 5 GiB y 50 millones de Request Units al mes. Si se acaban, con el límite de gasto en $0 la base se pone lenta hasta el mes siguiente; no cobra.
 - TiDB es compatible con MySQL, pero no idéntico: los ids no siempre son consecutivos. El código no depende de eso.
+
+## 6. Cambios en la base de datos
+
+**Cómo se actualiza:** con cada push a la rama que despliega Render, el servidor arranca y corre `php artisan migrate --force` (`backend/docker/iniciar.sh`). Laravel anota en la tabla `migrations` de TiDB las que ya corrieron y solo aplica los archivos nuevos. Si una migración falla, el servidor no arranca.
+
+**Regla:** producción ya tiene datos, así que nunca se edita una migración vieja. Laravel no la vuelve a correr y el cambio no llegaría a TiDB. Todo cambio va en una migración nueva (`php artisan make:migration ...`), como se hizo con `2026_11_09_120000_create_notificaciones_table`.
+
+**En local:** `php artisan migrate` aplica solo lo nuevo. `php artisan migrate:fresh --seed` borra todo: solo en local, nunca apuntando a TiDB.
+
+## 7. Cambiar de `rama-ia` a `main`
+
+1. Fusionar `rama-ia` a `main` con un Pull Request completo, para que lleguen las migraciones, el `Dockerfile` y `docker/`.
+2. No fusionar `rama-database`: crea las tablas otra vez con otros nombres de archivo y el servidor no arrancaría.
+3. Verificar desde `backend/` que las migraciones sean idénticas. Este comando no debe mostrar nada:
+
+```bash
+git fetch origin
+git diff origin/rama-ia origin/main -- database/migrations
+```
+
+4. Render: Settings → Build & Deploy → Branch → `main`. Vercel: Production Branch → `main`. No se pierden datos ni variables.
+5. Comprobar que `/up` responde 200 y que el log del deploy diga `Nothing to migrate`, o liste solo migraciones nuevas.
+
+Después del cambio, cada fusión a `main` despliega sola; los push a `rama-ia` ya no llegan a producción.
