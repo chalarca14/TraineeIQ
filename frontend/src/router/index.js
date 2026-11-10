@@ -15,6 +15,18 @@ const routes = [
     component: () => import('../views/auth/Registro.vue')
   },
 
+  // Páginas legales públicas: las enlaza el registro y las pide Google para publicar "Continuar con Google"
+  {
+    path: '/privacidad',
+    name: 'Privacidad',
+    component: () => import('../views/legal/Privacidad.vue')
+  },
+  {
+    path: '/terminos',
+    name: 'Terminos',
+    component: () => import('../views/legal/Terminos.vue')
+  },
+
   // Ruta dashboard para el rol de estudiante
   {
     path: '/estudiante',
