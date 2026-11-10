@@ -52,6 +52,7 @@ function detalle(bloque) {
     border-radius: 14px;
     background: var(--color-surface);
     color: var(--color-text);
+    text-decoration: none; /* toda la fila es el enlace: sin subrayado en cada texto */
     transition: border-color .2s;
 }
 

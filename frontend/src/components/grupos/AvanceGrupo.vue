@@ -98,13 +98,14 @@ h2 {
     flex-shrink: 0;
 }
 
-svg {
+/* Solo el svg del anillo: un selector "svg" suelto también agrandaría los iconos de las filas */
+.anillo svg {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
 }
 
-circle {
+.anillo circle {
     fill: none;
     stroke-width: 10;
 }

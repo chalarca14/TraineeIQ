@@ -14,7 +14,7 @@
                 </p>
                 <p class="nota">
                     {{ promedio != null
-                        ? `Promedio de tus ${resumen.evaluados} ${resumen.evaluados === 1 ? 'proyecto evaluado' : 'proyectos evaluados'}.`
+                        ? (resumen.evaluados === 1 ? 'Puntaje de tu único proyecto evaluado.' : `Promedio de tus ${resumen.evaluados} proyectos evaluados.`)
                         : 'Aparecerá cuando evalúes tu primer mini proyecto.' }}
                     Es orientativo: te ayuda a ver cómo vas, no es una nota.
                 </p>
