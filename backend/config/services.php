@@ -62,4 +62,11 @@ return [
         'porcentaje_desbloqueo' => (int) env('XP_PORCENTAJE_DESBLOQUEO', 80),
     ],
 
+    // "Continuar con Google": solo se necesita el Client ID (es público); no hay client secret
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        // Minutos que tiene un usuario nuevo para completar su registro después de elegir su cuenta
+        'minutos_registro' => (int) env('GOOGLE_MINUTOS_REGISTRO', 10),
+    ],
+
 ];
