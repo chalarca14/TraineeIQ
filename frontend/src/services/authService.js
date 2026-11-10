@@ -46,3 +46,31 @@ export async function registro(nombre, correo, password, rol) {
 
     return data
 }
+
+/**
+ * Entra con la credencial que entregó el botón de Google.
+ * Si la cuenta ya existe devuelve { token, user } como login().
+ * Si es nueva devuelve { requiere_registro, registro_token, nombre, email }.
+ * Timeout de 60 s: Render gratis puede estar dormido y tardar en responder.
+ */
+export async function loginConGoogle(credencial, rol) {
+    const { data } = await api.post('/auth/google', { credential: credencial, rol }, { timeout: 60000 })
+
+    return data
+}
+
+/**
+ * Termina el registro de una cuenta nueva de Google con el nombre, el rol y la contraseña elegidos.
+ * Devuelve { token, user } como registro(). El correo no se envía: sale del registro_token.
+ */
+export async function completarRegistroGoogle({ registroToken, nombre, rol, password, passwordConfirmacion }) {
+    const { data } = await api.post('/auth/google/completar', {
+        registro_token: registroToken,
+        name: nombre,
+        rol,
+        password,
+        password_confirmation: passwordConfirmacion
+    }, { timeout: 60000 })
+
+    return data
+}
