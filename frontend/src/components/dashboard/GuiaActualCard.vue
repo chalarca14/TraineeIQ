@@ -1,0 +1,178 @@
+<template>
+    <article class="guia-actual">
+        <h2>
+            <Medalla :icono="BookOpen" /> Mi guía actual
+        </h2>
+
+        <!-- Tres estados: cargando, error, vacío y con datos. Solo se muestra uno -->
+        <p v-if="cargando" class="mensaje">Cargando tu guía...</p>
+        <p v-else-if="error" class="mensaje error">No se pudo cargar tu guía. Intenta de nuevo más tarde.</p>
+
+        <div v-else-if="!guia" class="mensaje vacio">
+            <p>Aún no tienes guías.</p>
+            <RouterLink to="/estudiante/guias" class="btn btn-primario btn-sm">Subir mi primera guía</RouterLink>
+        </div>
+
+        <template v-else>
+            <div class="resumen">
+                <div>
+                    <h3>{{ guia.nombre }}</h3>
+                    <span class="chip">Modo Personal</span>
+                </div>
+                <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn btn-primario btn-sm">
+                    Ver detalles
+                    <ArrowRight :size="16" />
+                </RouterLink>
+            </div>
+
+            <div class="progreso">
+                <div class="barra">
+                    <div class="relleno" :style="{ width: porcentaje + '%' }"></div>
+                </div>
+                <span>{{ porcentaje }}%</span>
+            </div>
+
+            <h4>Temas de la guía</h4>
+            <ul class="temas">
+                <li v-for="(tema, i) in temasConEstado" :key="tema.id">
+                    <TemaEstado :numero="i + 1" :nombre="tema.nombre_tema" :estado="tema.estado" />
+                </li>
+            </ul>
+        </template>
+    </article>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { BookOpen, ArrowRight } from 'lucide-vue-next'
+import Medalla from '@/components/ui/Medalla.vue'
+import TemaEstado from '@/components/dashboard/TemaEstado.vue'
+import { temasHechos } from '@/utils/progresoEjemplo'
+
+const props = defineProps({
+    guia: { type: Object, default: null },
+    cargando: { type: Boolean, default: false },
+    error: { type: Boolean, default: false }
+})
+
+// DATO DE EJEMPLO: el backend aún no guarda qué temas completó el estudiante.
+// Se reemplaza por el progreso real cuando exista el endpoint.
+
+const temasConEstado = computed(() => {
+    const temas = props.guia?.temas ?? []
+    const hechos = temasHechos(temas.length)
+    return temas.map((tema, i) => ({
+        ...tema,
+        estado: i < hechos ? 'hecho' : i === hechos ? 'actual' : 'pendiente'
+    }))
+})
+
+const porcentaje = computed(() => {
+    const total = temasConEstado.value.length
+    if (total === 0) return 0
+    return Math.round((temasHechos(total) / total) * 100)
+})
+</script>
+
+<style scoped>
+.guia-actual {
+    padding: 1.4rem;
+    border: 1px solid var(--color-card);
+    border-radius: 16px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-card) 55%, var(--color-surface)), var(--color-surface));
+}
+
+h2 {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.resumen {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.2rem; /* aire entre el título de la guía y la barra de progreso */
+}
+
+.resumen h3 {
+    margin-bottom: .5rem;
+}
+
+.chip {
+    padding: .15rem .6rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    color: var(--color-primary-light);
+    font-size: .72rem;
+}
+
+/* Barra + porcentaje en una sola fila (el porcentaje no se encoge ni se parte en dos líneas) */
+.progreso {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    margin-bottom: 1.4rem;
+}
+
+.progreso span {
+    flex-shrink: 0;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.barra {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-background);
+    overflow: hidden;
+}
+
+.relleno {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--gradiente-primario);
+    transition: width .4s ease;
+}
+
+h4 {
+    margin-bottom: .7rem;
+    font-size: .9rem;
+    color: var(--color-text-secondary);
+}
+
+/* Fila horizontal con scroll: en celular no se rompe ni se apila */
+.temas {
+    display: flex;
+    gap: .7rem;
+    padding: 0 0 .5rem;
+    list-style: none;
+    overflow-x: auto;
+}
+
+.temas li {
+    flex: 0 0 auto;
+}
+
+.mensaje {
+    color: var(--color-text-secondary);
+    font-size: .9rem;
+}
+
+.mensaje.error {
+    color: var(--color-danger);
+}
+
+.vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .8rem;
+}
+</style>

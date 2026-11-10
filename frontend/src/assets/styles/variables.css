@@ -1,0 +1,53 @@
+/* Colores principales */
+
+@import url('https://fonts.googleapis.com/css2?family=Puritan:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Puritan', sans-serif;
+}
+
+/* Barra de desplazamiento global (se importa una sola vez desde main.js, así vale para toda la app).
+   - scrollbar-width y scrollbar-color están en * porque cada caja con su propio scroll
+     (chat, listas) necesita la regla; scrollbar-width no se hereda.
+   - OJO: NO poner scrollbar-gutter en <html>. En la app autenticada la ventana no hace scroll
+     (el layout mide 100dvh y scrollea .app-main), así que reservarlo en <html> dejaba una franja
+     vacía a la derecha de todas las vistas. El gutter estable vive en .app-main (AppLayout.vue). */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) var(--color-background);
+}
+
+#app {
+    width: 100%;
+    min-height: 100vh;
+}
+
+:root {
+
+    --color-primary: #7C3AED;
+    --color-primary-hover: #8B5CF6;
+
+    --color-background: #0F1117;
+    --color-surface: #161A24;
+    --color-card: #1E2235;
+
+    --color-text: #FFFFFF;
+    --color-text-secondary: #94A3B8;
+
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-info: #3B82F6;
+
+    --color-primary-light: #A855F7;
+    --color-border: #1E2235;
+
+    /* Degradado y resplandor morado compartidos por botones, banners y tarjetas destacadas */
+    --gradiente-primario: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    --brillo-primario: 0 6px 18px color-mix(in srgb, var(--color-primary) 40%, transparent);
+    --brillo-primario-fuerte: 0 8px 22px color-mix(in srgb, var(--color-primary) 55%, transparent);
+
+}
