@@ -13,6 +13,12 @@
                 <span>{{ archivo ? archivo.name : 'Haz clic para elegir un PDF (máx. 10 MB)' }}</span>
                 <input type="file" accept="application/pdf" class="sr-only" @change="elegirArchivo" />
             </label>
+            <!-- Se ve ANTES de subir: el aprendiz debe saber que el PDF original no se conserva
+                 (el servidor no tiene disco persistente), para que guarde su propia copia -->
+            <p class="aviso-pdf" role="note">
+                <Info :size="18" aria-hidden="true" />
+                <span>TraineeIQ guarda el texto de la guía, no el PDF original. Conserva tu copia del PDF.</span>
+            </p>
             <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando"
                 @click="enviar">Reintentar</button>
         </div>
@@ -32,7 +38,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { FileUp } from 'lucide-vue-next'
+import { FileUp, Info } from 'lucide-vue-next'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { subirGuia } from '@/services/guiaService'
@@ -157,6 +163,26 @@ async function enviar() {
 .file-drop.lleno {
     border-color: var(--color-primary);
     color: var(--color-text);
+}
+
+.aviso-pdf {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    margin: .2rem 0 0;
+    padding: .6rem .8rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-info) 12%, transparent);
+    color: var(--color-text);
+    font-size: .85rem;
+    /* flex-shrink: 0 en el icono evita que se aplaste cuando el texto ocupa varias líneas en 360 px */
+    overflow-wrap: anywhere;
+}
+
+.aviso-pdf svg {
+    flex-shrink: 0;
+    margin-top: .1rem;
+    color: var(--color-info);
 }
 
 .acciones {
