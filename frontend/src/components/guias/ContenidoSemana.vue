@@ -1,16 +1,15 @@
 <template>
     <div class="contenido">
 
-        <section v-if="temas.length" class="seccion">
-            <h4><Medalla :icono="BookOpen" :size="26" /> Temas</h4>
-            <div class="lista">
+        <template v-if="seccion === 'temas'">
+            <div v-if="temas.length" class="lista">
                 <TemaDesplegable v-for="t in temas" :key="t.id" :tema="t" />
             </div>
-        </section>
+            <p v-else class="vacio">Esta semana no trae temas.</p>
+        </template>
 
-        <section v-if="recomendaciones.length" class="seccion">
-            <h4><Medalla :icono="Sparkles" :size="26" /> Recomendaciones de la IA</h4>
-            <div class="tarjetas">
+        <template v-else-if="seccion === 'recomendaciones'">
+            <div v-if="recomendaciones.length" class="tarjetas">
                 <article v-for="r in recomendaciones" :key="r.id" class="tarjeta">
                     <div class="tarjeta-top">
                         <strong>{{ r.leido.titulo }}</strong>
@@ -27,11 +26,11 @@
                     <p v-if="r.leido.por_que" class="por-que">{{ r.leido.por_que }}</p>
                 </article>
             </div>
-        </section>
+            <p v-else class="vacio">Esta semana no trae recomendaciones.</p>
+        </template>
 
-        <section v-if="miniProyectos.length" class="seccion">
-            <h4><Medalla :icono="Rocket" color="info" :size="26" /> Mini proyectos</h4>
-            <div class="tarjetas">
+        <template v-else-if="seccion === 'proyectos'">
+            <div v-if="miniProyectos.length" class="tarjetas">
                 <article v-for="m in miniProyectos" :key="m.id" class="tarjeta">
                     <div class="tarjeta-top">
                         <strong>{{ m.titulo }}</strong>
@@ -43,24 +42,28 @@
                     </RouterLink>
                 </article>
             </div>
-        </section>
+            <p v-else class="vacio">Esta semana no trae mini proyectos.</p>
+        </template>
 
-        <p v-if="vacio" class="vacio">Esta semana todavía no trae contenido.</p>
     </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { BookOpen, Sparkles, Rocket, ArrowRight } from 'lucide-vue-next'
-import Medalla from '@/components/ui/Medalla.vue'
+import { ArrowRight } from 'lucide-vue-next'
 import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 import TemaDesplegable from '@/components/guias/TemaDesplegable.vue'
 import { leerContenido } from '@/utils/recomendaciones'
 
-// Contenido de UNA semana ya lista: GET /guias/{id}/semanas/{n} con sus temas, recomendaciones y
-// mini proyectos. Todo el texto viene de la IA y se pinta como texto plano (nunca v-html).
-const props = defineProps({ semana: { type: Object, required: true } })
+// Una SECCIÓN del contenido de UNA semana ya lista (GET /guias/{id}/semanas/{n}). Cada pestaña del
+// panel (Temas, Recomendaciones, Mini proyectos) pinta la suya con `seccion`; la pestaña Guía tiene
+// su propio componente. Todo el texto viene de la IA y se pinta como texto plano (nunca v-html).
+const props = defineProps({
+    semana: { type: Object, required: true },
+    // 'temas' | 'recomendaciones' | 'proyectos'
+    seccion: { type: String, required: true }
+})
 
 const ordenar = (lista) => [...(lista ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
 
@@ -70,24 +73,9 @@ const recomendaciones = computed(() =>
     ordenar(props.semana.recomendaciones).map((r) => ({ ...r, leido: leerContenido(r) }))
 )
 const miniProyectos = computed(() => ordenar(props.semana.mini_proyectos))
-const vacio = computed(() => !temas.value.length && !recomendaciones.value.length && !miniProyectos.value.length)
 </script>
 
 <style scoped>
-.contenido {
-    display: flex;
-    flex-direction: column;
-    gap: 1.3rem;
-}
-
-h4 {
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    margin-bottom: .7rem;
-    font-size: .98rem;
-}
-
 .lista {
     display: flex;
     flex-direction: column;
