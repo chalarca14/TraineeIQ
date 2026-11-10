@@ -28,7 +28,8 @@
                 </div>
 
                 <div :id="idPanel" role="tabpanel" :aria-labelledby="idPestana(pestana)" class="contenido-pestana">
-                    <PestanaGuia v-if="pestana === 'guia'" :texto="contenido.contenido_texto ?? ''" />
+                    <PestanaGuia v-if="pestana === 'guia'" :texto="contenido.contenido_texto ?? ''"
+                        @ver-completa="$emit('ver-completa')" />
                     <ContenidoSemana v-else :semana="contenido" :seccion="pestana" />
                 </div>
             </template>
@@ -101,7 +102,7 @@ const props = defineProps({
     // Pestaña activa. La guarda la vista (no este componente) para que "Volver a la semana" regrese a la misma
     pestana: { type: String, default: 'guia' }
 })
-const emit = defineEmits(['reintentar', 'revisar', 'recargar', 'update:pestana'])
+const emit = defineEmits(['reintentar', 'revisar', 'recargar', 'update:pestana', 'ver-completa'])
 
 const PESTANAS = [
     { id: 'guia', texto: 'Guía', icono: FileText },

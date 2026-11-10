@@ -4,12 +4,20 @@
              nunca con v-html: así conserva los saltos de línea sin interpretar nada como HTML -->
         <p v-if="texto" class="texto">{{ texto }}</p>
         <p v-else class="vacio">Esta semana no trae texto de la guía.</p>
+
+        <!-- El id fijo deja que la vista le devuelva el foco al volver de "Guía completa" -->
+        <button id="btn-ver-guia-completa" type="button" class="btn btn-secundario btn-sm ver" @click="$emit('ver-completa')">
+            <FileText :size="15" aria-hidden="true" /> Ver guía completa
+        </button>
     </div>
 </template>
 
 <script setup>
-// Pestaña "Guía": el contenido_texto de la semana elegida
+import { FileText } from 'lucide-vue-next'
+
+// Pestaña "Guía": el contenido_texto de la semana elegida y el acceso a la guía completa
 defineProps({ texto: { type: String, default: '' } })
+defineEmits(['ver-completa'])
 </script>
 
 <style scoped>
@@ -24,6 +32,10 @@ defineProps({ texto: { type: String, default: '' } })
     overflow-wrap: anywhere;
     line-height: 1.65;
     font-size: .93rem;
+}
+
+.ver {
+    align-self: flex-start;
 }
 
 .vacio {

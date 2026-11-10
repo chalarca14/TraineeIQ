@@ -2,19 +2,7 @@
     <main class="guia">
 
         <EstadoVista :cargando="cargando" :error="error" texto-cargando="Cargando la guía..." @reintentar="cargar">
-            <!-- Migaja: en Modo Grupo "Mis grupos › grupo › Guías › guía"; en Modo Personal "Mis guías › guía" -->
-            <nav class="migaja" aria-label="Migaja de pan">
-                <template v-if="esGrupo">
-                    <RouterLink to="/estudiante/grupos">Mis grupos</RouterLink>
-                    <ChevronRight :size="14" aria-hidden="true" />
-                    <span v-if="grupo">{{ grupo.nombre }}</span>
-                    <ChevronRight v-if="grupo" :size="14" aria-hidden="true" />
-                    <span>Guías</span>
-                </template>
-                <RouterLink v-else to="/estudiante/guias">Mis guías</RouterLink>
-                <ChevronRight :size="14" aria-hidden="true" />
-                <span aria-current="page">{{ guia.nombre }}</span>
-            </nav>
+            <MigajaGuia :es-grupo="esGrupo" :grupo="grupo" :nombre="guia.nombre" />
 
             <EncabezadoPagina :titulo="guia.nombre" :icono="BookOpen" :descripcion="descripcion">
                 <template #etiquetas>
@@ -57,12 +45,15 @@
                     :generando-aqui="store.generandoAqui" @seleccionar="elegirSemana" />
 
                 <div class="area-panel">
-                    <PanelSemana v-if="store.semanaSeleccionada" v-model:pestana="pestana" :semana="store.semanaSeleccionada"
+                    <!-- "Guía completa" reemplaza al panel. Al volver, el panel se crea de nuevo pero la pestaña
+                         (guardada aquí) sigue siendo la misma, y el contenido ya está en el store -->
+                    <GuiaCompleta v-if="verCompleta" :guia-id="guia.id" @volver="volverASemana" />
+                    <PanelSemana v-else-if="store.semanaSeleccionada" v-model:pestana="pestana" :semana="store.semanaSeleccionada"
                         :anterior="semanaAnterior" :contenido="store.contenido" :cargando-contenido="store.cargandoContenido"
                         :error-contenido="store.error" :generando-aqui="store.generandoAqui === store.semanaActiva"
                         :revisando="store.revisando" :es-dueno="esDueno" :es-personal="esPersonal"
                         @reintentar="store.reintentar(store.semanaActiva)" @revisar="store.revisar()"
-                        @recargar="store.cargarContenido()" />
+                        @recargar="store.cargarContenido()" @ver-completa="verCompleta = true" />
                 </div>
 
                 <TarjetaDudasIA class="area-dudas" :guia-id="guia.id" />
@@ -73,13 +64,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-import { Bot, BookOpen, ChevronRight, RefreshCw } from 'lucide-vue-next'
+import { Bot, BookOpen, RefreshCw } from 'lucide-vue-next'
+import MigajaGuia from '@/components/guias/MigajaGuia.vue'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
 import ListaSemanas from '@/components/guias/ListaSemanas.vue'
 import PanelSemana from '@/components/guias/PanelSemana.vue'
+import GuiaCompleta from '@/components/guias/GuiaCompleta.vue'
 import TarjetaDudasIA from '@/components/guias/TarjetaDudasIA.vue'
 import { obtenerGuia } from '@/services/guiaService'
 import { listarMisGrupos } from '@/services/grupoService'
@@ -101,6 +94,8 @@ const cargandoSemanas = ref(false)
 const error = ref('')
 // Pestaña activa del panel. Vive aquí y no en PanelSemana para no perderse al cambiar de semana
 const pestana = ref('guia')
+// true = la columna izquierda muestra "Guía completa" en lugar de la semana elegida
+const verCompleta = ref(false)
 
 const guiaId = computed(() => Number(route.params.guiaId ?? route.params.id))
 const esGrupo = computed(() => guia.value?.origen === 'grupo')
@@ -133,8 +128,17 @@ const descripcion = computed(() =>
 )
 
 // Una semana a la vez: el store guarda una sola `semanaActiva`. Elegir la que ya está abierta no repite la petición
+// Elegir una semana en la lista también sale de "Guía completa": si no, la lista parecería no responder
 function elegirSemana(numero) {
+    verCompleta.value = false
     if (numero !== store.semanaActiva) store.seleccionarSemana(numero)
+}
+
+// Regresa a la semana y le devuelve el foco al botón que abrió la guía completa
+async function volverASemana() {
+    verCompleta.value = false
+    await nextTick()
+    document.getElementById('btn-ver-guia-completa')?.focus()
 }
 
 // En Modo Grupo no se piden semanas sin liberar (soloLiberadas): el backend las generaría igual
@@ -182,6 +186,7 @@ async function cargar() {
 // Si se navega a otra guía este componente se reutiliza: se vuelve a cargar todo
 watch(guiaId, () => {
     pestana.value = 'guia'
+    verCompleta.value = false
     cargar()
 })
 onMounted(cargar)
@@ -198,24 +203,6 @@ onBeforeUnmount(() => store.cerrarGuia())
     max-width: 1180px;
     margin: 0 auto;
     padding: clamp(1rem, 4vw, 3rem);
-}
-
-.migaja {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: .4rem;
-    color: var(--color-text-secondary);
-    font-size: .85rem;
-}
-
-.migaja a {
-    color: var(--color-primary-light);
-}
-
-.migaja [aria-current='page'] {
-    color: var(--color-text);
-    overflow-wrap: anywhere;
 }
 
 .tag {
