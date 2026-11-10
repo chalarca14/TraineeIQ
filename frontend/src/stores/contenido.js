@@ -223,8 +223,10 @@ export const useContenidoStore = defineStore('contenido', {
             }
         },
 
-        // Actualiza solo los datos de la lista, sin guardar el contenido que traiga la respuesta
-        actualizarSemana(numero, { estado_generacion, error_mensaje, disponible }) {
+        // Actualiza solo los datos de la lista, sin guardar el contenido que traiga la respuesta.
+        // Los XP también cambian al generar (antes la semana no tenía mini proyectos y su máximo era 0):
+        // se copian solo si vienen, porque en Modo Grupo y en los errores no llegan.
+        actualizarSemana(numero, { estado_generacion, error_mensaje, disponible, xp_obtenido, xp_maximo, xp_requerido }) {
             const semana = this.semanas.find((s) => s.numero_semana === numero)
             if (!semana) {
                 return
@@ -233,6 +235,16 @@ export const useContenidoStore = defineStore('contenido', {
             semana.estado_generacion = estado_generacion
             semana.error_mensaje = error_mensaje ?? null
             semana.disponible = disponible ?? semana.disponible
+
+            if (xp_obtenido !== undefined) {
+                semana.xp_obtenido = xp_obtenido
+            }
+            if (xp_maximo !== undefined) {
+                semana.xp_maximo = xp_maximo
+            }
+            if (xp_requerido !== undefined) {
+                semana.xp_requerido = xp_requerido
+            }
         },
 
         // Vuelve a pedir la lista, por ejemplo después de liberar semanas
