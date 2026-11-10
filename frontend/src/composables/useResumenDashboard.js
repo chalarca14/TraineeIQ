@@ -112,7 +112,11 @@ export function useResumenDashboard() {
     })
 
     const cargando = computed(() => mini.cargando.value || (!esPersonal.value && cargandoGrupos.value))
-    const error = computed(() => mini.error.value || (!esPersonal.value ? errorGrupos.value : ''))
+    // El composable de la lista avisa con su propio texto ("tus mini proyectos"); aquí se habla del resumen
+    const error = computed(() =>
+        (mini.error.value ? 'No pudimos cargar tu resumen. Intenta de nuevo.' : '') ||
+        (!esPersonal.value ? errorGrupos.value : '')
+    )
 
     // Qué vacío mostrar (o '' si hay algo que enseñar). Grupo sin semanas = ninguna con disponible,
     // lo que incluye un grupo sin guías: semana_actual vale 1 por defecto y no basta para decidirlo
