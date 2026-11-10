@@ -27,6 +27,17 @@ export function textoBoton(proyecto) {
     }
 }
 
+/** Cuántos proyectos hay en cada pestaña. Solo cuenta lo que llegó; no decide nada. */
+export function contarPorEstado(proyectos) {
+    const cuenta = (clave) => proyectos.filter((p) => pestanaDe(p) === clave).length
+    return {
+        total: proyectos.length,
+        evaluados: cuenta('evaluado'),
+        evaluando: cuenta('evaluando'),
+        porEntregar: cuenta('por_entregar')
+    }
+}
+
 /**
  * Promedio de los puntajes (0 a 100, orientativos) de los proyectos YA evaluados, redondeado.
  * Devuelve null si no hay ninguno, para que la vista muestre "—" en vez de un 0 engañoso.

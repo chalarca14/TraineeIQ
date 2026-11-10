@@ -13,7 +13,23 @@
                 <div class="principal">
                     <CabeceraGrupo :grupo="grupo" />
                     <TarjetasGrupo :instructor="instructor" :cantidad-guias="cantidadGuias"
-                        :miembros="grupo.estudiantes?.length ?? 0" @ver-guias="pestana = 'guias'" />
+                        :miembros="grupo.estudiantes?.length ?? 0" @ver-guias="verGuias" />
+
+                    <section ref="seccionPestanas" class="pestanas-grupo" aria-label="Contenido del grupo">
+                        <Pestanas v-model="pestana" :pestanas="PESTANAS" />
+
+                        <!-- Las tres pestañas salen de las mismas guías: un solo cargando / error / vacío para todas -->
+                        <EstadoVista :cargando="mini.cargando.value" :error="errorGuias"
+                            :vacio="mini.bloques.value.length === 0" :icono="BookOpen"
+                            texto-cargando="Cargando las guías del grupo..." texto-vacio="Este grupo aún no tiene guías."
+                            descripcion-vacio="Cuando tu instructor suba una guía y libere semanas, aquí verás sus guías y mini proyectos."
+                            @reintentar="mini.cargar">
+                            <GuiasGrupo v-if="pestana === 'guias'" :bloques="mini.bloques.value" :grupo-id="grupoId" />
+                            <ProyectosGrupo v-else-if="pestana === 'proyectos'" :bloques="mini.bloques.value"
+                                :reintentar="mini.reintentarGuia" />
+                            <MiProgresoGrupo v-else :bloques="mini.bloques.value" />
+                        </EstadoVista>
+                    </section>
                 </div>
             </div>
         </EstadoVista>
@@ -21,12 +37,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronRight, BookOpen, Code, TrendingUp } from 'lucide-vue-next'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import Pestanas from '@/components/ui/Pestanas.vue'
 import CabeceraGrupo from '@/components/grupos/CabeceraGrupo.vue'
 import TarjetasGrupo from '@/components/grupos/TarjetasGrupo.vue'
+import GuiasGrupo from '@/components/grupos/GuiasGrupo.vue'
+import ProyectosGrupo from '@/components/grupos/ProyectosGrupo.vue'
+import MiProgresoGrupo from '@/components/grupos/MiProgresoGrupo.vue'
 import { getGrupo } from '@/services/grupoService'
 import { useMiniProyectosSemanas } from '@/composables/useMiniProyectosSemanas'
 import { mensajeDeError } from '@/utils/errores'
@@ -43,7 +63,26 @@ const mini = useMiniProyectosSemanas({ grupoId })
 const grupo = ref(null)
 const cargandoGrupo = ref(true)
 const errorGrupo = ref('')
+// En este orden (PLAN Tarea 8). No hay pestañas Temas, General ni Miembros
+const PESTANAS = [
+    { clave: 'guias', etiqueta: 'Guías', icono: BookOpen },
+    { clave: 'proyectos', etiqueta: 'Proyectos', icono: Code },
+    { clave: 'progreso', etiqueta: 'Mi progreso', icono: TrendingUp }
+]
 const pestana = ref('guias')
+const seccionPestanas = ref(null)
+
+// El composable habla de "tus mini proyectos"; aquí lo que falla es la lista de guías del grupo
+const errorGuias = computed(() =>
+    mini.error.value ? 'No se pudieron cargar las guías del grupo. Intenta de nuevo.' : ''
+)
+
+// "Ver todas las guías" activa la pestaña y la acerca a la vista: en 360 px queda lejos de la tarjeta
+async function verGuias() {
+    pestana.value = 'guias'
+    await nextTick()
+    seccionPestanas.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 const instructor = computed(() => grupo.value?.instructor?.name ?? grupo.value?.profesor?.name ?? '')
 
@@ -121,6 +160,13 @@ onMounted(cargar)
     flex-direction: column;
     gap: 1.1rem;
     min-width: 0;
+}
+
+.pestanas-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scroll-margin-top: 1rem;
 }
 
 @media (max-width: 900px) {
