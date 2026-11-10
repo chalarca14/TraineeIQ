@@ -93,11 +93,42 @@ class EntregasGrupoTest extends TestCase
     }
 
     /**
-     * Pide las entregas del grupo principal.
+     * Los filtros por mini proyecto, estudiante y estado reducen la lista y se suman entre si.
      */
-    private function pedirEntregas()
+    public function test_filtra_por_mini_proyecto_estudiante_y_estado(): void
     {
-        return $this->getJson("/api/grupos/{$this->grupo->id}/entregas");
+        $otro = User::factory()->create(['rol' => 'estudiante']);
+        $this->grupo->estudiantes()->attach($otro->id);
+        $guia = Guia::create(['nombre' => 'Segunda', 'origen' => 'grupo', 'grupo_id' => $this->grupo->id]);
+        $this->crearEntrega($guia, $otro, 50, 'error');
+
+        $proyectoOtro = $guia->miniProyectos()->first()->id;
+        Sanctum::actingAs($this->instructor);
+
+        $this->pedirEntregas()->assertJsonCount(2, 'data');
+        $this->pedirEntregas("?mini_proyecto_id={$proyectoOtro}")->assertJsonCount(1, 'data')->assertJsonPath('data.0.puntaje', 50);
+        $this->pedirEntregas("?estudiante_id={$this->estudiante->id}")->assertJsonCount(1, 'data')->assertJsonPath('data.0.puntaje', 80);
+        $this->pedirEntregas('?estado=evaluado')->assertJsonCount(1, 'data')->assertJsonPath('data.0.puntaje', 80);
+        $this->pedirEntregas("?estado=evaluado&estudiante_id={$otro->id}")->assertJsonCount(0, 'data');
+    }
+
+    /**
+     * Un filtro con un valor que no corresponde responde 422.
+     */
+    public function test_filtro_invalido_responde_422(): void
+    {
+        Sanctum::actingAs($this->instructor);
+
+        $this->pedirEntregas('?estado=aprobado')->assertStatus(422)->assertJsonValidationErrors('estado');
+        $this->pedirEntregas('?mini_proyecto_id=abc')->assertStatus(422)->assertJsonValidationErrors('mini_proyecto_id');
+    }
+
+    /**
+     * Pide las entregas del grupo principal, con filtros opcionales en la query.
+     */
+    private function pedirEntregas(string $query = '')
+    {
+        return $this->getJson("/api/grupos/{$this->grupo->id}/entregas{$query}");
     }
 
     /**
@@ -111,7 +142,7 @@ class EntregasGrupoTest extends TestCase
     /**
      * Crea una semana con un mini proyecto y la entrega evaluada del estudiante.
      */
-    private function crearEntrega(Guia $guia, User $estudiante, int $puntaje): void
+    private function crearEntrega(Guia $guia, User $estudiante, int $puntaje, string $estado = 'evaluado'): void
     {
         $semana = $guia->semanas()->create([
             'numero_semana'     => 1,
@@ -135,7 +166,7 @@ class EntregasGrupoTest extends TestCase
         $proyecto->entregas()->create([
             'estudiante_id' => $estudiante->id,
             'repo_url'      => 'https://github.com/ejemplo/repo',
-            'estado'        => 'evaluado',
+            'estado'        => $estado,
             'puntaje'       => $puntaje,
             'evaluacion'    => ['resumen' => 'Detalle que la lista no debe traer.'],
         ]);
