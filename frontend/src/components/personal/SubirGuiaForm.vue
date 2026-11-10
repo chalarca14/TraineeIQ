@@ -13,6 +13,10 @@
                 <span>{{ archivo ? archivo.name : 'Haz clic para elegir un PDF (máx. 10 MB)' }}</span>
                 <input type="file" accept="application/pdf" class="sr-only" @change="elegirArchivo" />
             </label>
+            <!-- Error de validación del archivo (falta, no es PDF, pesa de más o lo rechazó el backend).
+                 role="alert" hace que el lector de pantalla lo anuncie al aparecer. El <p> existe siempre
+                 (vacío): un aviso que se inserta junto con su texto a veces no se anuncia. -->
+            <p class="input-error" role="alert">{{ errores.archivo }}</p>
             <!-- Se ve ANTES de subir: el aprendiz debe saber que el PDF original no se conserva
                  (el servidor no tiene disco persistente), para que guarde su propia copia -->
             <p class="aviso-pdf" role="note">
@@ -56,6 +60,8 @@ const puedeReintentar = ref(false)
 
 function elegirArchivo(evento) {
     archivo.value = evento.target.files[0] ?? null
+    // Un error viejo ("Selecciona un archivo PDF.") no debe seguir visible después de elegir uno
+    errores.value.archivo = ''
 }
 
 function validar() {
