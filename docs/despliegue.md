@@ -1,6 +1,11 @@
 # Despliegue de TraineeIQ
 
-Por ahora Render despliega `rama-ia` (desde el 2026-11-09), mientras se fusiona todo a `main`. Cuando esté fusionado, se cambia la rama siguiendo la sección 7.
+Render y Vercel despliegan la rama `main` desde el 2026-11-10: cada fusión a `main` se publica sola. Lo que se suba a otras ramas no llega a producción hasta fusionarlo.
+
+**Producción:**
+- Frontend: <https://trainee-iq.vercel.app> (proyecto `trainee-iq` en Vercel).
+- Backend: <https://traineeiq-api.onrender.com> (servicio `traineeiq-api` en Render).
+- Base de datos: instancia `traineeiq` en TiDB Cloud.
 
 Orden: primero la base de datos, luego el backend y por último el frontend. Cada paso necesita un dato del anterior.
 
@@ -30,7 +35,7 @@ Para crearla de nuevo:
 
 | Campo | Valor |
 | --- | --- |
-| Rama | `rama-ia` (temporal; luego `main`) |
+| Rama | `main` |
 | Root Directory | `backend` |
 | Runtime | Docker |
 | Región | Virginia (US East), la misma de la base |
@@ -134,6 +139,8 @@ Registra usuarios nuevos desde la pantalla de registro y recorre estos flujos.
 **En local:** `php artisan migrate` aplica solo lo nuevo. `php artisan migrate:fresh --seed` borra todo: solo en local, nunca apuntando a TiDB.
 
 ## 7. Cambiar de `rama-ia` a `main`
+
+**Hecho el 2026-11-10:** PR #3 y #4 fusionados, Render pasó a `main` con `Nothing to migrate` y Vercel se importó desde `main`. Se deja el procedimiento por si hay que repetirlo.
 
 1. Fusionar `rama-ia` a `main` con un Pull Request completo, para que lleguen las migraciones, el `Dockerfile` y `docker/`.
 2. No fusionar `rama-database`: crea las tablas otra vez con otros nombres de archivo y el servidor no arrancaría.
