@@ -95,7 +95,7 @@ const routes = [
         component: () => import('../views/estudiante/MiniProyectoDetalle.vue')
       },
 
-      // Historial de actividad (conversaciones con la IA y recomendaciones)
+      // Historial: solo las conversaciones con la IA (libres y guiadas)
       {
         path: 'historial',
         name: 'Historial',
