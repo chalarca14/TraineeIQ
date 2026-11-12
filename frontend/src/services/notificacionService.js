@@ -1,11 +1,8 @@
 import api from './api'
 
-// DATOS DE PRUEBA de la campana: el backend todavía no deja que el estudiante lea avisos (responde 403)
-// ni crea avisos de "guía nueva" o "semana liberada". Mientras Santi lo agrega, en desarrollo se usan
-// los avisos de abajo. import.meta.env.DEV es true solo con `npm run dev`: el build que se sube a
-// Vercel SIEMPRE usa la API real, aunque esto se suba sin cambiar.
-// Cuando el backend esté listo: cambiar a `false`.
-const USAR_DATOS_PRUEBA = import.meta.env.DEV
+// Datos reales (CLAUDE.md: USAR_DATOS_PRUEBA = false). El backend ya avisa al estudiante de guías
+// nuevas y semanas liberadas (rama-ia 94643a2). En true, la campana usa los avisos de abajo sin backend.
+const USAR_DATOS_PRUEBA = false
 
 const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const haceHoras = (horas) => new Date(Date.now() - horas * 3600000).toISOString()
