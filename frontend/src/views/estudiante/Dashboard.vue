@@ -11,7 +11,8 @@
             </select>
         </div>
 
-        <EstadoVista :cargando="cargando" :error="error" :vacio="Boolean(vacio)" :icono="vacioActual.icono"
+        <!-- Sin guía personal no se tapa todo: las tarjetas se ven en 0 y el vacío va abajo (sinGuias) -->
+        <EstadoVista :cargando="cargando" :error="error" :vacio="Boolean(vacio) && !sinGuias" :icono="vacioActual.icono"
             texto-cargando="Cargando tu resumen..." :texto-vacio="vacioActual.texto"
             :descripcion-vacio="vacioActual.descripcion" @reintentar="cargar">
             <template #vacio>
@@ -24,7 +25,17 @@
                 <StatCard v-for="stat in estadisticas" :key="stat.etiqueta" v-bind="stat" />
             </section>
 
-            <div class="fila-principal">
+            <!-- Mismo EstadoVista del vacío de Modo Grupo, con los textos de Personal -->
+            <EstadoVista v-if="sinGuias" vacio :icono="vacioActual.icono" :texto-vacio="vacioActual.texto"
+                :descripcion-vacio="vacioActual.descripcion">
+                <template #vacio>
+                    <RouterLink :to="vacioActual.accion.ruta" class="btn btn-primario btn-sm">
+                        {{ vacioActual.accion.texto }}
+                    </RouterLink>
+                </template>
+            </EstadoVista>
+
+            <div v-else class="fila-principal">
                 <GuiaActualCard :bloque="guiaActual" :es-personal="esPersonal" :grupo="grupo" />
                 <SiguientePaso :siguiente="siguiente" :hay-proyectos="proyectos.length > 0" />
             </div>
@@ -53,13 +64,13 @@ const {
 // Por si el usuario no trae nombre
 const primerNombre = computed(() => authStore.usuario?.name?.split(' ')[0] ?? 'estudiante')
 
-// Un vacío por situación. El de Personal no menciona el PDF: subir la guía se explica en "Mis guías"
+// Un vacío por situación. El de Personal se muestra debajo de las tarjetas; los de Grupo, en su lugar
 const VACIOS = {
     'sin-guias': {
         icono: BookOpen,
-        texto: 'Sube tu primera guía',
-        descripcion: 'Con ella preparamos tus semanas, recomendaciones y mini proyectos.',
-        accion: { texto: 'Ir a Mis guías', ruta: '/estudiante/guias' }
+        texto: 'Aún no tienes una guía personal',
+        descripcion: 'Sube tu guía en PDF para generar tu plan semanal y tus mini proyectos.',
+        accion: { texto: 'Subir mi primera guía', ruta: '/estudiante/guias' }
     },
     'sin-grupos': {
         icono: Users,
@@ -75,6 +86,9 @@ const VACIOS = {
     }
 }
 const vacioActual = computed(() => VACIOS[vacio.value] ?? { icono: null, texto: '', descripcion: '', accion: null })
+
+// Modo Personal sin ninguna guía: las tarjetas muestran 0 (no "—"), porque de verdad no hay nada que contar
+const sinGuias = computed(() => vacio.value === 'sin-guias')
 
 // Fracción entera de 0 a 100; null si no hay proyectos (no se inventa un 0 %)
 const porcentaje = computed(() =>
@@ -92,8 +106,9 @@ const tarjetasPersonal = computed(() => [
     },
     {
         etiqueta: 'Semana actual',
-        valor: semanaActual.value.numero ?? '—',
-        detalle: semanaActual.value.total ? `de ${semanaActual.value.total}` : 'Sin semanas abiertas',
+        valor: semanaActual.value.numero ?? (sinGuias.value ? 0 : '—'),
+        detalle: sinGuias.value ? 'sin guía activa'
+            : semanaActual.value.total ? `de ${semanaActual.value.total}` : 'Sin semanas abiertas',
         icono: CalendarDays,
         color: 'info'
     },
@@ -133,9 +148,10 @@ const tarjetasGrupo = computed(() => [
     }
 ])
 
-// Tarjeta con barra: sin proyectos abiertos no hay barra, solo el aviso
+// Tarjeta con barra: sin proyectos abiertos no hay barra, solo el aviso. Sin guías: 0 % y barra vacía
 function tarjetaAvance(etiqueta, valor) {
     const base = { etiqueta, icono: Target, color: 'success' }
+    if (sinGuias.value) return { ...base, valor: '0%', progreso: 0 }
     if (porcentaje.value === null) return { ...base, valor: '—', detalle: 'Aún no hay proyectos abiertos' }
     return { ...base, valor: valor ?? `${porcentaje.value}%`, progreso: porcentaje.value }
 }
