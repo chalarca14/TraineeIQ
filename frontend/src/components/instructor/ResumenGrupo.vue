@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Info, BookOpen } from 'lucide-vue-next'
+import { BookOpen } from 'lucide-vue-next'
 import PanelTarjeta from '@/components/ui/PanelTarjeta.vue'
 import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
 import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
@@ -11,7 +11,8 @@ import { formatearFecha } from '@/utils/fechas'
 
 // Pestaña "Resumen" del grupo (instructor). Solo datos que el backend tiene (PLAN I-2): sin "Editar",
 // ficha ni programa, sin el anillo de progreso (eso se calcula en Estadísticas, I-7) y sin las
-// "Acciones rápidas" tachadas en el boceto.
+// "Acciones rápidas" tachadas en el boceto. Tampoco repite "Información del grupo": descripción,
+// código, fecha y semana ya están en la cabecera, que se ve en todas las pestañas.
 const props = defineProps({ grupo: { type: Object, required: true } })
 // "Ver todas" de las guías cambia a la pestaña Guías: la vista es la que maneja las pestañas
 const emit = defineEmits(['ir-a'])
@@ -37,65 +38,51 @@ onMounted(cargarGuias)
 </script>
 
 <template>
+  <!-- Dos columnas independientes (no filas de una cuadrícula): así cada tarjeta queda pegada a la de
+       arriba aunque la de al lado sea más alta, sin huecos -->
   <div class="resumen">
-    <PanelTarjeta titulo="Información del grupo" :icono="Info">
-      <dl class="info">
-        <div class="info__completa">
-          <dt>Descripción</dt>
-          <dd>{{ grupo.descripcion || 'Sin descripción.' }}</dd>
-        </div>
-        <div>
-          <dt>Código de acceso</dt>
-          <dd>{{ grupo.codigo_acceso }}</dd>
-        </div>
-        <div>
-          <dt>Creado</dt>
-          <dd>{{ formatearFecha(grupo.created_at) || '—' }}</dd>
-        </div>
-        <div>
-          <dt>Semana liberada</dt>
-          <dd>{{ grupo.semana_actual }}<template v-if="grupo.ultima_semana"> de {{ grupo.ultima_semana }}</template></dd>
-        </div>
-      </dl>
-    </PanelTarjeta>
+    <div class="columna">
+      <PanelTarjeta :titulo="cargandoGuias || errorGuias ? 'Guías asignadas' : `Guías asignadas (${guias.length})`"
+        :icono="BookOpen">
+        <template v-if="guias.length" #accion>
+          <button type="button" class="enlace" @click="emit('ir-a', 'guias')">Ver todas</button>
+        </template>
 
-    <PanelTarjeta :titulo="cargandoGuias || errorGuias ? 'Guías asignadas' : `Guías asignadas (${guias.length})`"
-      :icono="BookOpen">
-      <template v-if="guias.length" #accion>
-        <button type="button" class="enlace" @click="emit('ir-a', 'guias')">Ver todas</button>
-      </template>
+        <CargaEsqueleto v-if="cargandoGuias" texto="Cargando las guías del grupo…">
+          <EsqueletoLista :filas="2" :lineas="2" />
+        </CargaEsqueleto>
+        <div v-else-if="errorGuias" class="error" role="alert">
+          <p>{{ errorGuias }}</p>
+          <button type="button" class="btn btn-secundario btn-sm" @click="cargarGuias">Reintentar</button>
+        </div>
+        <p v-else-if="!guias.length" class="vacio">
+          Este grupo aún no tiene guías. Podrás asignarlas en la pestaña Guías.
+        </p>
+        <ul v-else class="guias">
+          <li v-for="g in guias" :key="g.id">
+            <span class="guias__icono" aria-hidden="true"><BookOpen :size="18" /></span>
+            <div class="guias__texto">
+              <strong>{{ g.nombre }}</strong>
+              <span>
+                {{ g.semanas_totales }} {{ g.semanas_totales === 1 ? 'semana' : 'semanas' }}
+                <template v-if="g.created_at"> · asignada el {{ formatearFecha(g.created_at) }}</template>
+              </span>
+            </div>
+          </li>
+        </ul>
+      </PanelTarjeta>
 
-      <CargaEsqueleto v-if="cargandoGuias" texto="Cargando las guías del grupo…">
-        <EsqueletoLista :filas="2" :lineas="2" />
-      </CargaEsqueleto>
-      <div v-else-if="errorGuias" class="error" role="alert">
-        <p>{{ errorGuias }}</p>
-        <button type="button" class="btn btn-secundario btn-sm" @click="cargarGuias">Reintentar</button>
-      </div>
-      <p v-else-if="!guias.length" class="vacio">
-        Este grupo aún no tiene guías. Podrás asignarlas en la pestaña Guías.
-      </p>
-      <ul v-else class="guias">
-        <li v-for="g in guias" :key="g.id">
-          <span class="guias__icono" aria-hidden="true"><BookOpen :size="18" /></span>
-          <div class="guias__texto">
-            <strong>{{ g.nombre }}</strong>
-            <span>
-              {{ g.semanas_totales }} {{ g.semanas_totales === 1 ? 'semana' : 'semanas' }}
-              <template v-if="g.created_at"> · asignada el {{ formatearFecha(g.created_at) }}</template>
-            </span>
-          </div>
-        </li>
-      </ul>
-    </PanelTarjeta>
+      <UltimasEntregas :grupo-id="grupo.id" />
+    </div>
 
-    <EstudiantesGrupo :estudiantes="grupo.estudiantes ?? []" />
-    <UltimasEntregas :grupo-id="grupo.id" />
+    <div class="columna">
+      <EstudiantesGrupo :estudiantes="grupo.estudiantes ?? []" />
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* Dos columnas en escritorio; una en tablet y celular */
+/* Dos columnas en escritorio; en tablet y celular se apilan (guías, entregas y luego estudiantes) */
 .resumen {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -103,36 +90,15 @@ onMounted(cargarGuias)
   align-items: start;
 }
 
+.columna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-md);
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .resumen {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.info {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--espacio-md);
-  margin: 0;
-}
-
-.info__completa {
-  grid-column: 1 / -1;
-}
-
-.info dt {
-  color: var(--color-text-secondary);
-  font-size: .8rem;
-}
-
-.info dd {
-  margin: .15rem 0 0;
-  overflow-wrap: anywhere;
-  white-space: pre-line;
-}
-
-@media (max-width: 480px) {
-  .info {
     grid-template-columns: minmax(0, 1fr);
   }
 }
