@@ -37,7 +37,9 @@
                         <EtiquetaNivel :valor="m.dificultad" />
                     </div>
                     <p><TextoConCodigo :texto="m.descripcion" /></p>
-                    <RouterLink class="btn btn-secundario btn-sm" :to="{ name: 'MiniProyectoDetalle', params: { id: m.id } }">
+                    <!-- El instructor solo lee el proyecto: la pantalla de entrega es del aprendiz -->
+                    <RouterLink v-if="!esInstructor" class="btn btn-secundario btn-sm"
+                        :to="{ name: 'MiniProyectoDetalle', params: { id: m.id } }">
                         Ver proyecto <ArrowRight :size="15" />
                     </RouterLink>
                 </article>
@@ -55,6 +57,7 @@ import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 import TemaDesplegable from '@/components/guias/TemaDesplegable.vue'
 import { leerContenido } from '@/utils/recomendaciones'
+import { useAuthStore } from '@/stores/auth'
 
 // Una SECCIÓN del contenido de UNA semana ya lista (GET /guias/{id}/semanas/{n}). Cada pestaña del
 // panel (Temas, Recomendaciones, Mini proyectos) pinta la suya con `seccion`; la pestaña Guía tiene
@@ -64,6 +67,9 @@ const props = defineProps({
     // 'temas' | 'recomendaciones' | 'proyectos'
     seccion: { type: String, required: true }
 })
+
+// Se lee del store y no de una prop: así no hay que pasarla por PanelSemana, que no la usa
+const esInstructor = useAuthStore().rolUsuario === 'instructor'
 
 const ordenar = (lista) => [...(lista ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
 

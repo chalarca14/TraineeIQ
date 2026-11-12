@@ -20,6 +20,13 @@
                     <span class="datos">
                         <span class="titulo">{{ s.titulo || `Semana ${s.numero_semana}` }}</span>
                         <ChipEstadoSemana :semana="s" :generando-aqui="generandoAqui === s.numero_semana" />
+                        <!-- Instructor: él ve todas las semanas; aquí sabe cuáles ven ya sus estudiantes -->
+                        <span v-if="semanaLiberada != null" class="visibilidad"
+                            :class="{ 'visibilidad--no': s.numero_semana > semanaLiberada }">
+                            <Eye v-if="s.numero_semana <= semanaLiberada" :size="13" aria-hidden="true" />
+                            <EyeOff v-else :size="13" aria-hidden="true" />
+                            {{ textoVisibilidad(s) }}
+                        </span>
                     </span>
                     <Lock v-if="!s.disponible" :size="16" class="candado" aria-label="Semana bloqueada" />
                 </button>
@@ -30,7 +37,7 @@
 
 <script setup>
 import { useId } from 'vue'
-import { ChevronDown, Lock } from 'lucide-vue-next'
+import { ChevronDown, Lock, Eye, EyeOff } from 'lucide-vue-next'
 import ChipEstadoSemana from '@/components/guias/ChipEstadoSemana.vue'
 import { estadoSemana } from '@/utils/estadoSemana'
 
@@ -41,7 +48,9 @@ const props = defineProps({
     // Número de la semana elegida
     activa: { type: Number, default: null },
     // Número de la semana que esta pantalla está generando ahora (para el chip "Generando…")
-    generandoAqui: { type: Number, default: null }
+    generandoAqui: { type: Number, default: null },
+    // Solo el instructor: semana_actual del grupo (hasta dónde la ven los estudiantes). null = no aplica
+    semanaLiberada: { type: Number, default: null }
 })
 defineEmits(['seleccionar'])
 
@@ -52,7 +61,12 @@ const idSelect = useId()
 function textoOpcion(semana) {
     const { texto } = estadoSemana(semana, props.generandoAqui === semana.numero_semana)
     const candado = semana.disponible ? '' : '🔒 '
-    return `${candado}${semana.numero_semana}. ${semana.titulo || 'Sin título'} · ${texto}`
+    const visibilidad = props.semanaLiberada != null ? ` · ${textoVisibilidad(semana)}` : ''
+    return `${candado}${semana.numero_semana}. ${semana.titulo || 'Sin título'} · ${texto}${visibilidad}`
+}
+
+function textoVisibilidad(semana) {
+    return semana.numero_semana <= props.semanaLiberada ? 'La ven tus estudiantes' : 'Aún no liberada'
 }
 </script>
 
@@ -183,5 +197,17 @@ h2 {
     .selector { display: block; }
     .lista { display: none; }
     .semanas { padding: .8rem; }
+}
+
+.visibilidad {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    color: var(--color-success);
+    font-size: .72rem;
+}
+
+.visibilidad--no {
+    color: var(--color-text-secondary);
 }
 </style>

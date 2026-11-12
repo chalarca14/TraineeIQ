@@ -65,7 +65,32 @@ export async function listarMisGuias() {
     return (await pedirTodasLasGuias()).filter((guia) => guia.origen === 'personal')
 }
 
-/** Sube un PDF; el backend lo lee y lo divide en temas. */
+/**
+ * Arma el FormData de una guía y la envía. grupoId y semanasTotales solo van si vienen: el estudiante
+ * NUNCA manda grupo_id (el backend responde 422) y el instructor SIEMPRE (si no, 422).
+ * Sin 'origen' (lo decide el backend) y sin Content-Type (el navegador lo genera con el límite del
+ * FormData). Timeout de 120 s porque el backend lee el PDF y llama a la IA.
+ */
+async function enviarGuia({ nombre, archivo, grupoId = null, semanasTotales = null }) {
+    const formData = new FormData()
+    formData.append('nombre', nombre)
+    formData.append('archivo', archivo)
+    if (grupoId != null) formData.append('grupo_id', grupoId)
+    if (semanasTotales != null) formData.append('semanas_totales', semanasTotales)
+    const { data } = await api.post('/guias', formData, { timeout: 120000 })
+    return data
+}
+
+/**
+ * Instructor: asigna una guía a su grupo. Devuelve { guia, yaExistia }: con yaExistia (200) el mismo
+ * PDF ya estaba en el grupo y el backend NO lo duplica; con 201 las semanas llegan "pendiente".
+ */
+export async function asignarGuia({ nombre, archivo, grupoId, semanasTotales = null }) {
+    const data = await enviarGuia({ nombre, archivo, grupoId, semanasTotales })
+    return { guia: data.guia, yaExistia: Boolean(data.ya_existia) }
+}
+
+/** Estudiante (Modo Personal): sube un PDF; el backend lo lee y lo divide en temas. */
 export async function subirGuia({ nombre, archivo }) {
     if (USAR_DATOS_PRUEBA) {
         await esperar(1200) // simula el tiempo de leer el PDF y dividirlo con la IA
@@ -83,12 +108,7 @@ export async function subirGuia({ nombre, archivo }) {
         return nueva
     }
 
-    const formData = new FormData()
-    formData.append('nombre', nombre)
-    formData.append('archivo', archivo)
-    // Sin 'origen' (lo decide el backend) y sin Content-Type (el navegador lo genera solo).
-    // El timeout es de 120 s porque el backend lee el PDF y llama a la IA
-    const { data } = await api.post('/guias', formData, { timeout: 120000 })
+    const data = await enviarGuia({ nombre, archivo })
     return data.guia
 }
 

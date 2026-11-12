@@ -161,6 +161,12 @@ const routes = [
         path: 'grupos/:id',
         name: 'InstructorGrupoDetalle',
         component: () => import('../views/instructor/GrupoDetalle.vue')
+      },
+      // Tarea I-3: la guía por semanas, reutilizando la vista del aprendiz en modo instructor
+      {
+        path: 'grupos/:grupoId/guias/:guiaId',
+        name: 'InstructorGuiaSemanas',
+        component: () => import('../views/estudiante/GuiaSemanas.vue')
       }
     ]
   },
