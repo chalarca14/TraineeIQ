@@ -19,10 +19,9 @@ export const useModoStore = defineStore('modo', {
 
             try {
                 await actualizarModo(nuevoModo)
-            } catch (error) {
-                // El modo es solo una preferencia de pantalla. Si no se pudo guardar en el
-                // servidor, seguimos con el cambio local en vez de romper la interfaz
-                console.warn('No se pudo guardar el modo en el servidor')
+            } catch {
+                // Se ignora a propósito: el modo es solo una preferencia de pantalla. Si no se pudo
+                // guardar en el servidor, seguimos con el cambio local en vez de romper la interfaz
             }
         }
     }
