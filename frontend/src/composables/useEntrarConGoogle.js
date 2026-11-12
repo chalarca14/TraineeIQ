@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { loginConGoogle } from '@/services/authService'
@@ -17,6 +17,9 @@ export function useEntrarConGoogle(rol) {
 
     // Datos de una cuenta nueva que aún debe completar su registro (abre la ventana flotante)
     const registroPendiente = ref(null)
+
+    // Ref al componente BotonGoogle (la pantalla lo enlaza con ref="botonGoogle")
+    const botonGoogle = ref(null)
 
     // Igual que el login normal: guarda la sesión y redirige según el rol que devolvió el backend
     function entrarAlDashboard(data) {
@@ -50,10 +53,16 @@ export function useEntrarConGoogle(rol) {
         }
     }
 
-    // El usuario cerró la ventana sin terminar: no se crea ninguna cuenta
-    function cancelarRegistro() {
+    // El usuario canceló la ventana: se borra lo pendiente (token de registro y rol) y no se crea
+    // ninguna cuenta. El foco vuelve al botón de Google, desde donde se abrió, para poder reintentar
+    async function cancelarRegistro() {
         registroPendiente.value = null
+        await nextTick()
+        botonGoogle.value?.enfocar()
     }
 
-    return { cargandoGoogle, errorGoogle, registroPendiente, alRecibirCredencial, entrarAlDashboard, cancelarRegistro }
+    return {
+        cargandoGoogle, errorGoogle, registroPendiente, botonGoogle,
+        alRecibirCredencial, entrarAlDashboard, cancelarRegistro
+    }
 }

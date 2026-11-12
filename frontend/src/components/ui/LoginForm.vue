@@ -22,7 +22,7 @@
         </div>
 
         <!-- Continuar con Google: usa el rol de la pestaña, igual que el formulario -->
-        <BotonGoogle :cargando="cargandoGoogle" :error="errorGoogle" @credencial="alRecibirCredencial" />
+        <BotonGoogle ref="botonGoogle" :cargando="cargandoGoogle" :error="errorGoogle" @credencial="alRecibirCredencial" />
 
         <CompletarRegistroGoogleModal v-if="registroPendiente" :registro="registroPendiente"
             @cerrar="cancelarRegistro" @registrado="entrarAlDashboard" />
@@ -123,7 +123,7 @@ const password = ref('')
 const rol = ref('estudiante')
 
 // Continuar con Google: la lógica está en el composable, compartida con el registro
-const { cargandoGoogle, errorGoogle, registroPendiente, alRecibirCredencial, entrarAlDashboard, cancelarRegistro } =
+const { cargandoGoogle, errorGoogle, registroPendiente, botonGoogle, alRecibirCredencial, entrarAlDashboard, cancelarRegistro } =
     useEntrarConGoogle(rol)
 const mostrarPassword = ref(false)
 const cargando = ref(false)
