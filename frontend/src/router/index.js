@@ -149,6 +149,12 @@ const routes = [
         path: 'dashboard',
         name: 'InstructorDashboard',
         component: () => import('../views/instructor/Dashboard.vue')
+      },
+      // Tarea I-1: grupos del instructor (crear, copiar código, eliminar)
+      {
+        path: 'grupos',
+        name: 'InstructorMisGrupos',
+        component: () => import('../views/instructor/MisGrupos.vue')
       }
     ]
   },

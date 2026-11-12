@@ -81,7 +81,7 @@ const menuPersonal = [
 // El instructor no tiene modos, así que su menú no cambia
 const menuInstructor = [
     { etiqueta: 'Inicio', icono: Home, ruta: '/instructor/dashboard', descripcion: 'Resumen de tus grupos.' },
-    { etiqueta: 'Mis Grupos', icono: Users, ruta: null, descripcion: 'Grupos que administras.' },
+    { etiqueta: 'Mis Grupos', icono: Users, ruta: '/instructor/grupos', descripcion: 'Grupos que administras.' },
     { etiqueta: 'Subir Guía', icono: Upload, ruta: null, descripcion: 'Carga guías en PDF para tus grupos.' },
     { etiqueta: 'Perfil', icono: User, ruta: null, descripcion: 'Datos de tu cuenta.' }
 ]
