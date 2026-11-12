@@ -2,7 +2,9 @@
     <div class="guia">
         <!-- Texto plano de la guía (transcrito del PDF). Se pinta con {{ }} y white-space: pre-line,
              nunca con v-html: así conserva los saltos de línea sin interpretar nada como HTML -->
-        <p v-if="texto" class="texto">{{ texto }}</p>
+        <div v-if="texto" class="lectura">
+            <p class="texto">{{ texto }}</p>
+        </div>
         <p v-else class="vacio">Esta semana no trae texto de la guía.</p>
 
         <!-- El id fijo deja que la vista le devuelva el foco al volver de "Guía completa" -->
@@ -24,14 +26,36 @@ defineEmits(['ver-completa'])
 .guia {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--espacio-md);
 }
 
+/* Área de lectura: fondo suave y un borde de acento a la izquierda, para que el texto de la guía
+   se distinga del resto del panel */
+.lectura {
+    padding: var(--espacio-lg);
+    border: 1px solid var(--color-card);
+    border-left: 3px solid var(--color-primary);
+    border-radius: 14px;
+    background: var(--color-background);
+}
+
+/* ~70 caracteres por línea y más interlineado: se lee con menos esfuerzo que una línea de todo el ancho */
 .texto {
+    max-width: 70ch;
     white-space: pre-line;
     overflow-wrap: anywhere;
-    line-height: 1.65;
-    font-size: .93rem;
+    line-height: 1.75;
+    font-size: 1rem;
+}
+
+@media (max-width: 520px) {
+    .lectura {
+        padding: var(--espacio-md);
+    }
+
+    .texto {
+        font-size: .95rem;
+    }
 }
 
 .ver {

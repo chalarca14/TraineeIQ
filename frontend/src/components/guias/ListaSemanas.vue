@@ -1,6 +1,6 @@
 <template>
     <section class="semanas" :aria-labelledby="idTitulo">
-        <h2 :id="idTitulo">Semanas</h2>
+        <h2 :id="idTitulo">Recorrido</h2>
 
         <!-- 360 px: un selector nativo. Lo maneja el teclado del celular y no necesita scroll -->
         <div class="selector">
@@ -19,13 +19,16 @@
                     <span class="numero" aria-hidden="true">{{ s.numero_semana }}</span>
                     <span class="datos">
                         <span class="titulo">{{ s.titulo || `Semana ${s.numero_semana}` }}</span>
-                        <ChipEstadoSemana :semana="s" :generando-aqui="generandoAqui === s.numero_semana" />
-                        <!-- Instructor: él ve todas las semanas; aquí sabe cuáles ven ya sus estudiantes -->
-                        <span v-if="semanaLiberada != null" class="visibilidad"
-                            :class="{ 'visibilidad--no': s.numero_semana > semanaLiberada }">
-                            <Eye v-if="s.numero_semana <= semanaLiberada" :size="13" aria-hidden="true" />
-                            <EyeOff v-else :size="13" aria-hidden="true" />
-                            {{ textoVisibilidad(s) }}
+                        <!-- Estado y visibilidad en UNA línea debajo del título: antes eran tres renglones -->
+                        <span class="estado-fila">
+                            <ChipEstadoSemana :semana="s" :generando-aqui="generandoAqui === s.numero_semana" />
+                            <!-- Instructor: él ve todas las semanas; aquí sabe cuáles ven ya sus estudiantes -->
+                            <span v-if="semanaLiberada != null" class="visibilidad"
+                                :class="{ 'visibilidad--no': s.numero_semana > semanaLiberada }">
+                                <Eye v-if="s.numero_semana <= semanaLiberada" :size="13" aria-hidden="true" />
+                                <EyeOff v-else :size="13" aria-hidden="true" />
+                                {{ textoVisibilidad(s) }}
+                            </span>
                         </span>
                     </span>
                     <Lock v-if="!s.disponible" :size="16" class="candado" aria-label="Semana bloqueada" />
@@ -116,7 +119,7 @@ h2 {
 .lista {
     display: flex;
     flex-direction: column;
-    gap: .4rem;
+    gap: 0;
     max-height: 60vh;
     margin: 0;
     padding: 0;
@@ -124,12 +127,29 @@ h2 {
     list-style: none;
 }
 
+/* Recorrido: una línea vertical une los números, como una ruta de una semana a la siguiente */
+.lista li {
+    position: relative;
+}
+
+.lista li:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: 2.6rem;
+    bottom: -.4rem;
+    left: calc(.7rem + 15px);
+    width: 2px;
+    background: color-mix(in srgb, var(--color-primary) 35%, var(--color-card));
+}
+
 .fila {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: .7rem;
+    gap: .8rem;
     width: 100%;
-    padding: .65rem .7rem;
+    margin-bottom: .4rem;
+    padding: .7rem;
     border: 1px solid transparent;
     border-radius: 12px;
     background: none;
@@ -150,6 +170,8 @@ h2 {
 }
 
 .numero {
+    position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
     width: 30px;
@@ -175,8 +197,16 @@ h2 {
 }
 
 .titulo {
-    font-size: .9rem;
+    font-size: .92rem;
+    font-weight: 600;
     overflow-wrap: anywhere;
+}
+
+.estado-fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem .6rem;
 }
 
 .candado {

@@ -3,7 +3,11 @@
         <!-- aria-expanded le dice al lector de pantalla si el panel está abierto; aria-controls, cuál es el panel -->
         <button type="button" class="cabecera" :aria-expanded="abierto" :aria-controls="idPanel" @click="abierto = !abierto">
             <span class="orden" aria-hidden="true">{{ tema.orden }}</span>
-            <strong>{{ tema.nombre_tema }}</strong>
+            <span class="titulos">
+                <strong>{{ tema.nombre_tema }}</strong>
+                <!-- Cerrado: el inicio de la descripción, para saber de qué trata sin abrirlo -->
+                <span v-if="!abierto && tema.descripcion" class="vista-previa">{{ tema.descripcion }}</span>
+            </span>
             <ChevronDown :size="18" class="chevron" :class="{ girado: abierto }" aria-hidden="true" />
         </button>
 
@@ -28,9 +32,9 @@ const idPanel = useId()
 
 <style scoped>
 .tema {
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    background: var(--color-surface);
+    border: 1px solid var(--color-card);
+    border-radius: 14px;
+    background: var(--color-background);
     transition: border-color .2s;
 }
 
@@ -42,9 +46,10 @@ const idPanel = useId()
 .cabecera {
     display: flex;
     align-items: center;
-    gap: .8rem;
+    gap: var(--espacio-md);
     width: 100%;
-    padding: .7rem .9rem;
+    min-height: 44px;
+    padding: var(--espacio-md);
     border: none;
     background: none;
     color: var(--color-text);
@@ -53,23 +58,46 @@ const idPanel = useId()
     cursor: pointer;
 }
 
-.cabecera strong {
+.titulos {
+    display: flex;
     flex: 1;
+    flex-direction: column;
+    gap: .2rem;
     min-width: 0;
+}
+
+.titulos strong {
     overflow-wrap: anywhere;
+}
+
+/* Dos líneas como máximo: es una vista previa, el texto completo se ve al abrir */
+.vista-previa {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font-size: .82rem;
+    font-weight: 400;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
 }
 
 .orden {
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
     border-radius: 50%;
     background: color-mix(in srgb, var(--color-primary) 22%, var(--color-card));
     color: var(--color-primary-light);
-    font-size: .75rem;
+    font-size: .85rem;
     font-weight: 700;
+}
+
+.tema.abierto .orden {
+    background: var(--gradiente-primario);
+    color: var(--color-text);
 }
 
 .chevron {
@@ -83,10 +111,17 @@ const idPanel = useId()
 }
 
 .cuerpo {
-    padding: 0 .9rem .9rem 3.2rem;
+    padding: 0 var(--espacio-md) var(--espacio-md) 4rem;
     color: var(--color-text-secondary);
-    font-size: .88rem;
+    font-size: .92rem;
+    line-height: 1.7;
     overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+    .cuerpo {
+        padding-left: var(--espacio-md);
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -10,8 +10,9 @@
 
         <template v-else-if="seccion === 'recomendaciones'">
             <div v-if="recomendaciones.length" class="tarjetas">
-                <article v-for="r in recomendaciones" :key="r.id" class="tarjeta">
+                <article v-for="r in recomendaciones" :key="r.id" class="tarjeta" :style="{ '--c': colorNivel(r.nivel) }">
                     <div class="tarjeta-top">
+                        <span class="tarjeta-icono" aria-hidden="true"><Sparkles :size="16" /></span>
                         <strong>{{ r.leido.titulo }}</strong>
                         <EtiquetaNivel :valor="r.nivel" />
                     </div>
@@ -31,8 +32,9 @@
 
         <template v-else-if="seccion === 'proyectos'">
             <div v-if="miniProyectos.length" class="tarjetas">
-                <article v-for="m in miniProyectos" :key="m.id" class="tarjeta">
+                <article v-for="m in miniProyectos" :key="m.id" class="tarjeta" :style="{ '--c': colorNivel(m.dificultad) }">
                     <div class="tarjeta-top">
+                        <span class="tarjeta-icono" aria-hidden="true"><Rocket :size="16" /></span>
                         <strong>{{ m.titulo }}</strong>
                         <EtiquetaNivel :valor="m.dificultad" />
                     </div>
@@ -52,7 +54,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { ArrowRight } from 'lucide-vue-next'
+import { ArrowRight, Sparkles, Rocket } from 'lucide-vue-next'
 import EtiquetaNivel from '@/components/personal/EtiquetaNivel.vue'
 import TextoConCodigo from '@/components/miniproyectos/TextoConCodigo.vue'
 import TemaDesplegable from '@/components/guias/TemaDesplegable.vue'
@@ -71,6 +73,16 @@ const props = defineProps({
 // Se lee del store y no de una prop: así no hay que pasarla por PanelSemana, que no la usa
 const esInstructor = useAuthStore().rolUsuario === 'instructor'
 
+// Color del borde de cada tarjeta según su nivel (las mismas variables de la app, nada de colores sueltos)
+const COLOR_NIVEL = {
+    basico: 'var(--color-success)',
+    recomendado: 'var(--color-info)',
+    intermedio: 'var(--color-warning)',
+    importante: 'var(--color-warning)',
+    avanzado: 'var(--color-danger)'
+}
+const colorNivel = (nivel) => COLOR_NIVEL[nivel] ?? 'var(--color-primary-light)'
+
 const ordenar = (lista) => [...(lista ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
 
 const temas = computed(() => ordenar(props.semana.temas))
@@ -85,43 +97,72 @@ const miniProyectos = computed(() => ordenar(props.semana.mini_proyectos))
 .lista {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: var(--espacio-sm);
 }
 
 .tarjetas {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-    gap: .8rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: var(--espacio-md);
 }
 
+/* El borde izquierdo lleva el color del nivel: se distingue de un vistazo qué es básico y qué avanzado */
 .tarjeta {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
-    padding: .9rem;
-    border: 1px solid var(--color-border);
+    gap: var(--espacio-sm);
+    padding: 1.1rem;
+    border: 1px solid var(--color-card);
+    border-left: 3px solid var(--c);
     border-radius: 14px;
-    background: var(--color-surface);
+    background: var(--color-background);
+    transition: border-color .2s, transform .2s;
+}
+
+.tarjeta:hover {
+    border-color: color-mix(in srgb, var(--c) 55%, var(--color-card));
+    border-left-color: var(--c);
+    transform: translateY(-2px);
 }
 
 .tarjeta-top {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: .6rem;
+    gap: var(--espacio-sm);
+}
+
+.tarjeta-icono {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--c) 18%, var(--color-card));
+    color: var(--c);
 }
 
 .tarjeta-top strong {
+    flex: 1;
     min-width: 0;
-    font-size: .92rem;
+    align-self: center;
+    font-size: .95rem;
     overflow-wrap: anywhere;
 }
 
 .tarjeta p {
     flex: 1;
     color: var(--color-text-secondary);
-    font-size: .85rem;
+    font-size: .88rem;
+    line-height: 1.6;
     overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tarjeta,
+    .tarjeta:hover {
+        transform: none;
+    }
 }
 
 /* La línea "Estudia / Te ayuda con" se distingue de la descripción sin usar colores nuevos */

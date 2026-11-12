@@ -51,11 +51,12 @@
                          (guardada aquí) sigue siendo la misma, y el contenido ya está en el store -->
                     <GuiaCompleta v-if="verCompleta" :guia-id="guia.id" @volver="volverASemana" />
                     <PanelSemana v-else-if="store.semanaSeleccionada" v-model:pestana="pestana" :semana="store.semanaSeleccionada"
-                        :anterior="semanaAnterior" :contenido="store.contenido" :cargando-contenido="store.cargandoContenido"
+                        :anterior="vecinas.anterior" :siguiente="vecinas.siguiente" :total="store.semanas.length"
+                        :contenido="store.contenido" :cargando-contenido="store.cargandoContenido"
                         :error-contenido="store.error" :generando-aqui="store.generandoAqui === store.semanaActiva"
                         :revisando="store.revisando" :es-dueno="esDueno" :es-personal="esPersonal"
                         @reintentar="store.reintentar(store.semanaActiva)" @revisar="store.revisar()"
-                        @recargar="store.cargarContenido()" @ver-completa="verCompleta = true" />
+                        @recargar="store.cargarContenido()" @ver-completa="verCompleta = true" @seleccionar="elegirSemana" />
                 </div>
 
                 <TarjetaDudasIA v-if="!esInstructor" class="area-dudas" :guia-id="guia.id" />
@@ -125,9 +126,10 @@ const semanaActual = computed(() => {
     return abiertas.length ? semanaPorDefecto.value : null
 })
 
-const semanaAnterior = computed(() => {
+// Semanas antes y después de la abierta: para el candado (anterior) y los botones de navegación
+const vecinas = computed(() => {
     const i = store.semanas.findIndex((s) => s.numero_semana === store.semanaActiva)
-    return i > 0 ? store.semanas[i - 1] : null
+    return { anterior: i > 0 ? store.semanas[i - 1] : null, siguiente: i >= 0 ? store.semanas[i + 1] ?? null : null }
 })
 
 const descripcion = computed(() =>
