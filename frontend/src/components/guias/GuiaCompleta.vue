@@ -1,6 +1,6 @@
 <template>
     <section class="completa" aria-labelledby="titulo-completa">
-        <header class="barra">
+        <header ref="barra" class="barra">
             <button type="button" class="btn btn-secundario btn-sm" @click="$emit('volver')">
                 <ArrowLeft :size="15" aria-hidden="true" /> Volver a la semana
             </button>
@@ -38,7 +38,9 @@
                 <p v-else class="estado">Esta semana no trae texto.</p>
             </article>
 
-            <button type="button" class="btn btn-secundario btn-sm abajo" @click="$emit('volver')">
+            <!-- Solo un "Volver" a la vista: este aparece cuando el de arriba ya salió de la pantalla
+                 (guía larga, al final). En una guía corta los dos se verían juntos, así que se oculta. -->
+            <button v-show="!arribaVisible" type="button" class="btn btn-secundario btn-sm abajo" @click="$emit('volver')">
                 <ArrowLeft :size="15" aria-hidden="true" /> Volver a la semana
             </button>
         </template>
@@ -46,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ArrowLeft, Info, Lock } from 'lucide-vue-next'
 import { getTextoGuia } from '@/services/guiaService'
 import { mensajeDeError } from '@/utils/errores'
@@ -57,6 +59,10 @@ const props = defineProps({ guiaId: { type: Number, required: true } })
 defineEmits(['volver'])
 
 const titulo = ref(null)
+const barra = ref(null)
+// true mientras el "Volver" de arriba se ve en pantalla (al abrir, siempre se ve)
+const arribaVisible = ref(true)
+let observador = null
 const semanas = ref([])
 const cargando = ref(true)
 const error = ref('')
@@ -77,7 +83,18 @@ onMounted(() => {
     cargar()
     // El título existe desde el primer momento: el foco no espera a que llegue el texto
     nextTick(() => titulo.value?.focus())
+
+    // IntersectionObserver avisa cuando un elemento entra o sale de la pantalla, sin escuchar cada
+    // movimiento del scroll (más liviano que un evento 'scroll'). Funciona aunque quien scrollea
+    // sea .app-main y no la ventana.
+    observador = new IntersectionObserver(([entrada]) => {
+        arribaVisible.value = entrada.isIntersecting
+    })
+    observador.observe(barra.value)
 })
+
+// Al salir de la vista se deja de observar, para no dejar el observador vivo en memoria
+onBeforeUnmount(() => observador?.disconnect())
 </script>
 
 <style scoped>
