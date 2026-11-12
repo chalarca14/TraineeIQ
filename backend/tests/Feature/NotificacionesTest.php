@@ -8,6 +8,8 @@ use App\Models\MiniProyecto;
 use App\Models\Notificacion;
 use App\Models\User;
 use App\Services\NotificacionService;
+use App\Services\ProcesarGuiaService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -154,10 +156,181 @@ class NotificacionesTest extends TestCase
             ->assertJsonCount(0, 'notificaciones.data');
         $this->patchJson("/api/notificaciones/{$aviso->id}/leida")->assertForbidden();
 
+        // El estudiante también usa la campanita, pero nunca ve ni marca los avisos del instructor
         Sanctum::actingAs($this->estudiante);
-        $this->getJson('/api/notificaciones')->assertForbidden();
+        $this->getJson('/api/notificaciones')->assertOk()->assertJsonCount(0, 'notificaciones.data');
+        $this->patchJson("/api/notificaciones/{$aviso->id}/leida")->assertForbidden();
 
         $this->assertNull($aviso->fresh()->leida_en);
+    }
+
+    /**
+     * Liberar una semana avisa al estudiante, que ve el aviso, lo marca como leído
+     * y no puede tocar los de otro estudiante.
+     */
+    public function test_el_estudiante_ve_y_marca_sus_avisos(): void
+    {
+        $guia = Guia::firstOrFail();
+        $this->crearSemana($guia, 2);
+
+        $this->liberar(2)->assertOk();
+
+        Sanctum::actingAs($this->estudiante);
+        $respuesta = $this->getJson('/api/notificaciones')
+            ->assertOk()
+            ->assertJsonPath('no_leidas', 1)
+            ->assertJsonPath('notificaciones.data.0.tipo', 'semana_liberada')
+            ->assertJsonPath('notificaciones.data.0.mensaje', 'Ya puedes ver la semana 2 de «Fundamentos JS» en «ADSO».')
+            ->assertJsonPath('notificaciones.data.0.datos.guia_id', $guia->id)
+            ->assertJsonPath('notificaciones.data.0.datos.guia', 'Fundamentos JS')
+            ->assertJsonPath('notificaciones.data.0.datos.grupo', 'ADSO')
+            ->assertJsonPath('notificaciones.data.0.datos.numero_semana', 2);
+
+        $avisoId = $respuesta->json('notificaciones.data.0.id');
+
+        Sanctum::actingAs(User::factory()->create(['rol' => 'estudiante']));
+        $this->patchJson("/api/notificaciones/{$avisoId}/leida")->assertForbidden();
+
+        Sanctum::actingAs($this->estudiante);
+        $this->patchJson("/api/notificaciones/{$avisoId}/leida")->assertOk();
+        $this->getJson('/api/notificaciones')->assertJsonPath('no_leidas', 0);
+    }
+
+    /**
+     * Se crea un aviso por cada guía del grupo que tiene la semana liberada,
+     * y nadie de otro grupo recibe nada.
+     */
+    public function test_liberar_semana_avisa_por_cada_guia_que_la_tiene(): void
+    {
+        $grupo = Grupo::firstOrFail();
+        $this->crearSemana(Guia::firstOrFail(), 2);
+        $this->crearSemana(Guia::create(['nombre' => 'Bases de datos', 'origen' => 'grupo', 'grupo_id' => $grupo->id]), 2);
+        Guia::create(['nombre' => 'Corta', 'origen' => 'grupo', 'grupo_id' => $grupo->id]); // sin semana 2
+
+        $otroGrupo = Grupo::create(['nombre' => 'Otro', 'instructor_id' => $this->instructor->id, 'codigo_acceso' => 'XYZ789']);
+        $ajeno = User::factory()->create(['rol' => 'estudiante']);
+        $otroGrupo->estudiantes()->attach($ajeno->id);
+
+        $this->liberar(2)->assertOk();
+
+        $guias = Notificacion::where('usuario_id', $this->estudiante->id)->where('tipo', 'semana_liberada')
+            ->get()->pluck('datos.guia')->sort()->values()->all();
+        $this->assertSame(['Bases de datos', 'Fundamentos JS'], $guias);
+        $this->assertSame(0, Notificacion::where('usuario_id', $ajeno->id)->count());
+        $this->assertSame(0, Notificacion::where('usuario_id', $this->instructor->id)->count());
+    }
+
+    /**
+     * Bajar la semana o dejarla igual no avisa; saltar varias dice "hasta la semana N".
+     */
+    public function test_solo_avisa_si_la_semana_sube(): void
+    {
+        $guia = Guia::firstOrFail();
+        $this->crearSemana($guia, 3);
+
+        $this->liberar(1)->assertOk();
+        $this->assertSame(0, Notificacion::count());
+
+        $this->liberar(3)->assertOk();
+        $this->assertSame(
+            'Ya puedes ver hasta la semana 3 de «Fundamentos JS» en «ADSO».',
+            Notificacion::where('tipo', 'semana_liberada')->value('mensaje')
+        );
+
+        $this->liberar(2)->assertOk();
+        $this->assertSame(1, Notificacion::count());
+    }
+
+    /**
+     * Una guía de grupo nueva avisa a los estudiantes; repetir el mismo PDF no avisa otra vez.
+     */
+    public function test_guia_nueva_de_grupo_avisa_a_los_estudiantes(): void
+    {
+        $grupo = Grupo::firstOrFail();
+        $guia = Guia::create(['nombre' => 'Laravel', 'origen' => 'grupo', 'grupo_id' => $grupo->id]);
+
+        $this->fingirSubida($guia, true);
+        Sanctum::actingAs($this->instructor);
+        $this->subirGuia(['grupo_id' => $grupo->id])->assertCreated();
+
+        $aviso = Notificacion::where('usuario_id', $this->estudiante->id)->where('tipo', 'guia_nueva')->firstOrFail();
+        $this->assertSame('Tu instructor subió la guía «Laravel» al grupo «ADSO».', $aviso->mensaje);
+        $this->assertSame(['grupo_id' => $grupo->id, 'grupo' => 'ADSO', 'guia_id' => $guia->id, 'guia' => 'Laravel', 'numero_semana' => 1], $aviso->datos);
+
+        $this->fingirSubida($guia, false);
+        $this->subirGuia(['grupo_id' => $grupo->id])->assertOk();
+        $this->assertSame(1, Notificacion::where('tipo', 'guia_nueva')->count());
+    }
+
+    /**
+     * Una guía personal no avisa a nadie.
+     */
+    public function test_guia_personal_no_avisa(): void
+    {
+        $guia = Guia::create(['nombre' => 'Mía', 'origen' => 'personal', 'usuario_id' => $this->estudiante->id]);
+
+        $this->fingirSubida($guia, true);
+        Sanctum::actingAs($this->estudiante);
+        $this->subirGuia()->assertCreated();
+
+        $this->assertSame(0, Notificacion::count());
+    }
+
+    /**
+     * Si crear el aviso falla, la semana queda liberada igual.
+     */
+    public function test_si_el_aviso_de_semana_falla_la_semana_se_libera(): void
+    {
+        $this->mock(NotificacionService::class, fn ($mock) => $mock
+            ->shouldReceive('avisarSemanaLiberada')->andThrow(new \RuntimeException('Base caída')));
+
+        $this->liberar(2)->assertOk()->assertJsonPath('semana_actual', 2);
+        $this->assertSame(2, Grupo::firstOrFail()->semana_actual);
+    }
+
+    /**
+     * El instructor cambia la semana actual del grupo.
+     */
+    private function liberar(int $semana)
+    {
+        Sanctum::actingAs($this->instructor);
+
+        return $this->patchJson('/api/grupos/' . Grupo::firstOrFail()->id . '/semana-actual', ['semana_actual' => $semana]);
+    }
+
+    /**
+     * Crea una semana lista en la guía indicada.
+     */
+    private function crearSemana(Guia $guia, int $numero): void
+    {
+        $guia->semanas()->create([
+            'numero_semana'     => $numero,
+            'titulo'            => "Semana {$numero}",
+            'resumen'           => 'Resumen.',
+            'contenido_texto'   => "Texto {$numero}",
+            'hash_contenido'    => hash('sha256', "Texto {$numero}"),
+            'estado_generacion' => 'listo',
+        ]);
+    }
+
+    /**
+     * Simula el procesamiento del PDF: devuelve la guía indicada como nueva o repetida.
+     */
+    private function fingirSubida(Guia $guia, bool $creada): void
+    {
+        $this->mock(ProcesarGuiaService::class, fn ($mock) => $mock
+            ->shouldReceive('crear')->andReturn(['guia' => $guia, 'creada' => $creada]));
+    }
+
+    /**
+     * Sube una guía con un PDF de prueba.
+     */
+    private function subirGuia(array $datos = [])
+    {
+        return $this->post('/api/guias', $datos + [
+            'nombre'  => 'Guía de prueba',
+            'archivo' => UploadedFile::fake()->createWithContent('guia.pdf', '%PDF-1.4 contenido de prueba'),
+        ], ['Accept' => 'application/json']);
     }
 
     /**
