@@ -14,7 +14,10 @@
         <div class="navbar-right">
             <SwitchModo v-if="esEstudiante" />
 
-            <button class="icon-btn" type="button" aria-label="Notificaciones" title="Notificaciones (próximamente)">
+            <!-- La campana funciona solo para el estudiante: la del instructor es la Tarea I-5 (fase posterior).
+                 El componente sirve para los dos roles; en la I-5 se cambia este v-if y se agregan sus destinos. -->
+            <CampanaNotificaciones v-if="esEstudiante" />
+            <button v-else class="icon-btn" type="button" aria-label="Notificaciones" title="Notificaciones (próximamente)">
                 <Bell :size="20" />
             </button>
 
@@ -46,6 +49,7 @@ import { Menu, Bell, ChevronDown, LogOut } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useCerrarSesion } from '@/composables/useCerrarSesion'
 import SwitchModo from './SwitchModo.vue'
+import CampanaNotificaciones from './CampanaNotificaciones.vue'
 
 defineEmits(['toggle-menu'])
 
