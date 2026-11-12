@@ -32,6 +32,13 @@ export const useAuthStore = defineStore('auth', {
             localStorage.setItem('usuario', JSON.stringify(usuario))
         },
 
+        // Reemplaza los datos del usuario (por ejemplo, tras cambiar el nombre en el Perfil). Como la
+        // NavBar y el Perfil leen de este store, el nombre y las iniciales cambian en todos lados a la vez.
+        actualizarUsuario(cambios) {
+            this.usuario = { ...this.usuario, ...cambios }
+            localStorage.setItem('usuario', JSON.stringify(this.usuario))
+        },
+
         // Limpia todos los datos cuando el usuario cierra sesion
         cerrarSesion() {
             this.token = null

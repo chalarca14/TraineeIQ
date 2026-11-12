@@ -15,6 +15,15 @@ export async function getXp() {
     return data.xp_total
 }
 
+/**
+ * Cambia el nombre del usuario (PATCH /usuario/perfil). Solo el nombre: el correo no se edita.
+ * Devuelve el usuario actualizado que manda el backend. 422 = nombre vacío o muy corto/largo.
+ */
+export async function actualizarNombre(nombre) {
+    const { data } = await api.patch('/usuario/perfil', { name: nombre })
+    return data.usuario
+}
+
 // ---------------------------------------------------------------------------
 // Cambio de contraseña
 // ---------------------------------------------------------------------------
