@@ -73,7 +73,8 @@
                 <p class="input-error">{{ errores.aceptaTerminos }}</p>
             </div>
 
-            <p class="error-message">{{ error }}</p>
+            <!-- Solo ocupa espacio cuando hay un error: así no queda un hueco antes de "Crear cuenta" -->
+            <p v-if="error" class="error-message" role="alert">{{ error }}</p>
 
             <BaseButton type="submit" :disabled="cargando">
                 {{ cargando ? 'Creando cuenta...' : 'Crear cuenta' }}

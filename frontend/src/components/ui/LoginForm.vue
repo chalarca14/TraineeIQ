@@ -30,7 +30,7 @@
         <form @submit.prevent="iniciarSesion">
 
             <div class="field-group">
-                <BaseInput v-model="correo" label="Correo electrónico" placeholder="Ingresa tu correo">
+                <BaseInput compacto v-model="correo" label="Correo electrónico" placeholder="Ingresa tu correo">
                     <template #icon>
                         <Mail :size="18" stroke="white" />
                     </template>
@@ -39,7 +39,7 @@
             </div>
 
             <div class="field-group">
-                <BaseInput v-model="password" :type="mostrarPassword ? 'text' : 'password'" label="Contraseña"
+                <BaseInput compacto v-model="password" :type="mostrarPassword ? 'text' : 'password'" label="Contraseña"
                     placeholder="Ingresa tu contraseña">
                     <template #icon>
                         <Lock :size="18" />
@@ -199,10 +199,12 @@ const iniciarSesion = async () => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Puritan:wght@400;700&display=swap');
 
+/* Login compacto (como el registro): con el botón de Google ya no cabía en una pantalla de
+   portátil y aparecía scroll. Campos de 44 px y espacios de variables.css */
 form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--espacio-sm);
     width: 100%;
     max-width: 480px;
 }
@@ -337,7 +339,7 @@ form {
 }
 
 .register-footer {
-    margin-top: 1.2rem;
+    margin-top: var(--espacio-xs);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -392,7 +394,7 @@ form {
 @media (max-height: 800px) {
     .login-form {
         padding: 3rem;
-        gap: 1.2rem;
+        gap: var(--espacio-md);
     }
 
     .form-header h2 {
@@ -417,7 +419,7 @@ form {
 
     .login-form {
         padding: 2rem;
-        gap: 1.5rem;
+        gap: var(--espacio-md);
     }
 
     .form-header p {
