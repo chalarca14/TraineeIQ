@@ -17,14 +17,14 @@
 
             <div class="fields-row">
                 <div class="field-group">
-                    <BaseInput v-model="nombre" label="Nombre completo" placeholder="Ej: Juan Pérez García">
+                    <BaseInput compacto v-model="nombre" label="Nombre completo" placeholder="Ej: Juan Pérez García">
                         <template #icon><User :size="18" /></template>
                     </BaseInput>
                     <p class="input-error">{{ errores.nombre }}</p>
                 </div>
 
                 <div class="field-group">
-                    <BaseInput v-model="correo" label="Correo electrónico" placeholder="Ej: juan.perez@correo.com">
+                    <BaseInput compacto v-model="correo" label="Correo electrónico" placeholder="Ej: juan.perez@correo.com">
                         <template #icon><Mail :size="18" /></template>
                     </BaseInput>
                     <p class="input-error">{{ errores.correo }}</p>
@@ -33,7 +33,7 @@
 
             <div class="fields-row">
                 <div class="field-group">
-                    <BaseInput v-model="password" :type="mostrarPassword ? 'text' : 'password'" label="Contraseña" placeholder="Mínimo 8 caracteres">
+                    <BaseInput compacto v-model="password" :type="mostrarPassword ? 'text' : 'password'" label="Contraseña" placeholder="Mínimo 8 caracteres">
                         <template #icon><Lock :size="18" /></template>
                         <template #action>
                             <button type="button" class="toggle-password" @click="mostrarPassword = !mostrarPassword">
@@ -46,7 +46,7 @@
                 </div>
 
                 <div class="field-group">
-                    <BaseInput v-model="confirmarPassword" :type="mostrarConfirmar ? 'text' : 'password'" label="Confirmar contraseña" placeholder="Repite tu contraseña">
+                    <BaseInput compacto v-model="confirmarPassword" :type="mostrarConfirmar ? 'text' : 'password'" label="Confirmar contraseña" placeholder="Repite tu contraseña">
                         <template #icon><Lock :size="18" /></template>
                         <template #action>
                             <button type="button" class="toggle-password" @click="mostrarConfirmar = !mostrarConfirmar">
@@ -212,30 +212,42 @@ const registrarse = async () => {
 .registro-form {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: clamp(1.5rem, 4vh, 2.5rem);
+    justify-content: flex-start;
+    padding: clamp(1.25rem, 3vh, 2.5rem);
     background: var(--color-surface);
     font-family: Puritan;
     min-width: 0;
-    overflow-y: auto;
+}
+
+/* Centrado "seguro": el panel arranca arriba y los márgenes automáticos reparten el espacio que
+   sobra. Si el contenido no cabe, no hay espacio que repartir y empieza desde arriba, sin cortarse
+   (justify-content: center lo sacaba por arriba) */
+.registro-form > :first-child {
+    margin-top: auto;
+}
+
+.registro-form > :last-child {
+    margin-bottom: auto;
 }
 
 .rol-label {
     font-size: .85rem;
     color: var(--color-text);
-    margin-bottom: .4rem;
-    gap: .4rem;
+    margin-bottom: var(--espacio-xs);
+    gap: var(--espacio-xs);
     display: flex;
     font-weight: bold;
 }
 
 .form-header {
     text-align: center;
-    margin-bottom: clamp(.6rem, 1.5vh, 1.2rem);   /* antes: hasta 1.5rem */
+    margin-bottom: var(--espacio-sm);
 }
 
+/* El título se achica en pantallas pequeñas en vez de tener un tamaño fijo */
 .form-header h2 {
-    margin: 0 0 .3rem 0;
+    margin: 0 0 var(--espacio-xs) 0;
+    font-size: clamp(1.35rem, 1rem + 1.2vw, 1.75rem);
     color: var(--color-text);
 }
 
@@ -247,15 +259,14 @@ const registrarse = async () => {
 form {
     display: flex;
     flex-direction: column;
-    gap: clamp(.6rem, 1.5vh, 1rem);   /* antes: 1rem fijo — ahora se achica en pantallas bajas */
-    margin-top: 1rem;
+    gap: var(--espacio-sm);
 }
 
 
 .fields-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0 1rem;   /* sin espacio vertical entre sí mismas, solo horizontal entre columnas */
+    gap: var(--espacio-sm) var(--espacio-md);
 }
 
 .input-error {
@@ -292,7 +303,7 @@ form {
 
 .login-redirect {
     text-align: center;
-    margin-top: 1rem;
+    margin-top: var(--espacio-md);
     font-size: .9rem;
     color: var(--color-text-secondary);
 }

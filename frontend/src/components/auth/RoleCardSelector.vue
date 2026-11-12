@@ -3,7 +3,7 @@
         <label v-for="rol in roles" :key="rol.valor" class="role-card" :class="{ activo: modelValue === rol.valor }">
             <input type="radio" name="rol" :value="rol.valor" :checked="modelValue === rol.valor"
                 @change="$emit('update:modelValue', rol.valor)" class="sr-only" />
-            <component :is="rol.icono" :size="28" class="role-icon" />
+            <component :is="rol.icono" :size="24" class="role-icon" />
             <h3>{{ rol.titulo }}</h3>
             <p>{{ rol.descripcion }}</p>
         </label>
@@ -42,14 +42,17 @@ const roles = [
     gap: .8rem;
 }
 
+/* Ícono a la izquierda y texto a la derecha: la tarjeta queda más baja (antes el ícono iba arriba) */
 .role-card {
     position: relative;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: center;
-    text-align: center;
-    gap: .4rem;
-    padding: clamp(.8rem, 2vh, 1.2rem);
+    column-gap: var(--espacio-sm);
+    row-gap: .15rem;
+    text-align: left;
+    min-height: 44px;
+    padding: var(--espacio-sm) var(--espacio-md);
     border: 1px solid var(--color-card);
     border-radius: 14px;
     cursor: pointer;
@@ -68,6 +71,7 @@ const roles = [
 }
 
 .role-icon {
+    grid-row: span 2;
     color: var(--color-primary);
 }
 

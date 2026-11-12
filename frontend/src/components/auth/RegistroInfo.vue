@@ -12,7 +12,6 @@
                 proyectos prácticos.</p>
         </div>
 
-        <!-- Espacio reservado para la ilustración — se agrega al final, como acordamos -->
         <Transition name="fade-slide" mode="out-in">
             <div class="role-info-card" :key="rol">
                 <h4>{{ infoActual.titulo }}</h4>
@@ -89,7 +88,7 @@ const beneficios = [
 .registro-info {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     gap: clamp(1rem, 2.5vh, 1.8rem);
     padding: clamp(1.5rem, 4vh, 3rem);
     background: var(--color-background);
@@ -97,7 +96,17 @@ const beneficios = [
     font-family: Puritan;
     animation: slideInPanel .6s ease;
     min-width: 0;
-    overflow-y: auto;
+}
+
+/* Centrado "seguro": el panel arranca arriba y los márgenes automáticos reparten el espacio que
+   sobra. Si el contenido no cabe, no hay espacio que repartir y empieza desde arriba, sin cortarse
+   (justify-content: center lo sacaba por arriba) */
+.registro-info > :first-child {
+    margin-top: auto;
+}
+
+.registro-info > :last-child {
+    margin-bottom: auto;
 }
 
 @keyframes slideInPanel {

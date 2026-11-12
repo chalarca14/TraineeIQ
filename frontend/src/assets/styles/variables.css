@@ -66,4 +66,10 @@ body {
     --brillo-primario: 0 6px 18px color-mix(in srgb, var(--color-primary) 40%, transparent);
     --brillo-primario-fuerte: 0 8px 22px color-mix(in srgb, var(--color-primary) 55%, transparent);
 
+    /* Espacios compartidos: así los formularios se separan igual y se ajustan en un solo lugar */
+    --espacio-xs: .35rem;
+    --espacio-sm: .6rem;
+    --espacio-md: 1rem;
+    --espacio-lg: 1.5rem;
+
 }
