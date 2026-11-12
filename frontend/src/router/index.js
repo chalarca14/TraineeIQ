@@ -185,6 +185,11 @@ const routes = [
         path: 'notificaciones',
         name: 'NotificacionesPrueba',
         component: () => import('../views/prueba/NotificacionesPrueba.vue')
+      },
+      {
+        path: 'esqueletos',
+        name: 'EsqueletosPrueba',
+        component: () => import('../views/prueba/EsqueletosPrueba.vue')
       }
     ]
   },
