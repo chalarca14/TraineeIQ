@@ -72,10 +72,21 @@ button.activa {
 }
 
 @media (max-width: 520px) {
+  /* "1 1 auto" y no "1": con "1" todas medían lo mismo y "Mi progreso" o "Información personal"
+     no cabían en su parte y se partían en dos líneas. Con "auto" cada una parte del ancho de su
+     texto y reparte el espacio que sobre. */
   .pestanas:not(.compacto) button {
-    flex: 1;
+    flex: 1 1 auto;
     justify-content: center;
-    padding: .7rem .5rem;
+    gap: .4rem;
+    padding: .7rem .6rem;
+    white-space: nowrap;
+  }
+
+  /* 40 px de alto mínimo: con 29 px los filtros quedaban difíciles de tocar con el dedo */
+  .compacto button {
+    min-height: 40px;
+    justify-content: center;
   }
 }
 </style>

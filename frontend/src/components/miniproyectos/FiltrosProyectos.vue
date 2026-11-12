@@ -35,6 +35,16 @@ const PESTANAS = [
     margin-bottom: 1rem;
 }
 
+/* Los 4 filtros no caben en una fila de 360 px y "Evaluados" quedaba sola abajo: 2 × 2 es parejo.
+   Funciona porque la clase .pestanas está en la raíz del componente Pestanas, y los estilos
+   scoped del padre sí alcanzan la raíz de un hijo. */
+@media (max-width: 520px) {
+    .pestanas {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .herramientas {
     display: flex;
     gap: .6rem;
