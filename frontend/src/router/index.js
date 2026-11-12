@@ -16,6 +16,18 @@ const routes = [
     component: () => import('../views/auth/Registro.vue')
   },
 
+  // "¿Olvidaste tu contraseña?": públicas (no hay sesión). /restablecer llega desde el enlace del correo
+  {
+    path: '/recuperar',
+    name: 'Recuperar',
+    component: () => import('../views/auth/Recuperar.vue')
+  },
+  {
+    path: '/restablecer',
+    name: 'Restablecer',
+    component: () => import('../views/auth/Restablecer.vue')
+  },
+
   // Páginas legales públicas: las enlaza el registro y las pide Google para publicar "Continuar con Google"
   {
     path: '/privacidad',

@@ -14,6 +14,19 @@ export function mensajeDeErrorPassword(err) {
     return mensajeDeError(err)
 }
 
+// Errores de "¿Olvidaste tu contraseña?", del cambio de nombre y de crear la contraseña nueva. En el
+// 422 el backend manda el texto en español: el primero de `errors` (un campo) o, si no hay, `message`
+// (por ejemplo "El enlace no es válido o ya venció"). Se muestra como texto, nunca con v-html.
+export function mensajeDeErrorCuenta(err) {
+    const status = err.response?.status
+    if (status === 422) {
+        const errores = Object.values(err.response.data?.errors ?? {}).flat()
+        return errores[0] ?? err.response.data?.message ?? 'Revisa los datos e intenta de nuevo.'
+    }
+    if (status === 429) return 'Hiciste muchos intentos seguidos. Espera un minuto y vuelve a probar.'
+    return mensajeDeError(err)
+}
+
 // Errores de "Unirse a un grupo". Se decide por el código HTTP, no por el texto del backend (en inglés).
 // 422 = el código no existe; 409 = ya eres miembro (antes era 400); 429 = más de 10 intentos por minuto.
 // El backend normaliza el código (mayúsculas y sin espacios), así que aquí no hace falta tocarlo.
