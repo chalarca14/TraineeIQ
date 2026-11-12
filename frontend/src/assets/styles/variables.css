@@ -38,6 +38,10 @@ body {
 }
 
 :root {
+    /* Le dice al navegador que la app es oscura: así dibuja en oscuro sus controles nativos
+       (las opciones de un <select>, barras de scroll, calendarios). Sin esto, las opciones de
+       "Últimos 30 días" salían con letra blanca sobre fondo blanco. */
+    color-scheme: dark;
 
     --color-primary: #7C3AED;
     --color-primary-hover: #8B5CF6;
