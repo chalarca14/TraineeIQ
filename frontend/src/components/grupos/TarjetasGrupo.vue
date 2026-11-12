@@ -44,10 +44,19 @@ const textoGuias = computed(() => {
 </script>
 
 <style scoped>
+/* Siempre son 3 tarjetas: 3 columnas fijas. Con auto-fit y mínimo de 200 px solo cabían 2 en la
+   columna del grupo y "Miembros" quedaba sola en otra fila con un hueco al lado. */
 .tarjetas {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
+}
+
+/* En celular, una debajo de la otra */
+@media (max-width: 600px) {
+    .tarjetas {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .tarjeta {

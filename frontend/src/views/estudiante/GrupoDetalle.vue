@@ -9,7 +9,7 @@
         <!-- Sin los datos del grupo no hay cabecera que mostrar: cargando y error cubren toda la vista -->
         <EstadoVista :cargando="cargandoGrupo" :error="errorGrupo" texto-cargando="Cargando el grupo..."
             @reintentar="cargar">
-            <div class="cuerpo">
+            <div class="cuerpo" :class="{ 'en-progreso': pestana === 'progreso' }">
                 <div class="principal">
                     <CabeceraGrupo :grupo="grupo" />
                     <TarjetasGrupo :instructor="instructor" :cantidad-guias="cantidadGuias"
@@ -176,6 +176,13 @@ onMounted(cargar)
 @media (max-width: 900px) {
     .cuerpo {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* En una sola columna, "Tu avance" queda justo debajo de "Mi progreso" con los mismos números.
+       Se oculta solo con esa pestaña abierta; en escritorio sigue a la derecha (allí no se repite a la vista).
+       .avance es la raíz de AvanceGrupo: los estilos scoped del padre alcanzan la raíz de un hijo. */
+    .en-progreso .avance {
+        display: none;
     }
 }
 </style>
