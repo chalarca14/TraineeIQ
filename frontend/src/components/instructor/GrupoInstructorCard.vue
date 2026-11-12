@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
-import { Users, CalendarDays, Copy, Check, ArrowRight, Trash2 } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { Users, CalendarDays, ArrowRight, Trash2 } from 'lucide-vue-next'
+import BotonCopiarCodigo from './BotonCopiarCodigo.vue'
 
 // Tarjeta de un grupo del instructor: datos, código de acceso con "Copiar" y acciones.
 // Sin foto ni sello "Activo": el backend no tiene esos datos (PLAN I-1).
@@ -14,24 +15,6 @@ const color = computed(() => COLORES[props.grupo.id % COLORES.length])
 const estudiantes = computed(() => props.grupo.estudiantes_count ?? 0)
 // Un grupo recién creado llega sin semana_actual: el backend empieza en 1
 const semana = computed(() => props.grupo.semana_actual ?? 1)
-
-// '' | 'copiado' | 'error'. Se anuncia con aria-live para quien usa lector de pantalla
-const copia = ref('')
-let temporizador = null
-
-async function copiar() {
-  clearTimeout(temporizador)
-  try {
-    await navigator.clipboard.writeText(props.grupo.codigo_acceso)
-    copia.value = 'copiado'
-  } catch {
-    // Sin permiso del portapapeles: el código queda a la vista y se puede seleccionar a mano
-    copia.value = 'error'
-  }
-  temporizador = setTimeout(() => { copia.value = '' }, 2500)
-}
-
-onUnmounted(() => clearTimeout(temporizador))
 </script>
 
 <template>
@@ -55,29 +38,13 @@ onUnmounted(() => clearTimeout(temporizador))
         </div>
       </dl>
 
-      <div class="codigo">
-        <span class="codigo__etiqueta">Código de acceso</span>
-        <div class="codigo__fila">
-          <code class="codigo__valor">{{ grupo.codigo_acceso }}</code>
-          <button type="button" class="btn btn-secundario btn-sm" :aria-label="`Copiar el código ${grupo.codigo_acceso}`"
-            @click="copiar">
-            <Check v-if="copia === 'copiado'" :size="16" aria-hidden="true" />
-            <Copy v-else :size="16" aria-hidden="true" />
-            {{ copia === 'copiado' ? 'Copiado' : 'Copiar' }}
-          </button>
-        </div>
-        <p class="codigo__estado" aria-live="polite">
-          <template v-if="copia === 'copiado'">Código copiado. Compártelo con tus aprendices.</template>
-          <template v-else-if="copia === 'error'">No se pudo copiar: selecciona el código y cópialo a mano.</template>
-        </p>
-      </div>
+      <BotonCopiarCodigo :codigo="grupo.codigo_acceso" />
 
       <div class="acciones">
-        <!-- El detalle del grupo es la Tarea I-2: hasta entonces el botón se ve, pero deshabilitado -->
-        <button type="button" class="btn btn-primario" disabled title="Próximamente">
+        <!-- RouterLink y no botón: es navegación (se puede abrir en otra pestaña) -->
+        <RouterLink :to="{ name: 'InstructorGrupoDetalle', params: { id: grupo.id } }" class="btn btn-primario">
           Ver grupo <ArrowRight :size="16" aria-hidden="true" />
-          <span class="pronto">Próximamente</span>
-        </button>
+        </RouterLink>
         <button type="button" class="eliminar" :aria-label="`Eliminar el grupo ${grupo.nombre}`"
           @click="$emit('eliminar', grupo)">
           <Trash2 :size="18" />
@@ -161,37 +128,6 @@ h3 {
   font-weight: 700;
 }
 
-.codigo__etiqueta {
-  color: var(--color-text-secondary);
-  font-size: .8rem;
-}
-
-.codigo__fila {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espacio-sm);
-  margin-top: .25rem;
-}
-
-/* user-select: all: un clic selecciona el código completo, por si el botón Copiar no funciona */
-.codigo__valor {
-  padding: .45rem .8rem;
-  border: 1px solid var(--color-card);
-  border-radius: 10px;
-  background: var(--color-background);
-  font-size: 1rem;
-  letter-spacing: .08em;
-  user-select: all;
-}
-
-.codigo__estado {
-  min-height: 1rem;
-  margin-top: .25rem;
-  color: var(--color-success);
-  font-size: .78rem;
-}
-
 .acciones {
   display: flex;
   gap: var(--espacio-sm);
@@ -200,13 +136,7 @@ h3 {
 
 .acciones .btn {
   flex: 1;
-  flex-wrap: wrap;
   min-height: 44px;
-}
-
-.pronto {
-  font-size: .7rem;
-  font-weight: 400;
 }
 
 .eliminar {

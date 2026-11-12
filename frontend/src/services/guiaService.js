@@ -41,12 +41,12 @@ const MAX_PAGINAS = 20
  * DENTRO de esa página, podían desaparecer si había muchas de grupo. Aquí se piden todas, una
  * página tras otra (en orden, para no lanzar muchas peticiones a la vez al servidor).
  */
-async function pedirTodasLasGuias() {
+async function pedirTodasLasGuias(filtros = {}) {
     const guias = []
     let pagina = 1
     let ultima = 1
     do {
-        const { data } = await api.get('/guias', { params: { page: pagina } })
+        const { data } = await api.get('/guias', { params: { ...filtros, page: pagina } })
         guias.push(...data.data)
         ultima = data.last_page ?? 1
         pagina++
@@ -108,6 +108,11 @@ export async function obtenerGuia(id) {
 /** Devuelve las guías que puede ver el usuario, personales y de grupo. */
 export async function listarGuias() {
     return pedirTodasLasGuias()
+}
+
+/** Guías de un grupo (GET /guias?grupo_id=). La usa el instructor en el detalle del grupo. */
+export async function listarGuiasDeGrupo(grupoId) {
+    return pedirTodasLasGuias({ grupo_id: grupoId })
 }
 
 /** Devuelve las semanas de una guía con su estado y si están disponibles. */

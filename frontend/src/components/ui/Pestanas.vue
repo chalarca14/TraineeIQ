@@ -1,5 +1,5 @@
 <template>
-  <div class="pestanas" :class="{ compacto }" role="tablist">
+  <div class="pestanas" :class="{ compacto, cuadricula }" role="tablist">
     <button v-for="p in pestanas" :key="p.clave" type="button" role="tab" :class="{ activa: modelo === p.clave }"
       :aria-selected="modelo === p.clave" @click="modelo = p.clave">
       <component :is="p.icono" v-if="p.icono" :size="compacto ? 15 : 18" />
@@ -16,7 +16,9 @@
 const modelo = defineModel({ type: String, required: true })
 defineProps({
   pestanas: { type: Array, required: true },
-  compacto: { type: Boolean, default: false }
+  compacto: { type: Boolean, default: false },
+  // Con 4 pestañas de texto largo: en pantallas angostas pasan a 2×2 en vez de salirse por la derecha
+  cuadricula: { type: Boolean, default: false }
 })
 </script>
 
@@ -81,6 +83,23 @@ button.activa {
     gap: .4rem;
     padding: .7rem .6rem;
     white-space: nowrap;
+  }
+
+  .cuadricula {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* El texto puede partirse en dos líneas dentro de su celda: mejor eso que cortarlo */
+  .cuadricula:not(.compacto) button {
+    min-height: 44px;
+    white-space: normal;
+    font-size: .85rem;
+    text-align: center;
+  }
+
+  .cuadricula button svg {
+    flex-shrink: 0;
   }
 
   /* 40 px de alto mínimo: con 29 px los filtros quedaban difíciles de tocar con el dedo */

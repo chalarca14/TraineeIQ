@@ -155,6 +155,12 @@ const routes = [
         path: 'grupos',
         name: 'InstructorMisGrupos',
         component: () => import('../views/instructor/MisGrupos.vue')
+      },
+      // Tarea I-2: detalle del grupo con pestañas (?tab=resumen|guias|semanas|estadisticas)
+      {
+        path: 'grupos/:id',
+        name: 'InstructorGrupoDetalle',
+        component: () => import('../views/instructor/GrupoDetalle.vue')
       }
     ]
   },
