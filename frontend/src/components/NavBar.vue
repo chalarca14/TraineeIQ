@@ -11,16 +11,13 @@
             <span class="brand-text">TRAINEE<strong class="gradient-text">IQ</strong></span>
         </div>
 
-        <!-- Buscador: solo visual por ahora (ver nota abajo) -->
-        <div class="search-box">
-            <Search :size="18" />
-            <input type="search" placeholder="Buscar guías, temas, recomendaciones..." disabled title="Próximamente" />
-        </div>
-
         <div class="navbar-right">
             <SwitchModo v-if="esEstudiante" />
 
-            <button class="icon-btn" type="button" aria-label="Notificaciones" title="Notificaciones (próximamente)">
+            <!-- La campana funciona solo para el estudiante: la del instructor es la Tarea I-5 (fase posterior).
+                 El componente sirve para los dos roles; en la I-5 se cambia este v-if y se agregan sus destinos. -->
+            <CampanaNotificaciones v-if="esEstudiante" />
+            <button v-else class="icon-btn" type="button" aria-label="Notificaciones" title="Notificaciones (próximamente)">
                 <Bell :size="20" />
             </button>
 
@@ -48,10 +45,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Menu, Search, Bell, ChevronDown, LogOut } from 'lucide-vue-next'
+import { Menu, Bell, ChevronDown, LogOut } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useCerrarSesion } from '@/composables/useCerrarSesion'
 import SwitchModo from './SwitchModo.vue'
+import CampanaNotificaciones from './CampanaNotificaciones.vue'
 
 defineEmits(['toggle-menu'])
 
@@ -105,10 +103,6 @@ onBeforeUnmount(() => document.removeEventListener('click', cerrarSiClickFuera))
     z-index: 30;
 }
 
-.menu-btn {
-    display: none;
-}
-
 .brand-mini {
     display: flex;
     align-items: center;
@@ -130,30 +124,6 @@ onBeforeUnmount(() => document.removeEventListener('click', cerrarSiClickFuera))
     -webkit-background-clip: text;
     color: transparent;
     -webkit-text-fill-color: transparent;
-}
-
-.search-box {
-    flex: 1;
-    max-width: 480px;
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    padding: .55rem 1rem;
-    border: 1px solid var(--color-card);
-    border-radius: 12px;
-    background: var(--color-background);
-    color: var(--color-text-secondary);
-}
-
-.search-box input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: var(--color-text);
-    font-size: .85rem;
-    font-family: inherit;
 }
 
 .navbar-right {
@@ -268,24 +238,16 @@ onBeforeUnmount(() => document.removeEventListener('click', cerrarSiClickFuera))
     color: var(--color-primary);
 }
 
+/* La hamburguesa solo existe en tablet y celular. Se escribe .icon-btn.menu-btn (dos clases) para
+   ganarle en especificidad al display: flex de .icon-btn; con solo .menu-btn no se ocultaba. */
 .icon-btn.menu-btn {
     display: none;
 }
 
+/* TABLET Y CELULAR: aparece la hamburguesa */
 @media (max-width: 900px) {
     .icon-btn.menu-btn {
         display: flex;
-    }
-}
-
-/* TABLET Y CELULAR: aparece la hamburguesa, desaparece el buscador */
-@media (max-width: 900px) {
-    .menu-btn {
-        display: flex;
-    }
-
-    .search-box {
-        display: none;
     }
 }
 

@@ -3,90 +3,146 @@
         <BannerBienvenida :nombre="primerNombre"
             mensaje="Te damos la bienvenida a tu espacio de aprendizaje. Aquí tienes un resumen de tu progreso." />
 
-        <section class="stats-grid">
-            <StatCard v-for="stat in estadisticas" :key="stat.etiqueta" v-bind="stat" />
-        </section>
-
-        <div class="fila-principal">
-            <GuiaActualCard :guia="guiaActual" :cargando="cargandoGuias" :error="errorGuias" />
-            <SiguientePaso :guia="guiaActual" :cargando="cargandoGuias" :error="errorGuias" />
+        <!-- Varios grupos: el aprendiz elige cuál resumir. Con uno solo no hace falta preguntar -->
+        <div v-if="!esPersonal && grupos.length > 1" class="selector-grupo">
+            <label for="dashboard-grupo">Grupo</label>
+            <select id="dashboard-grupo" v-model="grupoId">
+                <option v-for="g in grupos" :key="g.id" :value="g.id">{{ g.nombre }}</option>
+            </select>
         </div>
+
+        <EstadoVista :cargando="cargando" :error="error" :vacio="Boolean(vacio)" :icono="vacioActual.icono"
+            texto-cargando="Cargando tu resumen..." :texto-vacio="vacioActual.texto"
+            :descripcion-vacio="vacioActual.descripcion" @reintentar="cargar">
+            <template #vacio>
+                <RouterLink v-if="vacioActual.accion" :to="vacioActual.accion.ruta" class="btn btn-primario btn-sm">
+                    {{ vacioActual.accion.texto }}
+                </RouterLink>
+            </template>
+
+            <section class="stats-grid">
+                <StatCard v-for="stat in estadisticas" :key="stat.etiqueta" v-bind="stat" />
+            </section>
+
+            <div class="fila-principal">
+                <GuiaActualCard :bloque="guiaActual" :es-personal="esPersonal" :grupo="grupo" />
+                <SiguientePaso :siguiente="siguiente" :hay-proyectos="proyectos.length > 0" />
+            </div>
+        </EstadoVista>
     </main>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
-import { BookOpen, CalendarDays, Star, Target } from 'lucide-vue-next'
+import { computed, onMounted } from 'vue'
+import { BookOpen, CalendarDays, Star, Target, Rocket, Award, Users, Lock } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { listarMisGuias } from '@/services/guiaService'
-import { RESUMEN_EJEMPLO } from '@/utils/progresoEjemplo'
+import { useResumenDashboard } from '@/composables/useResumenDashboard'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import BannerBienvenida from '@/components/dashboard/BannerBienvenida.vue'
+import EstadoVista from '@/components/ui/EstadoVista.vue'
 import GuiaActualCard from '@/components/dashboard/GuiaActualCard.vue'
 import SiguientePaso from '@/components/dashboard/SiguientePaso.vue'
 
 const authStore = useAuthStore()
+const {
+    esPersonal, cargar, cargando, error, vacio,
+    grupos, grupoId, grupo, xp, errorXp,
+    bloques, proyectos, evaluados, puntajePromedio, semanaActual, guiaActual, siguiente
+} = useResumenDashboard()
 
-// POR SI EL USUARIO NO TRAE NOMBRE
+// Por si el usuario no trae nombre
 const primerNombre = computed(() => authStore.usuario?.name?.split(' ')[0] ?? 'estudiante')
 
-
-//GUIAS ACTIVAS - DATOS REALES
-const errorGuias = ref(false)
-
-const guias = ref(null)        // null = todavía cargando
-
-
-onMounted(async () => {
-    try {
-        guias.value = await listarMisGuias()
-    } catch (error) {
-        console.error('Error al obtener las guías:', error)
-        errorGuias.value = true
+// Un vacío por situación. El de Personal no menciona el PDF: subir la guía se explica en "Mis guías"
+const VACIOS = {
+    'sin-guias': {
+        icono: BookOpen,
+        texto: 'Sube tu primera guía',
+        descripcion: 'Con ella preparamos tus semanas, recomendaciones y mini proyectos.',
+        accion: { texto: 'Ir a Mis guías', ruta: '/estudiante/guias' }
+    },
+    'sin-grupos': {
+        icono: Users,
+        texto: 'Aún no perteneces a ningún grupo',
+        descripcion: 'Pídele a tu instructor el código del grupo para unirte.',
+        accion: { texto: 'Unirme a un grupo', ruta: '/estudiante/grupos' }
+    },
+    'sin-semanas': {
+        icono: Lock,
+        texto: 'Tu instructor aún no ha liberado semanas',
+        descripcion: 'Cuando libere la primera, aquí verás tu avance y tus mini proyectos.',
+        accion: null
     }
-})
+}
+const vacioActual = computed(() => VACIOS[vacio.value] ?? { icono: null, texto: '', descripcion: '', accion: null })
 
+// Fracción entera de 0 a 100; null si no hay proyectos (no se inventa un 0 %)
+const porcentaje = computed(() =>
+    proyectos.value.length ? Math.round((evaluados.value.length / proyectos.value.length) * 100) : null
+)
 
-// DATOS DE EJEMPLO: semana, XP y progreso vienen de utils/progresoEjemplo.js
-// porque el backend aún no los tiene (ver RESUMEN_EJEMPLO).
-const resumenEjemplo = RESUMEN_EJEMPLO
-
-const totalGuias = computed(() => guias.value?.length ?? null)
-const guiaActual = computed(() => guias.value?.[0] ?? null)
-const cargandoGuias = computed(() => guias.value === null && !errorGuias.value)
-
-// computed porque depende de totalGuias y errorGuias, que cambian cuando llega la respuesta
-const estadisticas = computed(() => [
+// Modo Personal: XP real. Ni "+N esta semana" ni nivel: el backend no los tiene
+const tarjetasPersonal = computed(() => [
     {
         etiqueta: 'Guías activas',
-        valor: errorGuias.value ? '—' : (totalGuias.value ?? '…'),
-        detalle: errorGuias.value ? 'No se pudo cargar' : 'en Modo Personal',
+        valor: bloques.value.length,
+        detalle: 'en Modo Personal',
         icono: BookOpen,
         color: 'primary'
     },
     {
         etiqueta: 'Semana actual',
-        valor: resumenEjemplo.semanaActual,
-        detalle: `de ${resumenEjemplo.semanasTotales}`,
+        valor: semanaActual.value.numero ?? '—',
+        detalle: semanaActual.value.total ? `de ${semanaActual.value.total}` : 'Sin semanas abiertas',
         icono: CalendarDays,
         color: 'info'
     },
     {
         etiqueta: 'XP acumulados',
-        valor: resumenEjemplo.xp,
-        detalle: `+${resumenEjemplo.xpEstaSemana} esta semana`,
+        valor: errorXp.value ? '—' : (xp.value ?? '…'),
+        detalle: errorXp.value ? 'No se pudo cargar' : 'en Modo Personal',
         icono: Star,
         color: 'warning'
     },
+    tarjetaAvance('Avance de los proyectos abiertos')
+])
+
+// Modo Grupo: sin XP ni niveles. El puntaje es orientativo, como la evaluación de la que sale
+const tarjetasGrupo = computed(() => [
     {
-        etiqueta: 'Progreso general',
-        valor: `${resumenEjemplo.progreso}%`,
-        progreso: resumenEjemplo.progreso,
-        icono: Target,
-        color: 'success'
+        etiqueta: 'Semana actual del grupo',
+        valor: grupo.value?.semana_actual ?? '—',
+        detalle: grupo.value?.nombre ?? '',
+        icono: CalendarDays,
+        color: 'info'
+    },
+    {
+        etiqueta: 'Mini proyectos disponibles',
+        valor: proyectos.value.length,
+        detalle: 'de las semanas liberadas',
+        icono: Rocket,
+        color: 'primary'
+    },
+    tarjetaAvance('Evaluados', `${evaluados.value.length} / ${proyectos.value.length}`),
+    {
+        etiqueta: 'Puntaje promedio',
+        valor: puntajePromedio.value ?? '—',
+        detalle: 'promedio de tus últimas evaluaciones · orientativo',
+        icono: Award,
+        color: 'warning'
     }
 ])
 
+// Tarjeta con barra: sin proyectos abiertos no hay barra, solo el aviso
+function tarjetaAvance(etiqueta, valor) {
+    const base = { etiqueta, icono: Target, color: 'success' }
+    if (porcentaje.value === null) return { ...base, valor: '—', detalle: 'Aún no hay proyectos abiertos' }
+    return { ...base, valor: valor ?? `${porcentaje.value}%`, progreso: porcentaje.value }
+}
+
+const estadisticas = computed(() => (esPersonal.value ? tarjetasPersonal.value : tarjetasGrupo.value))
+
+onMounted(cargar)
 </script>
 
 <style scoped>
@@ -107,7 +163,8 @@ const estadisticas = computed(() => [
     gap: 1rem;
 }
 
-/* Guía actual (más ancha) + siguiente paso, lado a lado */
+/* Mi guía actual (y, al lado, el siguiente paso). min-width:0 evita que la fila de semanas
+   con scroll ensanche la columna */
 .fila-principal {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -115,15 +172,45 @@ const estadisticas = computed(() => [
     align-items: stretch;
 }
 
-/* Sin esto, la fila de temas con scroll ensancha la columna */
 .fila-principal>* {
     min-width: 0;
 }
 
-/* Celular / tablet: se apilan */
+/* Celular / tablet: se apilan, y "Continúa donde quedaste" queda debajo de la guía */
 @media (max-width: 900px) {
     .fila-principal {
         grid-template-columns: 1fr;
+    }
+}
+
+.selector-grupo {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+}
+
+.selector-grupo label {
+    color: var(--color-text-secondary);
+    font-size: .85rem;
+}
+
+.selector-grupo select {
+    min-width: 0;
+    max-width: 100%;
+    padding: .5rem .8rem;
+    border: 1px solid var(--color-card);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+}
+
+/* Celular: el selector ocupa todo el ancho, con la etiqueta arriba */
+@media (max-width: 600px) {
+    .selector-grupo {
+        flex-direction: column;
+        align-items: stretch;
+        gap: .3rem;
     }
 }
 </style>

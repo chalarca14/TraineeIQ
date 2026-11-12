@@ -48,6 +48,30 @@ export async function registro(nombre, correo, password, rol) {
 }
 
 /**
+ * "¿Olvidaste tu contraseña?": pide al backend que envíe el enlace al correo.
+ * Responde lo mismo exista o no el correo (así nadie averigua qué correos tienen cuenta).
+ * Devuelve el `message` del backend para mostrarlo tal cual.
+ */
+export async function pedirEnlaceRecuperacion(correo) {
+    const { data } = await api.post('/password/olvide', { email: correo })
+    return data.message
+}
+
+/**
+ * Crea la contraseña nueva con el token y el correo que vienen en el enlace del correo.
+ * 422 = enlace inválido o vencido (message) o contraseña que no cumple las reglas (errors.password).
+ */
+export async function restablecerPassword({ token, correo, password }) {
+    const { data } = await api.post('/password/restablecer', {
+        token,
+        email: correo,
+        password,
+        password_confirmation: password
+    })
+    return data.message
+}
+
+/**
  * Entra con la credencial que entregó el botón de Google.
  * Si la cuenta ya existe devuelve { token, user } como login().
  * Si es nueva devuelve { requiere_registro, registro_token, nombre, email }.

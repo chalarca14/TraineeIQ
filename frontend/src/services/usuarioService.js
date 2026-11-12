@@ -6,6 +6,24 @@ export async function actualizarModo(modo) {
     return data
 }
 
+/**
+ * XP total del aprendiz en el Modo Personal (GET /usuario/xp → xp_total).
+ * El backend lo calcula con los mejores puntajes; aquí solo se lee. En Modo Grupo no se usa.
+ */
+export async function getXp() {
+    const { data } = await api.get('/usuario/xp')
+    return data.xp_total
+}
+
+/**
+ * Cambia el nombre del usuario (PATCH /usuario/perfil). Solo el nombre: el correo no se edita.
+ * Devuelve el usuario actualizado que manda el backend. 422 = nombre vacío o muy corto/largo.
+ */
+export async function actualizarNombre(nombre) {
+    const { data } = await api.patch('/usuario/perfil', { name: nombre })
+    return data.usuario
+}
+
 // ---------------------------------------------------------------------------
 // Cambio de contraseña
 // ---------------------------------------------------------------------------

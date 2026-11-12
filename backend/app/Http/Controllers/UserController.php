@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ActualizarPerfilRequest;
 use App\Http\Requests\CambiarPasswordRequest;
 use App\Http\Requests\UpdatePreferredModeRequest;
 use App\Services\ExperienciaService;
@@ -46,6 +47,23 @@ class UserController extends Controller
         return response()->json([
             'success'  => true,
             'xp_total' => $experiencia->xpTotal($request->user()),
+        ], 200);
+    }
+
+    /**
+     * Cambia el nombre del usuario autenticado (ambos roles). Devuelve el usuario para que
+     * el frontend actualice lo que tiene guardado sin volver a pedirlo.
+     */
+    public function updateProfile(ActualizarPerfilRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->name = $request->validated('name');
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tu nombre se actualizó correctamente.',
+            'usuario' => $user,
         ], 200);
     }
 

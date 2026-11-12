@@ -20,12 +20,28 @@
     scrollbar-color: var(--color-primary) var(--color-background);
 }
 
+/* Fondo oscuro también en html y body: si algo deja ver lo que hay detrás de #app (el rebote al
+   deslizar en el celular, por ejemplo), se ve oscuro y no blanco. */
+html,
+body {
+    background: var(--color-background);
+}
+
+/* En el celular, 100vh es el alto SIN la barra de direcciones (el más grande) y 100dvh el alto
+   visible de verdad. El layout mide 100dvh, pero #app pedía 100vh: sobraba un trozo, la ventana
+   entera se podía deslizar (se iba la NavBar) y abajo aparecía blanco (Android + Chrome).
+   La línea con 100vh queda de respaldo para navegadores que no conocen dvh. */
 #app {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 :root {
+    /* Le dice al navegador que la app es oscura: así dibuja en oscuro sus controles nativos
+       (las opciones de un <select>, barras de scroll, calendarios). Sin esto, las opciones de
+       "Últimos 30 días" salían con letra blanca sobre fondo blanco. */
+    color-scheme: dark;
 
     --color-primary: #7C3AED;
     --color-primary-hover: #8B5CF6;

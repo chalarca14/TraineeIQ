@@ -11,7 +11,11 @@ import { getMiniProyectosGuia } from '@/services/miniProyectoService'
 //
 // Por qué Promise.allSettled: si una guía falla no se tumban las demás; esa guía queda marcada
 // con `fallo` y la vista ofrece "Reintentar" solo para ella.
-export function useMiniProyectosSemanas() {
+//
+// Opción grupoId: el detalle de un grupo solo quiere las guías de ESE grupo, sin importar el modo
+// activo (se puede llegar con un enlace directo estando en Modo Personal). Sin grupoId se filtra
+// por modo, como en la lista de mini proyectos y el dashboard.
+export function useMiniProyectosSemanas({ grupoId = null } = {}) {
     const modoStore = useModoStore()
 
     const bloques = ref([]) // [{ guia, fallo, semanas: [{ ...semana, proyectos: [] }] }]
@@ -54,9 +58,11 @@ export function useMiniProyectosSemanas() {
         error.value = ''
         try {
             const guias = await listarGuias()
-            // Filtro por modo: 'personal' o 'grupo' coincide con guia.origen
-            const delModo = guias.filter((g) => g.origen === modoStore.modoActivo)
-            const resultado = await Promise.all(delModo.map(cargarGuia))
+            // Con grupoId: solo las guías de ese grupo. Sin él: 'personal' o 'grupo' coincide con guia.origen
+            const elegidas = grupoId != null
+                ? guias.filter((g) => g.grupo_id === grupoId)
+                : guias.filter((g) => g.origen === modoStore.modoActivo)
+            const resultado = await Promise.all(elegidas.map(cargarGuia))
             if (peticion !== ultimaPeticion) return
             bloques.value = resultado
         } catch (err) {
@@ -78,8 +84,9 @@ export function useMiniProyectosSemanas() {
     // Lista plana de todos los proyectos: de aquí salen pestañas y resumen
     const proyectos = computed(() => bloques.value.flatMap((b) => b.semanas.flatMap((s) => s.proyectos)))
 
-    // Al cambiar de modo se vuelve a cargar: cada modo muestra sus propias guías
-    watch(() => modoStore.modoActivo, cargar)
+    // Al cambiar de modo se vuelve a cargar: cada modo muestra sus propias guías.
+    // Las guías de un grupo no dependen del modo, así que ahí no hace falta recargar
+    if (grupoId == null) watch(() => modoStore.modoActivo, cargar)
 
     return { bloques, proyectos, cargando, error, cargar, reintentarGuia }
 }

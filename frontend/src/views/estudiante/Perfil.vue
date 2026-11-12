@@ -8,8 +8,8 @@ import DatosPersonales from '@/components/perfil/DatosPersonales.vue'
 import CambiarPasswordForm from '@/components/perfil/CambiarPasswordForm.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCerrarSesion } from '@/composables/useCerrarSesion'
-import { cambiarPassword } from '@/services/usuarioService'
-import { mensajeDeErrorPassword } from '@/utils/errores'
+import { cambiarPassword, actualizarNombre } from '@/services/usuarioService'
+import { mensajeDeErrorPassword, mensajeDeErrorCuenta } from '@/utils/errores'
 
 const authStore = useAuthStore()
 const { cerrarSesion } = useCerrarSesion()
@@ -23,6 +23,27 @@ const PESTANAS = [
   { clave: 'config', etiqueta: 'Configuración', icono: Settings }
 ]
 const pestana = ref('info')
+
+// --- Cambio de nombre ---
+const guardandoNombre = ref(false)
+const errorNombre = ref('')
+const exitoNombre = ref('')
+
+async function alGuardarNombre(nombre) {
+  guardandoNombre.value = true
+  errorNombre.value = ''
+  exitoNombre.value = ''
+  try {
+    const actualizado = await actualizarNombre(nombre)
+    // Se guarda en el store: la cabecera del perfil y la NavBar (nombre e iniciales) cambian solas
+    authStore.actualizarUsuario({ name: actualizado?.name ?? nombre })
+    exitoNombre.value = 'Tu nombre se actualizó correctamente.'
+  } catch (err) {
+    errorNombre.value = mensajeDeErrorCuenta(err)
+  } finally {
+    guardandoNombre.value = false
+  }
+}
 
 // --- Cambio de contraseña ---
 const formulario = ref(null)
@@ -56,7 +77,8 @@ async function alCambiar({ actual, nueva }) {
       <Pestanas v-model="pestana" :pestanas="PESTANAS" />
 
       <DatosPersonales v-if="pestana === 'info'" :nombre="usuario?.name" :correo="usuario?.email"
-        :rol="usuario?.rol" />
+        :rol="usuario?.rol" :guardando="guardandoNombre" :error="errorNombre" :exito="exitoNombre"
+        @guardar="alGuardarNombre" />
 
       <template v-else>
         <CambiarPasswordForm ref="formulario" :enviando="enviando" :error-externo="errorCambio" :exito="exito"

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\MiniProyectoController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatIaController;
+use App\Http\Controllers\RecuperarPasswordController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,10 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 // "Continuar con Google": entrar y, si la cuenta es nueva, completar el registro
 Route::post('/auth/google', [GoogleAuthController::class, 'entrar'])->middleware('throttle:10,1');
 Route::post('/auth/google/completar', [GoogleAuthController::class, 'completarRegistro'])->middleware('throttle:10,1');
+
+// "¿Olvidaste tu contraseña?": pedir el enlace por correo y crear la contraseña nueva con él
+Route::post('/password/olvide', [RecuperarPasswordController::class, 'enviarEnlace'])->middleware('throttle:5,1');
+Route::post('/password/restablecer', [RecuperarPasswordController::class, 'restablecer'])->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +52,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cambiar la contraseña: sirve para ambos roles y tiene limite de intentos
     Route::patch('/usuario/password', [UserController::class, 'updatePassword'])->middleware('throttle:5,1');
+
+    // Cambiar el nombre (solo el nombre: el correo no se edita). Ambos roles
+    Route::patch('/usuario/perfil', [UserController::class, 'updateProfile'])->middleware('throttle:10,1');
 
     Route::get('/user', function (Request $request) {
         return $request->user();

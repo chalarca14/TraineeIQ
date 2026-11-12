@@ -166,7 +166,8 @@ h2 {
     font-size: .82rem;
 }
 
-/* En celular las pestañas caben con scroll horizontal, sin partirse en dos filas */
+/* En escritorio, una fila. En celular pasan a 2 × 2 (ver @media abajo): con scroll horizontal
+   "Mini proyectos" quedaba escondida y el aprendiz no sabía que existía. */
 .pestanas {
     display: flex;
     gap: .3rem;
@@ -251,5 +252,29 @@ h2 {
 
 @media (max-width: 520px) {
     .panel { padding: .9rem; }
+
+    /* Cuadrícula de 2 columnas: las cuatro pestañas se ven sin deslizar.
+       Cada pestaña lleva su propio subrayado, así se sigue viendo cuál está activa. */
+    .pestanas {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow-x: visible;
+        border-bottom: none;
+    }
+
+    /* Cada celda mide ~140 px: con menos relleno y letra un poco menor "Recomendaciones" cabe
+       junto a su ícono (si no, el ícono se encogía hasta desaparecer). */
+    .pestana {
+        justify-content: center;
+        gap: .3rem;
+        min-height: 40px;
+        padding: .6rem .35rem;
+        border-bottom-color: var(--color-border);
+        font-size: .82rem;
+    }
+
+    .pestana svg {
+        flex-shrink: 0;
+    }
 }
 </style>

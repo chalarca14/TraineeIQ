@@ -150,11 +150,6 @@ const beneficios = [
     line-height: 1.6;
 }
 
-.illustration-placeholder {
-    min-height: clamp(80px, 14vh, 160px);
-    /* TODO: reemplazar por la ilustración (unDraw/Icons8) al final del proyecto */
-}
-
 .role-info-card {
     min-height: clamp(80px, 14vh, 160px);
     padding: 1rem 1.2rem;
@@ -304,13 +299,5 @@ const beneficios = [
     font-size: .78rem;
     color: var(--color-text-secondary);
     line-height: 1.4;
-}
-
-/* CELULAR */
-@media (max-width: 700px) {
-    .illustration-placeholder {
-        display: none;
-        /* en mobile priorizamos el formulario, no el espacio decorativo */
-    }
 }
 </style>

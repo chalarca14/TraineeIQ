@@ -108,8 +108,8 @@ async function abrirDesdeRuta() {
     bajarScroll()
   } catch (e) {
     if (gen !== generacion) return
-    // Con respuesta del servidor (403, 404, 500) la conversación no existe o no es suya
-    errorConversacion.value = e.response
+    // 403/404: la conversación no existe o no es suya. Lo demás (500, sin conexión) es pasajero: Reintentar
+    errorConversacion.value = [403, 404].includes(e.response?.status)
       ? 'No pudimos abrir esta conversación. Puede que no exista o no sea tuya.'
       : mensajeDeError(e)
   } finally {
@@ -202,7 +202,8 @@ watch(() => [route.params.conversacionId, route.query.guiaId], () => {
       <div class="chat__principal">
         <div ref="contenedor" class="chat__mensajes" aria-live="polite">
           <p v-if="cargandoConversacion" class="chat__estado">Cargando la conversación…</p>
-          <p v-else-if="errorConversacion" class="chat__estado chat__estado--error">{{ errorConversacion }}</p>
+          <div v-else-if="errorConversacion" class="chat__estado chat__estado--error" role="alert">{{ errorConversacion }}
+            <button type="button" class="btn btn-secundario btn-sm" @click="abrirDesdeRuta">Reintentar</button></div>
 
           <ChatVacio v-else-if="!mensajes.length && !pendiente" :guiado="guiado" :guia-nombre="guiaNombre" />
 

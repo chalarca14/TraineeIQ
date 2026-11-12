@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useModoStore } from '../stores/modo'
 
 
 // Definimos todas las rutas de la aplicacion
@@ -13,6 +14,18 @@ const routes = [
     path: '/registro',
     name: 'Registro',
     component: () => import('../views/auth/Registro.vue')
+  },
+
+  // "¿Olvidaste tu contraseña?": públicas (no hay sesión). /restablecer llega desde el enlace del correo
+  {
+    path: '/recuperar',
+    name: 'Recuperar',
+    component: () => import('../views/auth/Recuperar.vue')
+  },
+  {
+    path: '/restablecer',
+    name: 'Restablecer',
+    component: () => import('../views/auth/Restablecer.vue')
   },
 
   // Páginas legales públicas: las enlaza el registro y las pide Google para publicar "Continuar con Google"
@@ -58,27 +71,39 @@ const routes = [
       },
 
 
-      // Mis grupos: lista de grupos del aprendiz y unirse con código (el detalle llega en la Tarea 8)
+      // Mis grupos: lista de grupos del aprendiz y unirse con código
       {
         path: 'grupos',
         name: 'MisGrupos',
+        meta: { modo: 'grupo' },
         component: () => import('../views/estudiante/MisGrupos.vue')
+      },
+      // Detalle de un grupo: cabecera, tarjetas y pestañas Guías / Proyectos / Mi progreso.
+      // El sidebar resalta "Mis grupos" solo, porque la ruta empieza por /estudiante/grupos/
+      {
+        path: 'grupos/:id',
+        name: 'GrupoDetalle',
+        meta: { modo: 'grupo' },
+        component: () => import('../views/estudiante/GrupoDetalle.vue')
       },
 
       {
         path: 'guias',
         name: 'MisGuias',
+        meta: { modo: 'personal' },
         component: () => import('../views/personal/MisGuias.vue')
       },
       // La guía por semanas: UNA sola vista para la guía personal y la de un grupo
       {
         path: 'guias/:id',
         name: 'GuiaDetalle',
+        meta: { modo: 'personal' },
         component: () => import('../views/estudiante/GuiaSemanas.vue')
       },
       {
         path: 'grupos/:grupoId/guias/:guiaId',
         name: 'GrupoGuiaSemanas',
+        meta: { modo: 'grupo' },
         component: () => import('../views/estudiante/GuiaSemanas.vue')
       },
 
@@ -94,7 +119,7 @@ const routes = [
         component: () => import('../views/estudiante/MiniProyectoDetalle.vue')
       },
 
-      // Historial de actividad (conversaciones con la IA y recomendaciones)
+      // Historial: solo las conversaciones con la IA (libres y guiadas)
       {
         path: 'historial',
         name: 'Historial',
@@ -198,6 +223,16 @@ router.beforeEach((to, from, next) => {
 
   // Todo bien, dejamos pasar
   next()
+})
+
+// Algunas pantallas solo existen en un modo (meta.modo): las de grupos son del Modo Grupo y Mis guías,
+// del Modo Personal. Si se llega a una por URL directa o por un enlace, el modo guardado puede ser el
+// otro y la barra lateral mostraría el menú equivocado. Por eso, al entrar, se pone el modo de la
+// pantalla; es lo mismo que haría el aprendiz con el interruptor.
+router.afterEach((to) => {
+  if (!to.meta.modo) return
+  const modoStore = useModoStore()
+  if (modoStore.modoActivo !== to.meta.modo) modoStore.cambiarModo(to.meta.modo)
 })
 
 export default router

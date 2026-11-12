@@ -54,6 +54,11 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Dirección del frontend (Vue). La usa el correo de "¿Olvidaste tu contraseña?" para armar el
+    // enlace a /restablecer. Se lee aquí y no con env() en el código, porque con config:cache
+    // (producción) env() fuera de config/ devuelve null.
+    'frontend_url' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -1,7 +1,7 @@
 import api from './api'
 
-// Mientras el backend no esté listo, deja esto en true y todo funciona con datos de prueba.
-// Cuando Santiago confirme que la subida responde, ponlo en false.
+// Datos reales (CLAUDE.md: USAR_DATOS_PRUEBA = false). En true, la lista y la subida usan los datos
+// de abajo, sin backend.
 const USAR_DATOS_PRUEBA = false
 
 // Datos de prueba con la misma forma que la respuesta real del backend
@@ -31,6 +31,29 @@ let guiasPrueba = [
 
 const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Tope de seguridad: si el backend respondiera mal (last_page enorme o sin fin), no se piden páginas
+// para siempre. 20 páginas de 15 son 300 guías, más de las que tendrá un aprendiz.
+const MAX_PAGINAS = 20
+
+/**
+ * GET /guias viene paginado de 15 en 15 (Laravel: data, current_page, last_page). Antes solo se leía
+ * la primera página: con más de 15 guías las demás no salían, y como las personales se filtraban
+ * DENTRO de esa página, podían desaparecer si había muchas de grupo. Aquí se piden todas, una
+ * página tras otra (en orden, para no lanzar muchas peticiones a la vez al servidor).
+ */
+async function pedirTodasLasGuias() {
+    const guias = []
+    let pagina = 1
+    let ultima = 1
+    do {
+        const { data } = await api.get('/guias', { params: { page: pagina } })
+        guias.push(...data.data)
+        ultima = data.last_page ?? 1
+        pagina++
+    } while (pagina <= ultima && pagina <= MAX_PAGINAS)
+    return guias
+}
+
 /** Devuelve las guías personales del estudiante con sus temas. */
 export async function listarMisGuias() {
     if (USAR_DATOS_PRUEBA) {
@@ -38,10 +61,8 @@ export async function listarMisGuias() {
         return [...guiasPrueba]
     }
 
-    const { data } = await api.get('/guias')
-    // Lista paginada de Laravel: las guías vienen en data.data.
     // El backend devuelve también las de grupo; aquí solo mostramos las personales
-    return data.data.filter((guia) => guia.origen === 'personal')
+    return (await pedirTodasLasGuias()).filter((guia) => guia.origen === 'personal')
 }
 
 /** Sube un PDF; el backend lo lee y lo divide en temas. */
@@ -86,8 +107,7 @@ export async function obtenerGuia(id) {
 
 /** Devuelve las guías que puede ver el usuario, personales y de grupo. */
 export async function listarGuias() {
-    const { data } = await api.get('/guias')
-    return data.data
+    return pedirTodasLasGuias()
 }
 
 /** Devuelve las semanas de una guía con su estado y si están disponibles. */
