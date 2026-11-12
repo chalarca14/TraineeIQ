@@ -8,6 +8,7 @@ use App\Http\Requests\FiltrarEntregasGrupoRequest;
 use App\Models\EntregaMiniProyecto;
 use App\Models\Grupo;
 use App\Models\EstudianteGrupo;
+use App\Services\NotificacionService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -183,13 +184,25 @@ class GrupoController extends Controller
     /**
      * Libera semanas: los estudiantes del grupo pueden leer hasta la semana indicada.
      * Aplica a todas las guias del grupo. Bajar el numero vuelve a bloquear las siguientes.
+     * Si la semana sube, avisa a los estudiantes en la campanita.
      */
-    public function actualizarSemanaActual(ActualizarSemanaActualRequest $request, int $id): JsonResponse
+    public function actualizarSemanaActual(ActualizarSemanaActualRequest $request, int $id, NotificacionService $notificaciones): JsonResponse
     {
         $grupo = Grupo::findOrFail($id);
         Gate::authorize('update', $grupo);
 
+        $anterior = (int) $grupo->semana_actual;
         $grupo->update(['semana_actual' => $request->integer('semana_actual')]);
+
+        // Solo avisa si la semana sube: bajarla o dejarla igual no libera nada nuevo
+        if ($grupo->semana_actual > $anterior) {
+            try {
+                $notificaciones->avisarSemanaLiberada($grupo, $grupo->semana_actual, $anterior);
+            } catch (\Throwable $e) {
+                // La semana ya quedó liberada: un aviso que falla no debe deshacerla
+                Log::error('No se pudo avisar de la semana liberada', ['grupo_id' => $grupo->id, 'mensaje' => $e->getMessage()]);
+            }
+        }
 
         return response()->json([
             'message'       => 'Semana actualizada correctamente',
