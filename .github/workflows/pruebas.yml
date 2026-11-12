@@ -1,0 +1,73 @@
+# Pruebas automáticas de TraineeIQ (GitHub Actions).
+# Corren en cada Pull Request a main y en cada push a main, que es producción.
+# Si algo falla, el PR muestra una ❌ en la pestaña "Checks" antes de fusionar.
+# No despliegan nada: de eso se encargan Render y Vercel.
+name: Pruebas
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Si llega un push nuevo al mismo PR, cancela la corrida anterior para no gastar minutos
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Laravel)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar PHP 8.3 (la misma versión de Render)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, fileinfo
+          coverage: none
+
+      - name: Instalar dependencias de Composer
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Preparar el .env de prueba
+        # Las pruebas necesitan una APP_KEY (por ejemplo, para cifrar el registro_token de Google).
+        # La base es SQLite en memoria (phpunit.xml): no hace falta MySQL ni ninguna clave real
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Correr las pruebas
+        run: php artisan test
+
+  frontend:
+    name: Frontend (Vue)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias exactas del lock
+        run: npm ci
+
+      - name: Compilar
+        # Con la URL de producción, igual que en Vercel
+        env:
+          VITE_API_URL: https://traineeiq-api.onrender.com/api
+        run: npm run build
