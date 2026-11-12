@@ -48,6 +48,22 @@ export function mensajeDeErrorEntrega(err) {
     return mensajeDeError(err)
 }
 
+// Errores de "Continuar con Google". En estos códigos el backend manda un `message` en español
+// pensado para el usuario (401 cuenta no verificada, 403 pestaña de rol equivocada, 409 correo
+// ya registrado, 422 tiempo de registro vencido, 503 Google no configurado), así que se muestra.
+const CODIGOS_GOOGLE_CON_MENSAJE = [401, 403, 409, 422, 503]
+
+export function mensajeDeErrorGoogle(err) {
+    // Render gratis se duerme: la primera petición puede tardar casi un minuto
+    if (err.code === 'ECONNABORTED') return 'El servidor está despertando. Espera unos segundos e intenta de nuevo.'
+    const status = err.response?.status
+    if (status === 429) return 'Hiciste muchos intentos seguidos. Espera un minuto y vuelve a probar.'
+    const mensaje = err.response?.data?.message
+    if (CODIGOS_GOOGLE_CON_MENSAJE.includes(status) && typeof mensaje === 'string' && mensaje.trim()) return mensaje
+    if (!err.response) return 'No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.'
+    return 'No se pudo entrar con Google. Intenta de nuevo.'
+}
+
 // Traduce un error de axios a un mensaje para el usuario, según el código HTTP
 export function mensajeDeError(err) {
     const status = err.response?.status

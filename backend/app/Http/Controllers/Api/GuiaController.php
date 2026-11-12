@@ -13,6 +13,7 @@ use App\Http\Requests\StoreGuiaRequest;
 use App\Models\Guia;
 use App\Models\Grupo;
 use App\Models\User;
+use App\Services\NotificacionService;
 use App\Services\ProcesarGuiaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,7 +60,7 @@ class GuiaController extends Controller
      * Sube una guía y la divide en semanas pendientes. El contenido de cada semana
      * se genera después, una por una, para no pasar el tiempo límite de la petición.
      */
-    public function store(StoreGuiaRequest $request, ProcesarGuiaService $servicio): JsonResponse
+    public function store(StoreGuiaRequest $request, ProcesarGuiaService $servicio, NotificacionService $notificaciones): JsonResponse
     {
         $user = $request->user();
         $esInstructor = $user->rol === 'instructor';
@@ -76,6 +77,16 @@ class GuiaController extends Controller
             $resultado = $servicio->crear($datos, $request->file('archivo'), $request->integer('semanas_totales') ?: null);
         } catch (\Throwable $e) {
             return $this->responderError($e);
+        }
+
+        // Solo una guía de grupo nueva avisa a los estudiantes; repetir el PDF no avisa otra vez
+        if ($resultado['creada'] && $resultado['guia']->origen === 'grupo') {
+            try {
+                $notificaciones->avisarGuiaNueva($resultado['guia']);
+            } catch (\Throwable $e) {
+                // La guía ya quedó guardada: un aviso que falla no debe deshacer la subida
+                Log::error('No se pudo avisar de la guía nueva', ['guia_id' => $resultado['guia']->id, 'mensaje' => $e->getMessage()]);
+            }
         }
 
         return response()->json([

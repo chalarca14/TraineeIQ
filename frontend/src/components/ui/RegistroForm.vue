@@ -6,6 +6,13 @@
             <p>Completa la información para crear tu cuenta</p>
         </header>
 
+        <!-- Registrarse con Google: lo recomendado. Usa el rol elegido en las tarjetas de abajo -->
+        <BotonGoogle recomendado texto="signup_with" separador="o regístrate con tu correo"
+            :cargando="cargandoGoogle" :error="errorGoogle" @credencial="alRecibirCredencial" />
+
+        <CompletarRegistroGoogleModal v-if="registroPendiente" :registro="registroPendiente"
+            @cerrar="cancelarRegistro" @registrado="entrarAlDashboard" />
+
         <form @submit.prevent="registrarse" novalidate>
 
             <div class="fields-row">
@@ -88,10 +95,17 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { registro } from '@/services/authService'
 import RoleCardSelector from '../auth/RoleCardSelector.vue'
+import BotonGoogle from '../auth/BotonGoogle.vue'
+import CompletarRegistroGoogleModal from '../auth/CompletarRegistroGoogleModal.vue'
+import { useEntrarConGoogle } from '@/composables/useEntrarConGoogle'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const rolSeleccionado = defineModel('rol')
+
+// Registrarse con Google: la ventana "Completa tu registro" deja cambiar el rol antes de crear la cuenta
+const { cargandoGoogle, errorGoogle, registroPendiente, alRecibirCredencial, entrarAlDashboard, cancelarRegistro } =
+    useEntrarConGoogle(rolSeleccionado)
 
 import BaseInput from './BaseInput.vue'
 import BaseButton from './BaseButton.vue'

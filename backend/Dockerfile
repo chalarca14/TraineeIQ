@@ -4,6 +4,9 @@ FROM composer:2 AS dependencias
 WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
+# google/apiclient trae cientos de servicios: deja solo los de composer.json (extra.google/apiclient-services).
+# Se corre aparte porque la instalación de arriba usa --no-scripts
+RUN composer run-script pre-autoload-dump
 
 COPY . .
 RUN composer dump-autoload --optimize --no-dev --no-scripts

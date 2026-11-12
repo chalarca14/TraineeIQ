@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\EntregaMiniProyectoController;
+use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
 use App\Http\Controllers\Api\GuiaSemanaController;
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+// "Continuar con Google": entrar y, si la cuenta es nueva, completar el registro
+Route::post('/auth/google', [GoogleAuthController::class, 'entrar'])->middleware('throttle:10,1');
+Route::post('/auth/google/completar', [GoogleAuthController::class, 'completarRegistro'])->middleware('throttle:10,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -88,7 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Notificaciones de la campanita: hoy solo las recibe el instructor
-    Route::middleware('EsInstructor')->prefix('notificaciones')->group(function () {
+    // Campanita de avisos, para instructores y estudiantes. Cada uno solo ve los suyos:
+    // la lista filtra por usuario_id y marcar como leída pasa por NotificacionPolicy
+    Route::prefix('notificaciones')->group(function () {
         Route::get('/', [NotificacionController::class, 'index']);
         Route::patch('/leidas', [NotificacionController::class, 'marcarTodas']);
         Route::patch('/{id}/leida', [NotificacionController::class, 'marcarLeida'])->whereNumber('id');
