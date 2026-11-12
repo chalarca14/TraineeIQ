@@ -22,8 +22,10 @@
 
                 <ResumenGrupo v-if="pestana === 'resumen'" :grupo="grupo" @ir-a="pestana = $event" />
                 <GuiasGrupoInstructor v-else-if="pestana === 'guias'" :grupo-id="grupo.id" />
+                <SemanasGrupo v-else-if="pestana === 'semanas'" :grupo="grupo"
+                    @semana-liberada="grupo.semana_actual = $event" @ir-a="pestana = $event" />
 
-                <!-- Pestañas de las tareas I-4 y I-7: se ven desde ya para que la estructura y los
+                <!-- Pestaña de la tarea I-7: se ven desde ya para que la estructura y los
                      enlaces ?tab= queden listos, con un aviso hasta que estén construidas -->
                 <EstadoVista v-else vacio :icono="pestanaActual.icono" texto-vacio="Esta sección llega pronto"
                     :descripcion-vacio="pestanaActual.pronto" />
@@ -42,6 +44,7 @@ import Pestanas from '@/components/ui/Pestanas.vue'
 import CabeceraGrupoInstructor from '@/components/instructor/CabeceraGrupoInstructor.vue'
 import ResumenGrupo from '@/components/instructor/ResumenGrupo.vue'
 import GuiasGrupoInstructor from '@/components/instructor/GuiasGrupoInstructor.vue'
+import SemanasGrupo from '@/components/instructor/SemanasGrupo.vue'
 import { getGrupo } from '@/services/grupoService'
 import { mensajeDeErrorGrupo } from '@/utils/errores'
 
@@ -55,7 +58,7 @@ const grupoId = Number(route.params.id)
 const PESTANAS = [
     { clave: 'resumen', etiqueta: 'Resumen', icono: LayoutDashboard },
     { clave: 'guias', etiqueta: 'Guías', icono: BookOpen },
-    { clave: 'semanas', etiqueta: 'Semanas y proyectos', icono: CalendarRange, pronto: 'Aquí podrás liberar semanas y ver las entregas de cada mini proyecto.' },
+    { clave: 'semanas', etiqueta: 'Semanas y proyectos', icono: CalendarRange },
     { clave: 'estadisticas', etiqueta: 'Estadísticas', icono: BarChart3, pronto: 'Aquí verás el avance del grupo calculado con sus entregas.' }
 ]
 

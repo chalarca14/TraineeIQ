@@ -70,3 +70,24 @@ export async function crearGrupo({ nombre, descripcion = null }) {
 export async function eliminarGrupo(id) {
     await api.delete(`/grupos/${id}`)
 }
+
+// Tope de seguridad: 20 páginas de 30 son 600 entregas, más de las que tendrá un grupo del SENA
+const MAX_PAGINAS_ENTREGAS = 20
+
+/**
+ * TODAS las entregas del grupo (solo su instructor): recorre las páginas en orden, una tras otra.
+ * La pestaña "Semanas y proyectos" las necesita todas para contar quién entregó en cada semana y
+ * en cada proyecto; así cada proyecto se abre al instante, sin otra petición.
+ */
+export async function getTodasEntregasGrupo(id) {
+    const entregas = []
+    let pagina = 1
+    let ultima = 1
+    do {
+        const data = await getEntregasGrupo(id, pagina)
+        entregas.push(...(data.data ?? []))
+        ultima = data.last_page ?? 1
+        pagina++
+    } while (pagina <= ultima && pagina <= MAX_PAGINAS_ENTREGAS)
+    return entregas
+}
