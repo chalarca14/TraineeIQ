@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Grupo;
+use App\Rules\TamanoExcelGuia;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreGuiaRequest extends FormRequest
@@ -32,9 +33,22 @@ class StoreGuiaRequest extends FormRequest
 
         return [
             'nombre'          => 'required|string|max:255',
-            'archivo'         => 'required|file|mimes:pdf|max:10240',
+            // PDF o Excel (.xlsx); el Excel tiene un límite de peso menor
+            'archivo'         => ['required', 'file', 'mimes:pdf,xlsx', 'max:10240', new TamanoExcelGuia()],
             'grupo_id'        => $esInstructor ? 'required|integer|exists:grupos,id' : 'prohibited',
             'semanas_totales' => 'nullable|integer|min:1|max:52',
+        ];
+    }
+
+    /**
+     * Mensajes en español para el archivo.
+     */
+    public function messages(): array
+    {
+        return [
+            'archivo.required' => 'Elige el archivo de la guía.',
+            'archivo.mimes'    => 'La guía debe ser un PDF o un Excel (.xlsx).',
+            'archivo.max'      => 'La guía no puede pesar más de 10 MB.',
         ];
     }
 }

@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Convierte un PDF en una guia dividida en semanas. Solo hace una llamada a
- * Gemini (mas un reintento): el contenido de cada semana se genera despues,
+ * Convierte un PDF o un Excel (.xlsx) en una guia dividida en semanas. Solo hace una
+ * llamada a Gemini (mas un reintento): el contenido de cada semana se genera despues,
  * en su propia peticion, para no pasar el tiempo limite.
  */
 class ProcesarGuiaService
@@ -27,10 +27,12 @@ class ProcesarGuiaService
     private const TIEMPO_MAXIMO_SEGUNDOS = 180;
 
     /**
-     * Recibe el extractor de texto por inyeccion de dependencias.
+     * Recibe los dos lectores de texto por inyeccion de dependencias.
      */
-    public function __construct(private PdfTextExtractor $extractor)
-    {
+    public function __construct(
+        private PdfTextExtractor $extractor,
+        private ExcelTextExtractor $extractorExcel,
+    ) {
     }
 
     /**
@@ -154,22 +156,26 @@ class ProcesarGuiaService
     }
 
     /**
-     * Lee el PDF y rechaza los que no tienen texto o superan el limite configurado.
+     * Lee el PDF o el Excel y rechaza los que no tienen texto o superan el limite configurado.
+     * El tipo se decide por el contenido del archivo (guessExtension), no por su nombre.
      */
     private function leerTexto(UploadedFile $archivo): string
     {
-        $texto = mb_scrub((string) $this->extractor->extraer($archivo->getRealPath()), 'UTF-8');
+        $esExcel = $archivo->guessExtension() === 'xlsx';
+        $lector = $esExcel ? $this->extractorExcel : $this->extractor;
+
+        $texto = mb_scrub((string) $lector->extraer($archivo->getRealPath()), 'UTF-8');
 
         if (mb_strlen(trim($texto)) < self::MIN_CARACTERES) {
-            throw new GuiaNoProcesableException(
-                'El PDF no tiene texto legible. Sube un PDF que no sea una imagen escaneada.'
-            );
+            throw new GuiaNoProcesableException($esExcel
+                ? 'El Excel no tiene texto suficiente para armar la guía. Revisa que la planeación no esté en una hoja oculta.'
+                : 'El PDF no tiene texto legible. Sube un PDF que no sea una imagen escaneada.');
         }
 
         if (mb_strlen($texto) > (int) config('services.gemini.max_caracteres_guia')) {
-            throw new GuiaNoProcesableException(
-                'La guía es demasiado larga para procesarla. Divídela en dos PDF.'
-            );
+            throw new GuiaNoProcesableException($esExcel
+                ? 'La guía es demasiado larga para procesarla. Divide el Excel en dos.'
+                : 'La guía es demasiado larga para procesarla. Divídela en dos PDF.');
         }
 
         return $texto;
@@ -215,7 +221,7 @@ class ProcesarGuiaService
         $patron = '/' . implode('\s*', array_map(fn ($p) => preg_quote($p, '/'), $palabras)) . '/iu';
 
         if (preg_match($patron, $texto, $coincidencia, PREG_OFFSET_CAPTURE, $desde) !== 1) {
-            throw new RespuestaIaInvalidaException('Una frase de inicio no aparece en el PDF.');
+            throw new RespuestaIaInvalidaException('Una frase de inicio no aparece en el texto de la guía.');
         }
 
         [$encontrado, $inicio] = $coincidencia[0];

@@ -48,6 +48,14 @@ return [
     'max_caracteres_guia' => (int) env('GEMINI_MAX_CARACTERES_GUIA', 300000),
 ],
 
+    // Guías en Excel (.xlsx): hojas que no se leen (separadas por coma) y tope de celdas,
+    // para no gastar la memoria de Render. PlanEvaluacion de la plantilla RP33 suele ser de otro curso
+    'guia_excel' => [
+        'hojas_ignoradas' => array_filter(array_map('trim', explode(',', (string) env('GUIA_EXCEL_HOJAS_IGNORADAS', 'PlanEvaluacion')))),
+        'max_celdas'      => (int) env('GUIA_EXCEL_MAX_CELDAS', 60000),
+        'max_kb'          => (int) env('GUIA_EXCEL_MAX_KB', 2048),
+    ],
+
     'github' => [
         // Token del servidor: solo sube el limite de consultas, no da acceso a nada privado
         'token' => env('GITHUB_TOKEN'),

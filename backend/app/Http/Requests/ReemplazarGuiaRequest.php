@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\TamanoExcelGuia;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReemplazarGuiaRequest extends FormRequest
@@ -20,8 +21,21 @@ class ReemplazarGuiaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'archivo'               => 'required|file|mimes:pdf|max:10240',
+            // PDF o Excel (.xlsx); el Excel tiene un límite de peso menor
+            'archivo'               => ['required', 'file', 'mimes:pdf,xlsx', 'max:10240', new TamanoExcelGuia()],
             'confirmar_eliminacion' => 'sometimes|boolean',
+        ];
+    }
+
+    /**
+     * Mensajes en español para el archivo.
+     */
+    public function messages(): array
+    {
+        return [
+            'archivo.required' => 'Elige el archivo de la guía.',
+            'archivo.mimes'    => 'La guía debe ser un PDF o un Excel (.xlsx).',
+            'archivo.max'      => 'La guía no puede pesar más de 10 MB.',
         ];
     }
 }
