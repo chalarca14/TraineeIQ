@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { CalendarRange, RefreshCw, BookOpen, Info } from 'lucide-vue-next'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
@@ -65,6 +65,9 @@ onMounted(async () => {
   await cargar()
   abrirDesdeEnlace()
 })
+
+// Si ya se estaba en esta pestaña y llega otro aviso, la vista no se crea de nuevo: cambia solo ?proyecto
+watch(() => route.query.proyecto, () => { if (!cargando.value) abrirDesdeEnlace() })
 </script>
 
 <template>

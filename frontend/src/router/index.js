@@ -167,6 +167,12 @@ const routes = [
         path: 'grupos/:grupoId/guias/:guiaId',
         name: 'InstructorGuiaSemanas',
         component: () => import('../views/estudiante/GuiaSemanas.vue')
+      },
+      // Tarea I-5: el instructor usa la misma vista de Perfil (nombre, contraseña, cerrar sesión)
+      {
+        path: 'perfil',
+        name: 'InstructorPerfil',
+        component: () => import('../views/estudiante/Perfil.vue')
       }
     ]
   },
