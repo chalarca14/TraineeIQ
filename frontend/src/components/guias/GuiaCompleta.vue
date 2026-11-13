@@ -15,7 +15,11 @@
             <span>TraineeIQ guarda el texto de la guía, no el PDF original. Conserva tu copia del PDF.</span>
         </p>
 
-        <p v-if="cargando" class="estado" role="status">Cargando la guía completa…</p>
+        <!-- Forma de una semana del texto: su título y un párrafo -->
+        <CargaEsqueleto v-if="cargando" texto="Cargando la guía completa…">
+            <EsqueletoBloque ancho="45%" alto="1.3rem" />
+            <EsqueletoBloque v-for="a in ['100%', '94%', '97%', '90%', '55%']" :key="a" :ancho="a" />
+        </CargaEsqueleto>
 
         <div v-else-if="error" class="error" role="alert">
             <span>{{ error }}</span>
@@ -52,6 +56,8 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ArrowLeft, Info, Lock } from 'lucide-vue-next'
 import { getTextoGuia } from '@/services/guiaService'
 import TextoGuia from '@/components/guias/TextoGuia.vue'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import { mensajeDeError } from '@/utils/errores'
 
 // Todas las semanas como un documento continuo. Funciona igual en los dos modos: el backend ya

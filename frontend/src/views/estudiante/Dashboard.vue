@@ -14,6 +14,14 @@
         <!-- Este EstadoVista solo cubre cargando y error. Sin datos no se tapa todo: las tarjetas se ven
              en 0 y el mensaje de vacío va abajo, en los dos modos -->
         <EstadoVista :cargando="cargando" :error="error" texto-cargando="Cargando tu resumen..." @reintentar="cargar">
+            <!-- Mismas cuadrículas que el contenido real: así no hay salto cuando llegan los datos -->
+            <template #cargando>
+                <div class="stats-grid"><EsqueletoTarjeta v-for="n in 4" :key="n" /></div>
+                <div class="fila-principal">
+                    <EsqueletoTarjeta :lineas="4" :con-icono="false" alto="220px" />
+                    <EsqueletoTarjeta :lineas="3" :con-icono="false" alto="220px" />
+                </div>
+            </template>
             <section class="stats-grid">
                 <StatCard v-for="stat in estadisticas" :key="stat.etiqueta" v-bind="stat" />
             </section>
@@ -44,6 +52,7 @@ import { useResumenDashboard } from '@/composables/useResumenDashboard'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import BannerBienvenida from '@/components/dashboard/BannerBienvenida.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
 import GuiaActualCard from '@/components/dashboard/GuiaActualCard.vue'
 import SiguientePaso from '@/components/dashboard/SiguientePaso.vue'
 

@@ -24,7 +24,11 @@
                     <ContenidoSemana v-else :semana="contenido" :seccion="pestana" />
                 </div>
             </template>
-            <p v-else-if="cargandoContenido" class="estado-texto" role="status">Cargando la semana…</p>
+            <!-- Forma de las pestañas y de un párrafo de texto, que es lo primero que se ve (pestaña Guía) -->
+            <CargaEsqueleto v-else-if="cargandoContenido" texto="Cargando la semana…">
+                <EsqueletoBloque ancho="70%" alto="2.4rem" radio="12px" />
+                <EsqueletoBloque v-for="a in ANCHOS_TEXTO" :key="a" :ancho="a" />
+            </CargaEsqueleto>
             <div v-else class="aviso" role="alert">
                 <span>{{ errorContenido || 'No pudimos cargar el contenido de esta semana.' }}</span>
                 <button type="button" class="btn btn-secundario btn-sm" @click="$emit('recargar')">Intentar de nuevo</button>
@@ -70,11 +74,16 @@
 <script setup>
 import { ref, nextTick, useId } from 'vue'
 import { FileText, ListChecks, Sparkles, Rocket, RefreshCw } from 'lucide-vue-next'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import SemanaBloqueada from '@/components/miniproyectos/SemanaBloqueada.vue'
 import CabeceraSemana from '@/components/guias/CabeceraSemana.vue'
 import NavegacionSemanas from '@/components/guias/NavegacionSemanas.vue'
 import PestanaGuia from '@/components/guias/PestanaGuia.vue'
 import ContenidoSemana from '@/components/guias/ContenidoSemana.vue'
+
+// Anchos distintos para que las líneas del esqueleto parezcan un párrafo y no una tabla
+const ANCHOS_TEXTO = ['95%', '100%', '88%', '92%', '60%']
 
 // Columna izquierda: la semana elegida con sus pestañas. Los estados (pendiente, generando, error) y
 // sus botones son los mismos que tenía el acordeón; solo cambió dónde se pintan.

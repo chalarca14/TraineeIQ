@@ -7,6 +7,17 @@
         <EstadoVista :cargando="cargando" :error="error" :vacio="bloques.length === 0" :icono="Code"
             texto-cargando="Cargando tus mini proyectos..." :texto-vacio="textoVacio"
             :descripcion-vacio="descripcionVacio" @reintentar="cargar">
+            <!-- Proyectos en cuadrícula a la izquierda y el resumen de progreso a la derecha, como el real -->
+            <template #cargando>
+                <div class="contenido">
+                    <div class="esqueleto-principal">
+                        <EsqueletoBloque ancho="320px" alto="2.2rem" radio="12px" />
+                        <EsqueletoBloque alto="2.6rem" radio="12px" />
+                        <div class="cuadricula"><EsqueletoTarjeta v-for="n in 3" :key="n" :lineas="4" alto="230px" /></div>
+                    </div>
+                    <EsqueletoTarjeta :lineas="4" :con-icono="false" alto="260px" />
+                </div>
+            </template>
             <div class="contenido">
                 <section class="principal">
                     <FiltrosProyectos v-model:pestana="pestana" v-model:busqueda="busqueda" />
@@ -61,6 +72,8 @@ import { useRouter } from 'vue-router'
 import { Code } from 'lucide-vue-next'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import FiltrosProyectos from '@/components/miniproyectos/FiltrosProyectos.vue'
 import ProyectoCard from '@/components/miniproyectos/ProyectoCard.vue'
 import SemanaBloqueada from '@/components/miniproyectos/SemanaBloqueada.vue'
@@ -216,6 +229,14 @@ onMounted(cargar)
     color: var(--color-text-secondary);
     font-size: .95rem;
     overflow-wrap: anywhere;
+}
+
+/* Columna izquierda del esqueleto: filtros, buscador y tarjetas, separados como los reales */
+.esqueleto-principal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espacio-md);
+    min-width: 0;
 }
 
 .cuadricula {
