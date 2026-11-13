@@ -99,6 +99,7 @@ import RoleCardSelector from '../auth/RoleCardSelector.vue'
 import BotonGoogle from '../auth/BotonGoogle.vue'
 import CompletarRegistroGoogleModal from '../auth/CompletarRegistroGoogleModal.vue'
 import { useEntrarConGoogle } from '@/composables/useEntrarConGoogle'
+import { validarRegistro, sinErrores } from '@/utils/validarRegistro'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -131,46 +132,16 @@ const errores = ref({
     aceptaTerminos: ''
 })
 
-const validarCorreo = (correo) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
-
+// La validación vive en utils/validarRegistro.js (función pura): aquí solo se le pasan los valores
 const validarFormulario = () => {
-    errores.value = { nombre: '', correo: '', password: '', confirmarPassword: '', aceptaTerminos: '' }
-    let esValido = true
-
-    if (!nombre.value.trim()) {
-        errores.value.nombre = 'El nombre es obligatorio.'
-        esValido = false
-    }
-
-    if (!correo.value) {
-        errores.value.correo = 'El correo es obligatorio.'
-        esValido = false
-    } else if (!validarCorreo(correo.value)) {
-        errores.value.correo = 'Ingresa un correo válido.'
-        esValido = false
-    }
-
-    if (!password.value) {
-        errores.value.password = 'La contraseña es obligatoria.'
-        esValido = false
-    } else if (password.value.length < 8) {
-        errores.value.password = 'Debe tener al menos 8 caracteres.'
-        esValido = false
-    }
-
-    // Esta comparación solo existe en el frontend — el backend de Jefferson
-    // no recibe ni valida un campo de confirmación, así que es responsabilidad nuestra
-    if (password.value && confirmarPassword.value !== password.value) {
-        errores.value.confirmarPassword = 'Las contraseñas no coinciden.'
-        esValido = false
-    }
-
-    if (!aceptaTerminos.value) {
-        errores.value.aceptaTerminos = 'Debes aceptar los términos para continuar.'
-        esValido = false
-    }
-
-    return esValido
+    errores.value = validarRegistro({
+        nombre: nombre.value,
+        correo: correo.value,
+        password: password.value,
+        confirmarPassword: confirmarPassword.value,
+        aceptaTerminos: aceptaTerminos.value
+    })
+    return sinErrores(errores.value)
 }
 
 const registrarse = async () => {

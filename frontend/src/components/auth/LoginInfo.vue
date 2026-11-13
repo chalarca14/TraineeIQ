@@ -1,101 +1,55 @@
 <template>
     <section class="login-info">
-
         <!-- Logo -->
         <header class="brand">
             <img src="@/assets/icons/cerebro.png" alt="Logo TraineeIQ" class="brand-logo" />
-
             <div>
                 <h1>TRAINEEIQ</h1>
                 <p>Powered by IA</p>
             </div>
         </header>
-
         <!-- Hero -->
         <section class="hero">
-
             <h2>
                 Aprende más allá
                 <br>
                 de la guía.
             </h2>
-
             <h2 class="gradient-text">
                 Tu mentor inteligente
                 <br>
                 del SENA te espera.
             </h2>
-
             <p>
                 IA que te guía, recomienda
                 y acompaña en tu aprendizaje.
             </p>
-
         </section>
-
-        <!-- Aquí después irán las cards -->
+        <!-- Las 4 tarjetas son el mismo bloque: un componente y una lista de datos (antes, 4 copias a mano) -->
         <footer class="features">
-            <article class="feature-card">
-                <img src="@/assets/icons/robot.png" alt="Robot" class="feature-icon">
-
-                <div class="|">
-                    <h3>Recomendaciones IA</h3>
-
-                    <p>
-                        Obten sugerencias personalizadas según tu avance.
-                    </p>
-                </div>
-            </article>
-
-            <article class="feature-card">
-                <img src="@/assets/icons/proyecto.png" alt="Proyecto" class="feature-icon">
-
-                <div class="feature-text">
-                    <h3>Mini proyectos</h3>
-
-                    <p>
-                        Desarrolla proyectos prácticos alineados al aprendizaje.
-                    </p>
-                </div>
-            </article>
-
-            <article class="feature-card">
-                <img src="@/assets/icons/sincronizacion.png" alt="Sincrinizacion" class="feature-icon">
-
-                <div class="feature-text">
-                    <h3>Sincronización</h3>
-
-                    <p>
-                        Conecta tus guías del SENA.
-                    </p>
-                </div>
-            </article>
-
-            <article class="feature-card">
-                <img src="@/assets/icons/grafico.png" alt="" class="feature-icon">
-
-                <div class="feature-text">
-                    <h3>Seguimiento</h3>
-
-                    <p>
-                        Monitorea tu avance en tiempo real
-                    </p>
-                </div>
-            </article>
-
+            <TarjetaFuncionLogin v-for="f in FUNCIONES" :key="f.titulo" v-bind="f" />
             <div class="login-footer">
-
                 <span>© 2026 TraineeIQ</span>
-
                 <span>Todos los derechos reservados</span>
             </div>
-
         </footer>
-
     </section>
 </template>
 
 <script setup>
+import TarjetaFuncionLogin from './TarjetaFuncionLogin.vue'
+// Las imágenes se importan para que Vite las incluya en el paquete con su ruta final
+import robot from '@/assets/icons/robot.png'
+import proyecto from '@/assets/icons/proyecto.png'
+import sincronizacion from '@/assets/icons/sincronizacion.png'
+import grafico from '@/assets/icons/grafico.png'
+
+const FUNCIONES = [
+    { icono: robot, titulo: 'Recomendaciones IA', texto: 'Obten sugerencias personalizadas según tu avance.' },
+    { icono: proyecto, titulo: 'Mini proyectos', texto: 'Desarrolla proyectos prácticos alineados al aprendizaje.' },
+    { icono: sincronizacion, titulo: 'Sincronización', texto: 'Conecta tus guías del SENA.' },
+    { icono: grafico, titulo: 'Seguimiento', texto: 'Monitorea tu avance en tiempo real' }
+]
 </script>
 
 <style scoped>
@@ -115,7 +69,6 @@
     overflow-y: auto;
 }
 
-
 @keyframes slideLeft {
 
     from {
@@ -128,7 +81,6 @@
         transform: translateX(0);
     }
 }
-
 
 .brand {
     display: flex;
@@ -171,7 +123,6 @@
     font-weight: 700;
     color: var(--color-text);
     text-align: center;
-
 }
 
 .gradient-text {
@@ -194,48 +145,6 @@
     gap: clamp(.6rem, 1.5vh, 1rem);
 }
 
-.feature-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-card);
-    border-radius: 18px;
-    padding: clamp(1rem, 2vh, 1.4rem);
-    transition: .25s;
-    cursor: pointer;
-    min-height: clamp(90px, 12vh, 120px);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: .7rem;
-}
-
-.feature-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--color-primary);
-    box-shadow: 0 12px 30px rgba(124, 58, 237, .20);
-}
-
-.feature-icon {
-    width: 42px;
-    height: 42px;
-    margin-bottom: 1rem;
-    transition: .25s;
-}
-
-.feature-card:hover .feature-icon {
-    transform: scale(1.08);
-}
-
-.feature-card h3 {
-    margin-bottom: .6rem;
-    color: var(--color-text);
-}
-
-.feature-card p {
-    color: var(--color-text-secondary);
-    line-height: 1.6;
-    font-size: .9rem;
-}
-
 .login-footer {
     margin-top: clamp(.8rem, 2vh, 2rem);
     display: flex;
@@ -247,7 +156,7 @@
     padding-top: clamp(.5rem, 1vh, 1rem);
 }
 
-/* Pantallas con poca altura */
+/* Pantallas con poca altura (los ajustes de las tarjetas viven en TarjetaFuncionLogin.vue) */
 @media (max-height: 800px) {
 
     .login-info {
@@ -256,13 +165,7 @@
 
     .hero {
         gap: 1rem;
-        display: flex;
-        flex-direction: column;
         text-align: left;
-        align-items: left;
-        /* position: relative;
-        bottom: 50px; */
-
     }
 
     .hero h2 {
@@ -272,7 +175,6 @@
 
     .gradient-text {
         font-size: .5rem;
-
     }
 
     .hero p {
@@ -282,29 +184,6 @@
 
     .features {
         gap: .8rem;
-        /* position: relative;
-        bottom: 90px; */
-    }
-
-    .feature-card {
-        min-height: 110px;
-        padding: 1rem;
-    }
-
-    .feature-icon {
-        width: 36px;
-        height: 36px;
-        margin-bottom: .5rem;
-    }
-
-    .feature-card h3 {
-        font-size: 1rem;
-        margin-bottom: .3rem;
-    }
-
-    .feature-card p {
-        font-size: .8rem;
-        line-height: 1.4;
     }
 
     .login-footer {
@@ -340,7 +219,6 @@
     }
 
     .hero {
-        /* background-color: aqua; */
         margin: 1rem 0;
         gap: .7rem;
         max-width: 500px;
@@ -361,28 +239,6 @@
         gap: .8rem;
     }
 
-    .feature-card {
-        width: 100%;
-        min-height: 110px;
-        padding: 1rem;
-    }
-
-    .feature-icon {
-        width: 40px;
-        height: 40px;
-        margin-bottom: .4rem;
-    }
-
-    .feature-card h3 {
-        font-size: 1.5rem;
-        margin-bottom: .2rem;
-    }
-
-    .feature-card p {
-        font-size: 1rem;
-        line-height: 1.4;
-    }
-
     .login-footer {
         display: none;
     }
@@ -392,7 +248,6 @@
     .hero h2 {
         font-size: 2rem;
         text-align: left;
-        /* background-color: rgb(255, 72, 0); */
     }
 
     .gradient-text {
@@ -404,12 +259,6 @@
         line-height: 1.4;
         text-align: left;
     }
-
-    .feature-card:hover {
-        transform: translateY(-4px);
-        border-color: var(--color-primary);
-        box-shadow: 0 12px 30px rgba(124, 58, 237, .20);
-    }
 }
 
 @media (min-width: 1849px) {
@@ -417,7 +266,6 @@
     .brand h1 {
         font-size: 2.5rem;
     }
-
 
     .hero h2 {
         font-size: 2rem;
@@ -437,40 +285,5 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 1.2rem;
     }
-
-    .feature-card {
-        min-height: 200px;
-        padding: 1.5rem;
-        width: 100%;
-
-    }
-
-    .feature-card:hover {
-        transform: translateY(-4px);
-        border-color: var(--color-primary);
-        box-shadow: 0 12px 30px rgba(124, 58, 237, .20);
-    }
-
-    .feature-icon {
-        width: 50px;
-        height: 50px;
-        margin-bottom: 1rem;
-        transition: .25s;
-    }
-
-    .feature-card h3 {
-        font-size: 1.5rem;
-        margin-bottom: .6rem;
-    }
-
-    .feature-card p {
-        font-size: 1.2rem;
-        line-height: 1.6;
-    }
-
-    .feature-card:hover .feature-icon {
-        transform: scale(1.08);
-    }
-
 }
 </style>

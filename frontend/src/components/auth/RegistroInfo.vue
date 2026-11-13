@@ -12,17 +12,8 @@
                 proyectos prácticos.</p>
         </div>
 
-        <Transition name="fade-slide" mode="out-in">
-            <div class="role-info-card" :key="rol">
-                <h4>{{ infoActual.titulo }}</h4>
-                <ul class="role-info-list">
-                    <li v-for="punto in infoActual.puntos" :key="punto">
-                        <Check :size="16" />
-                        {{ punto }}
-                    </li>
-                </ul>
-            </div>
-        </Transition>
+        <!-- "Como Estudiante/Instructor podrás:", cambia con la pestaña de rol -->
+        <InfoRolRegistro :rol="rol" />
 
         <ul class="benefits-list">
             <li v-for="beneficio in beneficios" :key="beneficio.titulo" class="benefit-item">
@@ -51,31 +42,9 @@
 // component :is nos permite guardar el ícono como dato y renderizarlo dinámicamente
 // en el v-for, en vez de escribir 3 bloques casi idénticos a mano
 import { BookOpen, Brain, Rocket, ShieldCheck } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { Check } from 'lucide-vue-next'
+import InfoRolRegistro from './InfoRolRegistro.vue'
 
-const props = defineProps({ rol: String })
-
-const infoPorRol = {
-    estudiante: {
-        titulo: 'Como Estudiante podrás:',
-        puntos: [
-            'Acceder a las guías de tu instructor o subir las tuyas propias',
-            'Recibir recomendaciones personalizadas de la IA',
-            'Desarrollar mini proyectos prácticos a tu ritmo'
-        ]
-    },
-    instructor: {
-        titulo: 'Como Instructor podrás:',
-        puntos: [
-            'Crear y administrar grupos de aprendizaje',
-            'Cargar guías para tus estudiantes',
-            'Hacer seguimiento al progreso de cada aprendiz'
-        ]
-    }
-}
-
-const infoActual = computed(() => infoPorRol[props.rol] ?? infoPorRol.estudiante)
+defineProps({ rol: String })
 
 const beneficios = [
     { titulo: 'Aprende a tu ritmo', descripcion: 'Accede a guías y contenidos organizados por semanas.', icono: BookOpen },
@@ -157,58 +126,6 @@ const beneficios = [
     color: var(--color-text-secondary);
     font-size: .95rem;
     line-height: 1.6;
-}
-
-.role-info-card {
-    min-height: clamp(80px, 14vh, 160px);
-    padding: 1rem 1.2rem;
-    border: 1px solid var(--color-card);
-    border-radius: 14px;
-    background: var(--color-surface);
-}
-
-.role-info-card h4 {
-    margin: 0 0 .6rem 0;
-    color: var(--color-primary);
-    font-size: .9rem;
-}
-
-.role-info-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: .5rem;
-}
-
-.role-info-list li {
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    font-size: .82rem;
-    color: var(--color-text-secondary);
-}
-
-.role-info-list svg {
-    color: var(--color-primary);
-    flex-shrink: 0;
-}
-
-/* Animación de transición al cambiar de rol */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-    transition: all .25s ease;
-}
-
-.fade-slide-enter-from {
-    opacity: 0;
-    transform: translateY(8px);
-}
-
-.fade-slide-leave-to {
-    opacity: 0;
-    transform: translateY(-8px);
 }
 
 .benefits-list {
