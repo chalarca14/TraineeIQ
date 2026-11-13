@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { Plus, X, MessageSquare, BookOpen, History } from 'lucide-vue-next'
 import { fechaRelativa, horaCorta } from '@/utils/fechas'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 
 // Panel lateral de conversaciones (como el de ChatGPT). En escritorio es una columna fija;
 // en pantallas angostas es un cajón que abre y cierra la vista (props/eventos), por eso este
@@ -42,7 +44,10 @@ defineExpose({ enfocar: () => nueva.value?.$el?.focus() })
       <Plus :size="18" /> Nueva conversación
     </RouterLink>
 
-    <p v-if="cargando" class="panel__estado">Cargando conversaciones…</p>
+    <!-- Filas con título y fecha, como las conversaciones reales (sin ícono: el panel es angosto) -->
+    <CargaEsqueleto v-if="cargando" texto="Cargando conversaciones…">
+      <EsqueletoLista :filas="4" :con-icono="false" />
+    </CargaEsqueleto>
 
     <div v-else-if="error" class="panel__estado panel__estado--error">
       <p>No se pudieron cargar.</p>

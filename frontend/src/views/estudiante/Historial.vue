@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { History } from 'lucide-vue-next'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
+import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 import FiltrosHistorial from '@/components/historial/FiltrosHistorial.vue'
 import ItemHistorial from '@/components/historial/ItemHistorial.vue'
 import { useHistorial } from '@/composables/useHistorial'
@@ -35,6 +37,11 @@ onMounted(cargar)
     <EstadoVista :cargando="cargando" :error="error" :vacio="entradas.length === 0" :icono="History"
       texto-cargando="Cargando tu historial..." texto-vacio="Aún no tienes actividad."
       descripcion-vacio="Cuando converses con la IA, tus chats aparecerán aquí." @reintentar="cargar">
+      <!-- Filtros arriba y la lista de chats, como el contenido real -->
+      <template #cargando>
+        <EsqueletoBloque alto="2.6rem" radio="12px" />
+        <EsqueletoLista :filas="5" />
+      </template>
       <section class="contenido">
         <FiltrosHistorial v-model:pestana="pestana" v-model:dias="dias" v-model:busqueda="busqueda" />
 
