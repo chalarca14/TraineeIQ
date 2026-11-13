@@ -1,6 +1,5 @@
 <template>
     <main class="guia">
-
         <EstadoVista :cargando="cargando" :error="error" texto-cargando="Cargando la guía..." @reintentar="cargar">
             <MigajaGuia :es-grupo="esGrupo" :es-instructor="esInstructor" :grupo="grupo" :nombre="guia.nombre" />
 
@@ -31,9 +30,13 @@
                     <RefreshCw :size="15" /> Volver a intentar
                 </button>
             </div>
-
-            <p v-if="cargandoSemanas" class="estado" role="status">Cargando las semanas...</p>
-
+            <!-- Esqueleto con la forma del cuerpo (panel | lista) para que no haya salto cuando llegan las semanas -->
+            <CargaEsqueleto v-if="cargandoSemanas" texto="Cargando las semanas…">
+                <div class="cuerpo">
+                    <EsqueletoTarjeta class="area-panel" :lineas="5" alto="320px" />
+                    <EsqueletoLista class="area-lista" :filas="4" />
+                </div>
+            </CargaEsqueleto>
             <div v-else-if="!store.semanas.length" class="caja" :class="{ 'caja--error': store.error }">
                 <p>{{ store.error || 'Esta guía aún no tiene semanas.' }}</p>
                 <button v-if="store.error" type="button" class="btn btn-secundario btn-sm" @click="abrirSemanas">Reintentar</button>
@@ -62,7 +65,6 @@
                 <TarjetaDudasIA v-if="!esInstructor" class="area-dudas" :guia-id="guia.id" />
             </div>
         </EstadoVista>
-
     </main>
 </template>
 
@@ -73,6 +75,9 @@ import { Bot, BookOpen, RefreshCw } from 'lucide-vue-next'
 import MigajaGuia from '@/components/guias/MigajaGuia.vue'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
+import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 import ListaSemanas from '@/components/guias/ListaSemanas.vue'
 import PanelSemana from '@/components/guias/PanelSemana.vue'
 import GuiaCompleta from '@/components/guias/GuiaCompleta.vue'
@@ -93,7 +98,8 @@ const authStore = useAuthStore()
 const guia = ref(null)
 const grupo = ref(null)
 const cargando = ref(true)
-const cargandoSemanas = ref(false)
+// true desde el inicio: si no, mientras llega la guía se vería "Esta guía aún no tiene semanas."
+const cargandoSemanas = ref(true)
 const error = ref('')
 // Pestaña activa del panel. Vive aquí y no en PanelSemana para no perderse al cambiar de semana
 const pestana = ref('guia')
@@ -168,6 +174,8 @@ async function abrirSemanas() {
 
 async function cargar() {
     cargando.value = true
+    // También al pasar a otra guía: el store aún guarda las semanas de la anterior y no deben verse
+    cargandoSemanas.value = true
     error.value = ''
     grupo.value = null
     try {
@@ -257,10 +265,6 @@ onBeforeUnmount(() => store.cerrarGuia())
             'panel'
             'dudas';
     }
-}
-
-.estado {
-    color: var(--color-text-secondary);
 }
 
 .aviso {
