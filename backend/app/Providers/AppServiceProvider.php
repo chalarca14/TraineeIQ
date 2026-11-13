@@ -4,7 +4,10 @@ namespace App\Providers;
 
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Mailer "brevo": envía los correos por la API HTTP de Brevo y no por SMTP, porque
+        // Render gratis bloquea los puertos de SMTP. Es el ejemplo de la documentación de Laravel
+        // ("Additional Symfony Transports"). La clave sale de config/services.php, nunca del código
+        Mail::extend('brevo', function () {
+            return (new BrevoTransportFactory)->create(
+                new Dsn('brevo+api', 'default', config('services.brevo.key'))
+            );
+        });
+
         // Correo de "¿Olvidaste tu contraseña?": en español y con el enlace al FRONTEND (/restablecer),
         // no a una ruta web de Laravel, porque las pantallas las pinta Vue.
         ResetPassword::toMailUsing(function ($usuario, string $token) {
