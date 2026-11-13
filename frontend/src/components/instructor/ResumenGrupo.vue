@@ -5,7 +5,7 @@ import PanelTarjeta from '@/components/ui/PanelTarjeta.vue'
 import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
 import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 import EstudiantesGrupo from './EstudiantesGrupo.vue'
-import UltimasEntregas from './UltimasEntregas.vue'
+import EntregasRecientes from './EntregasRecientes.vue'
 import { listarGuiasDeGrupo } from '@/services/guiaService'
 import { formatearFecha } from '@/utils/fechas'
 
@@ -72,7 +72,7 @@ onMounted(cargarGuias)
         </ul>
       </PanelTarjeta>
 
-      <UltimasEntregas :grupo-id="grupo.id" />
+      <EntregasRecientes :grupos="[{ id: grupo.id, nombre: grupo.nombre }]" />
     </div>
 
     <div class="columna">

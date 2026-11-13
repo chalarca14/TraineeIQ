@@ -66,7 +66,8 @@ const PESTANAS = [
 // replace (no push): cambiar de pestaña no llena el historial de pasos para "atrás"
 const pestana = computed({
     get: () => (PESTANAS.some((p) => p.clave === route.query.tab) ? route.query.tab : 'resumen'),
-    set: (clave) => router.replace({ query: { ...route.query, tab: clave } })
+    // Solo queda ?tab: el ?proyecto= de un aviso o una entrega solo tiene sentido en "Semanas y proyectos"
+    set: (clave) => router.replace({ query: { tab: clave } })
 })
 const pestanaActual = computed(() => PESTANAS.find((p) => p.clave === pestana.value))
 
