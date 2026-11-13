@@ -149,6 +149,30 @@ const routes = [
         path: 'dashboard',
         name: 'InstructorDashboard',
         component: () => import('../views/instructor/Dashboard.vue')
+      },
+      // Tarea I-1: grupos del instructor (crear, copiar código, eliminar)
+      {
+        path: 'grupos',
+        name: 'InstructorMisGrupos',
+        component: () => import('../views/instructor/MisGrupos.vue')
+      },
+      // Tarea I-2: detalle del grupo con pestañas (?tab=resumen|guias|semanas|estadisticas)
+      {
+        path: 'grupos/:id',
+        name: 'InstructorGrupoDetalle',
+        component: () => import('../views/instructor/GrupoDetalle.vue')
+      },
+      // Tarea I-3: la guía por semanas, reutilizando la vista del aprendiz en modo instructor
+      {
+        path: 'grupos/:grupoId/guias/:guiaId',
+        name: 'InstructorGuiaSemanas',
+        component: () => import('../views/estudiante/GuiaSemanas.vue')
+      },
+      // Tarea I-5: el instructor usa la misma vista de Perfil (nombre, contraseña, cerrar sesión)
+      {
+        path: 'perfil',
+        name: 'InstructorPerfil',
+        component: () => import('../views/estudiante/Perfil.vue')
       }
     ]
   },
@@ -185,6 +209,11 @@ const routes = [
         path: 'notificaciones',
         name: 'NotificacionesPrueba',
         component: () => import('../views/prueba/NotificacionesPrueba.vue')
+      },
+      {
+        path: 'esqueletos',
+        name: 'EsqueletosPrueba',
+        component: () => import('../views/prueba/EsqueletosPrueba.vue')
       }
     ]
   },

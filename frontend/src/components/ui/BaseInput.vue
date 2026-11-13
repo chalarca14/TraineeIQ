@@ -1,5 +1,5 @@
 <template>
-    <div class="input-group">
+    <div class="input-group" :class="{ compacto }">
 
         <label v-if="label" :for="inputId">{{ label }}</label>
 
@@ -27,7 +27,9 @@ defineProps({
     label: String,
     type: { type: String, default: 'text' },
     placeholder: String,
-    modelValue: String
+    modelValue: String,
+    // Versión más baja (sin margen inferior): para formularios largos como el registro
+    compacto: { type: Boolean, default: false }
 })
 
 defineEmits(['update:modelValue'])
@@ -69,6 +71,17 @@ input {
     background: none;
     color: var(--color-text);
     font-size: .95rem;
+}
+
+/* Compacto: menos aire entre campos, pero el campo sigue midiendo al menos 44 px (área táctil) */
+.input-group.compacto {
+    gap: var(--espacio-xs);
+    margin-bottom: 0;
+}
+
+.compacto input {
+    min-height: 44px;
+    padding-block: .65rem;
 }
 
 label {

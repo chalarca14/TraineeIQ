@@ -9,6 +9,16 @@
         <!-- Sin los datos del grupo no hay cabecera que mostrar: cargando y error cubren toda la vista -->
         <EstadoVista :cargando="cargandoGrupo" :error="errorGrupo" texto-cargando="Cargando el grupo..."
             @reintentar="cargar">
+            <!-- Cabecera, tarjetas y lista a la izquierda; "Tu avance" a la derecha (misma cuadrícula .cuerpo) -->
+            <template #cargando>
+                <div class="cuerpo">
+                    <div class="principal">
+                        <EsqueletoTarjeta :lineas="3" alto="150px" />
+                        <EsqueletoLista :filas="3" />
+                    </div>
+                    <EsqueletoTarjeta :lineas="4" :con-icono="false" alto="260px" />
+                </div>
+            </template>
             <div class="cuerpo" :class="{ 'en-progreso': pestana === 'progreso' }">
                 <div class="principal">
                     <CabeceraGrupo :grupo="grupo" />
@@ -24,6 +34,7 @@
                             texto-cargando="Cargando las guías del grupo..." texto-vacio="Este grupo aún no tiene guías."
                             descripcion-vacio="Cuando tu instructor suba una guía y libere semanas, aquí verás sus guías y mini proyectos."
                             @reintentar="mini.cargar">
+                            <template #cargando><EsqueletoLista :filas="3" /></template>
                             <GuiasGrupo v-if="pestana === 'guias'" :bloques="mini.bloques.value" :grupo-id="grupoId" />
                             <ProyectosGrupo v-else-if="pestana === 'proyectos'" :bloques="mini.bloques.value"
                                 :reintentar="mini.reintentarGuia" />
@@ -44,6 +55,8 @@ import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ChevronRight, BookOpen, Code, TrendingUp } from 'lucide-vue-next'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
+import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 import Pestanas from '@/components/ui/Pestanas.vue'
 import CabeceraGrupo from '@/components/grupos/CabeceraGrupo.vue'
 import TarjetasGrupo from '@/components/grupos/TarjetasGrupo.vue'

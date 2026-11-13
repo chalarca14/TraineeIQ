@@ -15,6 +15,9 @@
         <EstadoVista :cargando="cargando" :error="error" :vacio="guias.length === 0" :icono="BookOpen"
             texto-cargando="Cargando tus guías..." texto-vacio="Aún no has subido ninguna guía."
             descripcion-vacio="Sube tu primer PDF y lo organizamos por temas." @reintentar="cargarGuias">
+            <template #cargando>
+                <div class="guias-grid"><EsqueletoTarjeta v-for="n in 3" :key="n" :lineas="3" alto="150px" /></div>
+            </template>
             <div class="guias-grid">
                 <GuiaCard v-for="guia in guias" :key="guia.id" :guia="guia" />
             </div>
@@ -28,6 +31,7 @@ import { ref, onMounted } from 'vue'
 import { Plus, BookOpen } from 'lucide-vue-next'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
 import GuiaCard from '@/components/personal/GuiaCard.vue'
 import SubirGuiaForm from '@/components/personal/SubirGuiaForm.vue'
 import { listarMisGuias } from '@/services/guiaService'

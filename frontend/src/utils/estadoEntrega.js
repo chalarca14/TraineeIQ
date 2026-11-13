@@ -60,3 +60,11 @@ export function etiquetaDeEstado(proyecto) {
         default: return null
     }
 }
+
+/** Estado de una entrega tal como lo ve el instructor (PLAN del instructor, regla 5). Nunca "Aprobado". */
+export const ESTADO_ENTREGA_INSTRUCTOR = {
+    pendiente: 'Repositorio guardado',
+    evaluando: 'Evaluando',
+    evaluado: 'Evaluado',
+    error: 'Error'
+}

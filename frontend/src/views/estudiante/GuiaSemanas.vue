@@ -1,8 +1,7 @@
 <template>
     <main class="guia">
-
         <EstadoVista :cargando="cargando" :error="error" texto-cargando="Cargando la guía..." @reintentar="cargar">
-            <MigajaGuia :es-grupo="esGrupo" :grupo="grupo" :nombre="guia.nombre" />
+            <MigajaGuia :es-grupo="esGrupo" :es-instructor="esInstructor" :grupo="grupo" :nombre="guia.nombre" />
 
             <EncabezadoPagina :titulo="guia.nombre" :icono="BookOpen" :descripcion="descripcion">
                 <template #etiquetas>
@@ -14,7 +13,8 @@
                     </span>
                     <span v-if="semanaActual" class="tag">Semana actual: {{ semanaActual }}</span>
                 </template>
-                <template #acciones>
+                <!-- El chat con la IA es del aprendiz: el instructor no lo tiene -->
+                <template v-if="!esInstructor" #acciones>
                     <!-- Lleva al chat en modo guiado: la IA solo responde sobre esta guía -->
                     <RouterLink :to="{ path: '/estudiante/ia', query: { guiaId: guia.id } }" class="btn btn-primario">
                         <Bot :size="18" /> Preguntar a la IA
@@ -30,9 +30,13 @@
                     <RefreshCw :size="15" /> Volver a intentar
                 </button>
             </div>
-
-            <p v-if="cargandoSemanas" class="estado" role="status">Cargando las semanas...</p>
-
+            <!-- Esqueleto con la forma del cuerpo (panel | lista) para que no haya salto cuando llegan las semanas -->
+            <CargaEsqueleto v-if="cargandoSemanas" texto="Cargando las semanas…">
+                <div class="cuerpo">
+                    <EsqueletoTarjeta class="area-panel" :lineas="5" alto="320px" />
+                    <EsqueletoLista class="area-lista" :filas="4" />
+                </div>
+            </CargaEsqueleto>
             <div v-else-if="!store.semanas.length" class="caja" :class="{ 'caja--error': store.error }">
                 <p>{{ store.error || 'Esta guía aún no tiene semanas.' }}</p>
                 <button v-if="store.error" type="button" class="btn btn-secundario btn-sm" @click="abrirSemanas">Reintentar</button>
@@ -42,24 +46,25 @@
                  orden cambia con áreas de la cuadrícula: selector arriba, contenido y tarjeta al final -->
             <div v-else class="cuerpo">
                 <ListaSemanas class="area-lista" :semanas="store.semanas" :activa="store.semanaActiva"
-                    :generando-aqui="store.generandoAqui" @seleccionar="elegirSemana" />
+                    :generando-aqui="store.generandoAqui" :semana-liberada="esInstructor ? (grupo?.semana_actual ?? null) : null"
+                    @seleccionar="elegirSemana" />
 
                 <div class="area-panel">
                     <!-- "Guía completa" reemplaza al panel. Al volver, el panel se crea de nuevo pero la pestaña
                          (guardada aquí) sigue siendo la misma, y el contenido ya está en el store -->
                     <GuiaCompleta v-if="verCompleta" :guia-id="guia.id" @volver="volverASemana" />
                     <PanelSemana v-else-if="store.semanaSeleccionada" v-model:pestana="pestana" :semana="store.semanaSeleccionada"
-                        :anterior="semanaAnterior" :contenido="store.contenido" :cargando-contenido="store.cargandoContenido"
+                        :anterior="vecinas.anterior" :siguiente="vecinas.siguiente" :total="store.semanas.length"
+                        :contenido="store.contenido" :cargando-contenido="store.cargandoContenido"
                         :error-contenido="store.error" :generando-aqui="store.generandoAqui === store.semanaActiva"
                         :revisando="store.revisando" :es-dueno="esDueno" :es-personal="esPersonal"
                         @reintentar="store.reintentar(store.semanaActiva)" @revisar="store.revisar()"
-                        @recargar="store.cargarContenido()" @ver-completa="verCompleta = true" />
+                        @recargar="store.cargarContenido()" @ver-completa="verCompleta = true" @seleccionar="elegirSemana" />
                 </div>
 
-                <TarjetaDudasIA class="area-dudas" :guia-id="guia.id" />
+                <TarjetaDudasIA v-if="!esInstructor" class="area-dudas" :guia-id="guia.id" />
             </div>
         </EstadoVista>
-
     </main>
 </template>
 
@@ -70,19 +75,22 @@ import { Bot, BookOpen, RefreshCw } from 'lucide-vue-next'
 import MigajaGuia from '@/components/guias/MigajaGuia.vue'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
+import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 import ListaSemanas from '@/components/guias/ListaSemanas.vue'
 import PanelSemana from '@/components/guias/PanelSemana.vue'
 import GuiaCompleta from '@/components/guias/GuiaCompleta.vue'
 import TarjetaDudasIA from '@/components/guias/TarjetaDudasIA.vue'
 import { obtenerGuia } from '@/services/guiaService'
-import { listarMisGrupos } from '@/services/grupoService'
+import { listarMisGrupos, getGrupo } from '@/services/grupoService'
 import { useContenidoStore } from '@/stores/contenido'
 import { useAuthStore } from '@/stores/auth'
 import { mensajeDeError } from '@/utils/errores'
 
-// UNA sola vista para las dos rutas: /estudiante/guias/:id (Modo Personal) y
-// /estudiante/grupos/:grupoId/guias/:guiaId (Modo Grupo). Qué reglas aplican lo decide el
-// `origen` de la guía que manda el backend, no la ruta.
+// UNA sola vista para tres rutas: /estudiante/guias/:id (Modo Personal),
+// /estudiante/grupos/:grupoId/guias/:guiaId (Modo Grupo) y /instructor/grupos/:grupoId/guias/:guiaId
+// (el instructor, Tarea I-3). Qué reglas aplican lo deciden el `origen` de la guía y el rol, no la ruta.
 const route = useRoute()
 const store = useContenidoStore()
 const authStore = useAuthStore()
@@ -90,7 +98,8 @@ const authStore = useAuthStore()
 const guia = ref(null)
 const grupo = ref(null)
 const cargando = ref(true)
-const cargandoSemanas = ref(false)
+// true desde el inicio: si no, mientras llega la guía se vería "Esta guía aún no tiene semanas."
+const cargandoSemanas = ref(true)
 const error = ref('')
 // Pestaña activa del panel. Vive aquí y no en PanelSemana para no perderse al cambiar de semana
 const pestana = ref('guia')
@@ -100,13 +109,18 @@ const verCompleta = ref(false)
 const guiaId = computed(() => Number(route.params.guiaId ?? route.params.id))
 const esGrupo = computed(() => guia.value?.origen === 'grupo')
 const esPersonal = computed(() => guia.value?.origen === 'personal')
+const esInstructor = computed(() => authStore.rolUsuario === 'instructor')
 // Dueño = quien puede "Reintentar" (forzar). En el aprendiz solo ocurre en su guía personal;
-// en una guía de grupo el dueño es el instructor.
-const esDueno = computed(() => esPersonal.value && guia.value?.usuario_id === authStore.usuario?.id)
+// en una guía de grupo el dueño es el instructor (el backend lo vuelve a comprobar: 403 si no).
+const esDueno = computed(() =>
+    esInstructor.value || (esPersonal.value && guia.value?.usuario_id === authStore.usuario?.id))
 
 // La semana más avanzada que el backend dejó abierta. Solo se LEE `disponible`: el frontend no decide
 // qué semana se abre. Si ninguna está abierta, la primera (se mostrará como "Próximamente").
+// El instructor ve todas abiertas: para él se abre la que ven hoy sus estudiantes (semana_actual)
 const semanaPorDefecto = computed(() => {
+    const actualGrupo = esInstructor.value ? grupo.value?.semana_actual : null
+    if (actualGrupo && store.semanas.some((s) => s.numero_semana === actualGrupo)) return actualGrupo
     const abiertas = store.semanas.filter((s) => s.disponible).map((s) => s.numero_semana)
     return abiertas.length ? Math.max(...abiertas) : (store.semanas[0]?.numero_semana ?? null)
 })
@@ -118,9 +132,10 @@ const semanaActual = computed(() => {
     return abiertas.length ? semanaPorDefecto.value : null
 })
 
-const semanaAnterior = computed(() => {
+// Semanas antes y después de la abierta: para el candado (anterior) y los botones de navegación
+const vecinas = computed(() => {
     const i = store.semanas.findIndex((s) => s.numero_semana === store.semanaActiva)
-    return i > 0 ? store.semanas[i - 1] : null
+    return { anterior: i > 0 ? store.semanas[i - 1] : null, siguiente: i >= 0 ? store.semanas[i + 1] ?? null : null }
 })
 
 const descripcion = computed(() =>
@@ -141,11 +156,12 @@ async function volverASemana() {
     document.getElementById('btn-ver-guia-completa')?.focus()
 }
 
-// En Modo Grupo no se piden semanas sin liberar (soloLiberadas): el backend las generaría igual
+// El aprendiz de Modo Grupo no pide semanas sin liberar (soloLiberadas): el backend las generaría igual.
+// El instructor sí genera TODAS: además, el backend le manda todas con disponible: true
 async function abrirSemanas() {
     cargandoSemanas.value = true
     try {
-        await store.abrirGuia(guiaId.value, { soloLiberadas: esGrupo.value })
+        await store.abrirGuia(guiaId.value, { soloLiberadas: esGrupo.value && !esInstructor.value })
         // El store abre la primera disponible; aquí se pasa a la más avanzada (la "semana actual")
         const objetivo = semanaPorDefecto.value
         if (objetivo != null && objetivo !== store.semanaActiva) {
@@ -158,6 +174,8 @@ async function abrirSemanas() {
 
 async function cargar() {
     cargando.value = true
+    // También al pasar a otra guía: el store aún guarda las semanas de la anterior y no deben verse
+    cargandoSemanas.value = true
     error.value = ''
     grupo.value = null
     try {
@@ -171,10 +189,13 @@ async function cargar() {
     }
 
     // El nombre del grupo y el instructor solo adornan la cabecera: si falla, la guía sigue funcionando
+    // Al instructor le hace falta semana_actual (qué semanas ven ya sus estudiantes): GET /grupos/{id}
     if (esGrupo.value && route.params.grupoId) {
         try {
-            const grupos = await listarMisGrupos()
-            grupo.value = grupos.find((g) => g.id === Number(route.params.grupoId)) ?? null
+            const id = Number(route.params.grupoId)
+            grupo.value = esInstructor.value
+                ? await getGrupo(id)
+                : (await listarMisGrupos()).find((g) => g.id === id) ?? null
         } catch {
             grupo.value = null
         }
@@ -244,10 +265,6 @@ onBeforeUnmount(() => store.cerrarGuia())
             'panel'
             'dudas';
     }
-}
-
-.estado {
-    color: var(--color-text-secondary);
 }
 
 .aviso {

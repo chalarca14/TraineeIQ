@@ -91,3 +91,15 @@ export function mensajeDeError(err) {
     if (!err.response) return 'No se pudo conectar con el servidor. Revisa tu conexión.'
     return 'Algo salió mal. Intenta de nuevo.'
 }
+
+// Errores al crear o borrar un grupo (instructor). 422 trae el motivo del backend
+export function mensajeDeErrorGrupo(err) {
+    const status = err.response?.status
+    if (status === 403) return 'No tienes acceso a este grupo.'
+    if (status === 404) return 'Este grupo ya no existe. Recarga la página.'
+    if (status === 422) return err.response.data?.message ?? 'Revisa los datos del grupo.'
+    if (status === 429) return 'Hiciste demasiados intentos seguidos. Espera un momento.'
+    if (status >= 500) return 'El servidor tuvo un problema. Intenta de nuevo.'
+    if (!err.response) return 'No se pudo conectar con el servidor. Revisa tu conexión.'
+    return 'Algo salió mal. Intenta de nuevo.'
+}

@@ -1,13 +1,12 @@
 <template>
-    <!-- Teleport: la ventana se pinta en <body> para que ningún contenedor la recorte -->
+    <!-- Teleport: la ventana se pinta en <body> para que ningún contenedor la recorte.
+         No se cierra con clic en el fondo ni con Esc: un clic sin querer borraría lo escrito y el
+         registro de Google quedaría a medias. La única salida es "Cancelar" (o crear la cuenta).
+         mousedown.prevent en el fondo: el clic ahí no le quita el foco a la ventana -->
     <Teleport to="body">
-        <div class="fondo" @mousedown.self="cerrar">
-            <form class="modal" role="dialog" aria-modal="true" :aria-labelledby="idTitulo" novalidate
+        <div class="fondo" @mousedown.self.prevent>
+            <form ref="ventana" class="modal" role="dialog" aria-modal="true" :aria-labelledby="idTitulo" novalidate
                 @submit.prevent="enviar">
-                <button type="button" class="cerrar" aria-label="Cerrar" :disabled="cargando" @click="cerrar">
-                    <X :size="18" />
-                </button>
-
                 <h2 :id="idTitulo">Completa tu registro</h2>
                 <p class="ayuda">Entraste con <strong>{{ registro.email }}</strong>. Elige tu rol y crea una
                     contraseña: también podrás entrar con tu correo.</p>
@@ -42,7 +41,8 @@
 
                 <div class="acciones">
                     <button type="button" class="btn btn-secundario" :disabled="cargando" @click="cerrar">Cancelar</button>
-                    <button type="submit" class="btn btn-primario" :disabled="cargando">
+                    <!-- El rol llega preseleccionado (pestaña o tarjeta); sin rol no se puede crear -->
+                    <button type="submit" class="btn btn-primario" :disabled="cargando || !rol">
                         {{ cargando ? 'Creando cuenta...' : 'Crear cuenta' }}
                     </button>
                 </div>
@@ -52,9 +52,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, useId } from 'vue'
-import { X, Eye, EyeOff } from 'lucide-vue-next'
+import { ref, onMounted, useId } from 'vue'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import RoleCardSelector from './RoleCardSelector.vue'
+import { useAtraparFoco } from '@/composables/useAtraparFoco'
 import { completarRegistroGoogle } from '@/services/authService'
 import { mensajeDeErrorGoogle } from '@/utils/errores'
 
@@ -77,14 +78,14 @@ const cargando = ref(false)
 const error = ref('')
 const errores = ref({})
 const campoNombre = ref(null)
+const ventana = ref(null)
+
+// Tab y Shift+Tab no salen de la ventana mientras está abierta
+useAtraparFoco(ventana)
 
 function cerrar() {
     // No se cierra mientras se envía: evita perder la respuesta del servidor
     if (!cargando.value) emit('cerrar')
-}
-
-function alTeclear(evento) {
-    if (evento.key === 'Escape') cerrar()
 }
 
 // Mismas reglas que el backend, para avisar antes de enviar
@@ -128,11 +129,8 @@ async function enviar() {
     }
 }
 
-onMounted(() => {
-    campoNombre.value?.focus()
-    document.addEventListener('keydown', alTeclear)
-})
-onUnmounted(() => document.removeEventListener('keydown', alTeclear))
+// Al abrir, el foco va al primer campo de la ventana
+onMounted(() => campoNombre.value?.focus())
 </script>
 
 <style scoped>
@@ -162,7 +160,6 @@ onUnmounted(() => document.removeEventListener('keydown', alTeclear))
 }
 
 h2 {
-    padding-right: 2rem;
     font-size: 1.2rem;
     color: var(--color-text);
 }
@@ -213,8 +210,7 @@ input[aria-invalid='true'] {
     padding-right: 3rem;
 }
 
-.ojo,
-.cerrar {
+.ojo {
     position: absolute;
     display: grid;
     place-items: center;
@@ -222,25 +218,9 @@ input[aria-invalid='true'] {
     background: transparent;
     color: var(--color-text-secondary);
     cursor: pointer;
-}
-
-.ojo {
     top: 50%;
     right: .6rem;
     transform: translateY(-50%);
-}
-
-.cerrar {
-    top: .8rem;
-    right: .8rem;
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-}
-
-.cerrar:hover:not(:disabled) {
-    background: var(--color-card);
-    color: var(--color-text);
 }
 
 .error {

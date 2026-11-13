@@ -11,20 +11,32 @@
             </select>
         </div>
 
-        <EstadoVista :cargando="cargando" :error="error" :vacio="Boolean(vacio)" :icono="vacioActual.icono"
-            texto-cargando="Cargando tu resumen..." :texto-vacio="vacioActual.texto"
-            :descripcion-vacio="vacioActual.descripcion" @reintentar="cargar">
-            <template #vacio>
-                <RouterLink v-if="vacioActual.accion" :to="vacioActual.accion.ruta" class="btn btn-primario btn-sm">
-                    {{ vacioActual.accion.texto }}
-                </RouterLink>
+        <!-- Este EstadoVista solo cubre cargando y error. Sin datos no se tapa todo: las tarjetas se ven
+             en 0 y el mensaje de vacío va abajo, en los dos modos -->
+        <EstadoVista :cargando="cargando" :error="error" texto-cargando="Cargando tu resumen..." @reintentar="cargar">
+            <!-- Mismas cuadrículas que el contenido real: así no hay salto cuando llegan los datos -->
+            <template #cargando>
+                <div class="stats-grid"><EsqueletoTarjeta v-for="n in 4" :key="n" /></div>
+                <div class="fila-principal">
+                    <EsqueletoTarjeta :lineas="4" :con-icono="false" alto="220px" />
+                    <EsqueletoTarjeta :lineas="3" :con-icono="false" alto="220px" />
+                </div>
             </template>
-
             <section class="stats-grid">
                 <StatCard v-for="stat in estadisticas" :key="stat.etiqueta" v-bind="stat" />
             </section>
 
-            <div class="fila-principal">
+            <!-- Un solo EstadoVista para los tres vacíos; cambian los textos (VACIOS) -->
+            <EstadoVista v-if="sinDatos" vacio :icono="vacioActual.icono" :texto-vacio="vacioActual.texto"
+                :descripcion-vacio="vacioActual.descripcion">
+                <template #vacio>
+                    <RouterLink v-if="vacioActual.accion" :to="vacioActual.accion.ruta" class="btn btn-primario btn-sm">
+                        {{ vacioActual.accion.texto }}
+                    </RouterLink>
+                </template>
+            </EstadoVista>
+
+            <div v-else class="fila-principal">
                 <GuiaActualCard :bloque="guiaActual" :es-personal="esPersonal" :grupo="grupo" />
                 <SiguientePaso :siguiente="siguiente" :hay-proyectos="proyectos.length > 0" />
             </div>
@@ -40,6 +52,7 @@ import { useResumenDashboard } from '@/composables/useResumenDashboard'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import BannerBienvenida from '@/components/dashboard/BannerBienvenida.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
 import GuiaActualCard from '@/components/dashboard/GuiaActualCard.vue'
 import SiguientePaso from '@/components/dashboard/SiguientePaso.vue'
 
@@ -53,13 +66,13 @@ const {
 // Por si el usuario no trae nombre
 const primerNombre = computed(() => authStore.usuario?.name?.split(' ')[0] ?? 'estudiante')
 
-// Un vacío por situación. El de Personal no menciona el PDF: subir la guía se explica en "Mis guías"
+// Un vacío por situación; se muestra debajo de las tarjetas
 const VACIOS = {
     'sin-guias': {
         icono: BookOpen,
-        texto: 'Sube tu primera guía',
-        descripcion: 'Con ella preparamos tus semanas, recomendaciones y mini proyectos.',
-        accion: { texto: 'Ir a Mis guías', ruta: '/estudiante/guias' }
+        texto: 'Aún no tienes una guía personal',
+        descripcion: 'Sube tu guía en PDF para generar tu plan semanal y tus mini proyectos.',
+        accion: { texto: 'Subir mi primera guía', ruta: '/estudiante/guias' }
     },
     'sin-grupos': {
         icono: Users,
@@ -75,6 +88,10 @@ const VACIOS = {
     }
 }
 const vacioActual = computed(() => VACIOS[vacio.value] ?? { icono: null, texto: '', descripcion: '', accion: null })
+
+// Sin guía personal, sin grupo o sin semanas liberadas: las tarjetas muestran 0 (no "—" ni "0 / 0"),
+// porque de verdad no hay nada que contar
+const sinDatos = computed(() => Boolean(vacio.value))
 
 // Fracción entera de 0 a 100; null si no hay proyectos (no se inventa un 0 %)
 const porcentaje = computed(() =>
@@ -92,8 +109,9 @@ const tarjetasPersonal = computed(() => [
     },
     {
         etiqueta: 'Semana actual',
-        valor: semanaActual.value.numero ?? '—',
-        detalle: semanaActual.value.total ? `de ${semanaActual.value.total}` : 'Sin semanas abiertas',
+        valor: semanaActual.value.numero ?? (sinDatos.value ? 0 : '—'),
+        detalle: sinDatos.value ? 'sin guía activa'
+            : semanaActual.value.total ? `de ${semanaActual.value.total}` : 'Sin semanas abiertas',
         icono: CalendarDays,
         color: 'info'
     },
@@ -111,8 +129,9 @@ const tarjetasPersonal = computed(() => [
 const tarjetasGrupo = computed(() => [
     {
         etiqueta: 'Semana actual del grupo',
-        valor: grupo.value?.semana_actual ?? '—',
-        detalle: grupo.value?.nombre ?? '',
+        // Sin semanas liberadas, semana_actual vale 1 por defecto: no se muestra como si hubiera una
+        valor: sinDatos.value ? 0 : (grupo.value?.semana_actual ?? '—'),
+        detalle: grupo.value?.nombre ?? 'sin grupo',
         icono: CalendarDays,
         color: 'info'
     },
@@ -123,19 +142,20 @@ const tarjetasGrupo = computed(() => [
         icono: Rocket,
         color: 'primary'
     },
-    tarjetaAvance('Evaluados', `${evaluados.value.length} / ${proyectos.value.length}`),
+    tarjetaAvance('Evaluados', `${evaluados.value.length} / ${proyectos.value.length}`, '0'),
     {
         etiqueta: 'Puntaje promedio',
-        valor: puntajePromedio.value ?? '—',
-        detalle: 'promedio de tus últimas evaluaciones · orientativo',
+        valor: sinDatos.value ? 0 : (puntajePromedio.value ?? '—'),
+        detalle: sinDatos.value ? 'aún no tienes evaluaciones' : 'promedio de tus últimas evaluaciones · orientativo',
         icono: Award,
         color: 'warning'
     }
 ])
 
-// Tarjeta con barra: sin proyectos abiertos no hay barra, solo el aviso
-function tarjetaAvance(etiqueta, valor) {
+// Tarjeta con barra: sin proyectos abiertos no hay barra, solo el aviso. Sin datos: 0 y barra vacía
+function tarjetaAvance(etiqueta, valor, valorSinDatos = '0%') {
     const base = { etiqueta, icono: Target, color: 'success' }
+    if (sinDatos.value) return { ...base, valor: valorSinDatos, progreso: 0 }
     if (porcentaje.value === null) return { ...base, valor: '—', detalle: 'Aún no hay proyectos abiertos' }
     return { ...base, valor: valor ?? `${porcentaje.value}%`, progreso: porcentaje.value }
 }

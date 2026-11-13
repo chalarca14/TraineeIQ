@@ -14,12 +14,8 @@
         <div class="navbar-right">
             <SwitchModo v-if="esEstudiante" />
 
-            <!-- La campana funciona solo para el estudiante: la del instructor es la Tarea I-5 (fase posterior).
-                 El componente sirve para los dos roles; en la I-5 se cambia este v-if y se agregan sus destinos. -->
-            <CampanaNotificaciones v-if="esEstudiante" />
-            <button v-else class="icon-btn" type="button" aria-label="Notificaciones" title="Notificaciones (próximamente)">
-                <Bell :size="20" />
-            </button>
+            <!-- Una sola campana para los dos roles: a dónde lleva cada aviso lo decide el componente -->
+            <CampanaNotificaciones />
 
             <div class="user-menu" ref="menuRef" @keydown.esc="menuAbierto = false">
                 <button class="user-btn" type="button" :aria-expanded="menuAbierto" @click="menuAbierto = !menuAbierto">
@@ -32,6 +28,11 @@
                 </button>
 
                 <div v-if="menuAbierto" class="dropdown">
+                    <!-- Cada rol tiene su ruta de Perfil (misma vista, protegida por rol en el router) -->
+                    <RouterLink :to="rutaPerfil" class="dropdown-item" @click="menuAbierto = false">
+                        <UserRound :size="16" />
+                        Perfil
+                    </RouterLink>
                     <button type="button" class="dropdown-item" @click="salir">
                         <LogOut :size="16" />
                         Cerrar sesión
@@ -45,7 +46,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Menu, Bell, ChevronDown, LogOut } from 'lucide-vue-next'
+import { Menu, ChevronDown, LogOut, UserRound } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useCerrarSesion } from '@/composables/useCerrarSesion'
 import SwitchModo from './SwitchModo.vue'
@@ -62,6 +63,7 @@ const menuRef = ref(null)
 const esEstudiante = computed(() => authStore.rolUsuario === 'estudiante')
 const nombreUsuario = computed(() => authStore.usuario?.name ?? 'Usuario')
 const etiquetaRol = computed(() => (esEstudiante.value ? 'Estudiante' : 'Instructor'))
+const rutaPerfil = computed(() => (esEstudiante.value ? '/estudiante/perfil' : '/instructor/perfil'))
 
 // "Ana Sofía Rivera" -> "AS". Como no hay foto de perfil en la base de datos, usamos iniciales
 const iniciales = computed(() =>
@@ -230,6 +232,9 @@ onBeforeUnmount(() => document.removeEventListener('click', cerrarSiClickFuera))
     color: var(--color-text);
     font-size: .85rem;
     font-family: inherit;
+    /* "Perfil" es un enlace (RouterLink): sin subrayado, igual que el botón de cerrar sesión */
+    text-decoration: none;
+    min-height: 44px;
     cursor: pointer;
 }
 

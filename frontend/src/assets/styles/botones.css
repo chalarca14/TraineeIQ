@@ -61,3 +61,13 @@
     padding: .5rem .9rem;
     font-size: .82rem;
 }
+
+/* Acción destructiva (eliminar): rojo, para que no se confunda con una acción normal */
+.btn-peligro {
+    background: var(--color-danger);
+    color: var(--color-text);
+}
+
+.btn-peligro:hover:not(:disabled) {
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-danger) 40%, transparent);
+}

@@ -22,63 +22,13 @@
         </div>
 
         <!-- Continuar con Google: usa el rol de la pestaña, igual que el formulario -->
-        <BotonGoogle :cargando="cargandoGoogle" :error="errorGoogle" @credencial="alRecibirCredencial" />
+        <BotonGoogle ref="botonGoogle" :cargando="cargandoGoogle" :error="errorGoogle" @credencial="alRecibirCredencial" />
 
         <CompletarRegistroGoogleModal v-if="registroPendiente" :registro="registroPendiente"
             @cerrar="cancelarRegistro" @registrado="entrarAlDashboard" />
 
-        <form @submit.prevent="iniciarSesion">
-
-            <div class="field-group">
-                <BaseInput v-model="correo" label="Correo electrónico" placeholder="Ingresa tu correo">
-                    <template #icon>
-                        <Mail :size="18" stroke="white" />
-                    </template>
-                </BaseInput>
-                <p class="input-error">{{ errores.correo }}</p>
-            </div>
-
-            <div class="field-group">
-                <BaseInput v-model="password" :type="mostrarPassword ? 'text' : 'password'" label="Contraseña"
-                    placeholder="Ingresa tu contraseña">
-                    <template #icon>
-                        <Lock :size="18" />
-                    </template>
-                    <template #action>
-                        <button type="button" class="toggle-password" @click="mostrarPassword = !mostrarPassword">
-                            <Eye v-if="!mostrarPassword" :size="18" />
-                            <EyeOff v-else :size="18" />
-                        </button>
-                    </template>
-                </BaseInput>
-                <p class="input-error">{{ errores.password }}</p>
-            </div>
-
-
-            <!-- MENSAJE DE ERROR -->
-
-            <p v-if="error" class="error-message">
-                {{ error }}
-            </p>
-
-            <!-- LINK "¿Olvidaste tu contraseña?" -->
-            <div class="forgot-password">
-
-                <BaseLink to="/recuperar">
-
-                    ¿Olvidaste tu contraseña?
-
-                </BaseLink>
-
-            </div>
-
-
-            <!-- BOTON INGRESAR -->
-            <BaseButton type="submit" variant="primary" :disabled="cargando">
-                {{ cargando ? "Iniciando sesión..." : "Iniciar sesión →" }}
-            </BaseButton>
-
-        </form>
+        <!-- Correo, contraseña y su validación: ver CamposLogin.vue -->
+        <CamposLogin :cargando="cargando" :error="error" @enviar="iniciarSesion" />
 
         <footer class="register-footer">
 
@@ -106,71 +56,32 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { login } from '@/services/authService'
 import RoleSelector from '../auth/RoleSelector.vue'
-import BaseInput from './BaseInput.vue'
-import BaseButton from './BaseButton.vue'
-import BaseLink from './BaseLink.vue'
+import CamposLogin from '../auth/CamposLogin.vue'
 import BotonGoogle from '../auth/BotonGoogle.vue'
 import CompletarRegistroGoogleModal from '../auth/CompletarRegistroGoogleModal.vue'
 import { useEntrarConGoogle } from '@/composables/useEntrarConGoogle'
 
-import { Mail, Lock, Eye, EyeOff } from 'lucide-vue-next'
-
 const router = useRouter()
 const authStore = useAuthStore()
 
-const correo = ref('')
-const password = ref('')
 const rol = ref('estudiante')
 
 // Continuar con Google: la lógica está en el composable, compartida con el registro
-const { cargandoGoogle, errorGoogle, registroPendiente, alRecibirCredencial, entrarAlDashboard, cancelarRegistro } =
+const { cargandoGoogle, errorGoogle, registroPendiente, botonGoogle, alRecibirCredencial, entrarAlDashboard, cancelarRegistro } =
     useEntrarConGoogle(rol)
-const mostrarPassword = ref(false)
 const cargando = ref(false)
 
-// Error general del backend (credenciales incorrectas, servidor caído, etc.)
-// Antes se usaba en el template pero nunca se declaró — por eso no aparecía
+// Error general del backend ("Usuario no registrado.", rol equivocado, servidor caído, etc.)
 const error = ref('')
 
-const errores = ref({
-    correo: '',
-    password: ''
-})
-
-const validarCorreo = (correo) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
-}
-
-const iniciarSesion = async () => {
-    // Limpiamos errores previos antes de validar de nuevo
+// CamposLogin ya validó el correo y la contraseña antes de avisar
+const iniciarSesion = async ({ correo, password }) => {
     error.value = ''
-    errores.value = { correo: '', password: '' }
-
-    let formularioValido = true
-
-    if (!correo.value) {
-        errores.value.correo = 'El correo es obligatorio.'
-        formularioValido = false
-    } else if (!validarCorreo(correo.value)) {
-        errores.value.correo = 'Ingresa un correo válido.'
-        formularioValido = false
-    }
-
-    if (!password.value) {
-        errores.value.password = 'La contraseña es obligatoria.'
-        formularioValido = false
-    } else if (password.value.length < 8) {
-        errores.value.password = 'La contraseña debe tener al menos 8 caracteres.'
-        formularioValido = false
-    }
-
-    if (!formularioValido) return
-
     cargando.value = true
 
     try {
         // Llamamos al servicio, que ya sabe cómo hablar con el backend
-        const data = await login(correo.value, password.value, rol.value)
+        const data = await login(correo, password, rol.value)
 
         // Guardamos el token y el usuario en el store (y en localStorage)
         authStore.iniciarSesion(data.token, data.user)
@@ -184,7 +95,7 @@ const iniciarSesion = async () => {
         }
 
     } catch (err) {
-        // Si el backend respondió con un mensaje (credenciales incorrectas, validación, etc.)
+        // Si el backend respondió con un mensaje (usuario no registrado, rol equivocado, etc.)
         // lo mostramos; si no, damos un mensaje genérico
         error.value = err.response?.data?.message || 'No se pudo iniciar sesión. Intenta de nuevo.'
 
@@ -198,20 +109,6 @@ const iniciarSesion = async () => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Puritan:wght@400;700&display=swap');
-
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    width: 100%;
-    max-width: 480px;
-}
-
-.field-group {
-    display: flex;
-    flex-direction: column;
-    gap: .3rem;         /* espacio chico entre el input y su propio mensaje de error */
-}
 
 .login-form {
     display: flex;
@@ -243,17 +140,9 @@ form {
         font-size: clamp(1.5rem, 3vh, 2rem);
     }
 
+    /* .role-selector es la raíz de RoleSelector: el estilo scoped del padre sí la alcanza */
     .role-selector {
         gap: .5rem;
-    }
-
-    .role-selector button {
-        padding: .65rem .4rem;
-        font-size: .8rem;
-    }
-
-    .social-login {
-        grid-template-columns: 1fr;
     }
 }
 
@@ -290,54 +179,8 @@ form {
     color: var(--color-text-secondary);
 }
 
-.toggle-password {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: .2s;
-}
-
-.toggle-password:hover {
-    color: var(--color-primary);
-}
-
-.forgot-password {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: -.6rem;
-    margin-bottom: .2rem;
-}
-
-.forgot-password a {
-    color: var(--color-primary);
-    text-decoration: none;
-    font-size: .9rem;
-    transition: .25s;
-}
-
-.forgot-password a:hover {
-    color: var(--color-primary-light);
-}
-
-
-.social-login {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-}
-
-.social-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-}
-
 .register-footer {
-    margin-top: 1.2rem;
+    margin-top: var(--espacio-xs);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -355,44 +198,10 @@ form {
     color: var(--color-primary-light);
 }
 
-
-.divider {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin: 1.2rem 0;
-    color: var(--color-text-secondary);
-    font-size: .9rem;
-
-}
-
-.divider::before,
-.divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--color-border);
-
-}
-
-.error-message {
-    color: var(--color-danger);
-    font-size: .9rem;
-    margin-bottom: .2rem;
-}
-
-.input-error {
-    margin-top: 0;        /* ya no hace falta, el gap del field-group lo maneja */
-    min-height: 1rem;     /* un poco más compacto que antes */
-    color: var(--color-danger);
-    font-size: .82rem;
-    font-weight: 500;
-}
-
 @media (max-height: 800px) {
     .login-form {
         padding: 3rem;
-        gap: 1.2rem;
+        gap: var(--espacio-md);
     }
 
     .form-header h2 {
@@ -401,10 +210,6 @@ form {
 
     .form-header p {
         font-size: .85rem;
-    }
-
-    .forgot-password a {
-        font-size: .8rem;
     }
 
     .register-footer {
@@ -417,7 +222,7 @@ form {
 
     .login-form {
         padding: 2rem;
-        gap: 1.5rem;
+        gap: var(--espacio-md);
     }
 
     .form-header p {
@@ -444,13 +249,8 @@ form {
         font-size: 2rem;
     }
 
-    .role-container,
-    form {
+    .role-container {
         max-width: 100%;
-    }
-
-    .social-login {
-        grid-template-columns: 1fr;
     }
 
 }

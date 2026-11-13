@@ -1,8 +1,12 @@
 <template>
     <aside class="sidebar" :class="{ abierto }">
 
-        <!-- Cabecera del modo: solo para estudiantes, el instructor no tiene modos -->
-        <div v-if="esEstudiante" class="modo-header" :title="modoActual.subtitulo">
+        <!-- Cabecera del modo: solo para estudiantes. El instructor no tiene modos: su cabecera dice "Instructor" -->
+        <div v-if="!esEstudiante" class="modo-header">
+            <span class="modo-icono"><Presentation :size="18" /></span>
+            <strong>Instructor</strong>
+        </div>
+        <div v-else class="modo-header" :title="modoActual.subtitulo">
             <span class="modo-icono">
                 <component :is="modoActual.icono" :size="18" />
             </span>
@@ -40,7 +44,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, BookOpen, Rocket, Bot, History, User, Users, Upload } from 'lucide-vue-next'
+import { Home, BookOpen, Rocket, Bot, History, User, Users, Presentation } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useModoStore } from '@/stores/modo'
 
@@ -78,12 +82,12 @@ const menuPersonal = [
     { etiqueta: 'Perfil', icono: User, ruta: '/estudiante/perfil', descripcion: 'Datos de la cuenta y cambio de contraseña.' }
 ]
 
-// El instructor no tiene modos, así que su menú no cambia
+// El instructor no tiene modos, así que su menú no cambia. Sin "Subir guía": las guías y los
+// estudiantes viven dentro de cada grupo (PLAN del instructor, mapa de navegación)
 const menuInstructor = [
     { etiqueta: 'Inicio', icono: Home, ruta: '/instructor/dashboard', descripcion: 'Resumen de tus grupos.' },
-    { etiqueta: 'Mis Grupos', icono: Users, ruta: null, descripcion: 'Grupos que administras.' },
-    { etiqueta: 'Subir Guía', icono: Upload, ruta: null, descripcion: 'Carga guías en PDF para tus grupos.' },
-    { etiqueta: 'Perfil', icono: User, ruta: null, descripcion: 'Datos de tu cuenta.' }
+    { etiqueta: 'Mis grupos', icono: Users, ruta: '/instructor/grupos', descripcion: 'Grupos que administras, sus guías y sus entregas.' },
+    { etiqueta: 'Perfil', icono: User, ruta: '/instructor/perfil', descripcion: 'Datos de tu cuenta y cambio de contraseña.' }
 ]
 
 const itemsMenu = computed(() => {

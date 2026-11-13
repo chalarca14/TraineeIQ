@@ -1,5 +1,6 @@
 <script setup>
 import Medalla from '@/components/ui/Medalla.vue'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
 
 // Los tres estados que toda vista con datos reales debe manejar (CLAUDE.md): cargando, error y
 // vacío. Antes cada vista repetía su propio HTML y CSS; ahora se declaran aquí una sola vez.
@@ -18,7 +19,11 @@ defineEmits(['reintentar'])
 </script>
 
 <template>
-  <p v-if="cargando" class="estado">{{ textoCargando }}</p>
+  <!-- Con slot "cargando" se ve el esqueleto de la vista; sin él, el texto de siempre -->
+  <CargaEsqueleto v-if="cargando && $slots.cargando" :texto="textoCargando">
+    <slot name="cargando" />
+  </CargaEsqueleto>
+  <p v-else-if="cargando" class="estado">{{ textoCargando }}</p>
 
   <div v-else-if="error" class="caja caja--error" role="alert">
     <p>{{ error }}</p>
