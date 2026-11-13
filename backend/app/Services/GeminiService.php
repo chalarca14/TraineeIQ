@@ -245,7 +245,9 @@ class GeminiService
             '{{GUIA}}' => str_ireplace(['<guia>', '</guia>'], ' ', $textoGuia),
         ]);
 
-        $texto = $this->llamarApi($prompt, self::ESQUEMA_SEMANAS);
+        // Pensamiento bajo: dividir es una tarea mecanica. Con el nivel por defecto, una
+        // planeacion en Excel de 11 semanas tardo 44 s (a veces mas de 60); con 'low', 15 s
+        $texto = $this->llamarApi($prompt, self::ESQUEMA_SEMANAS, 'low');
 
         if ($texto === null) {
             throw new IaNoDisponibleException('Gemini no respondio al dividir la guia.');
@@ -345,7 +347,7 @@ class GeminiService
      * Reintenta si Gemini esta saturado y usa un modelo de respaldo si el principal falla.
      * Centraliza el manejo de errores HTTP para no repetir try-catch en cada metodo publico.
      */
-    private function llamarApi(string $prompt, ?array $esquema = null): ?string
+    private function llamarApi(string $prompt, ?array $esquema = null, ?string $nivelPensamiento = null): ?string
     {
         $cuerpo = ['contents' => [['parts' => [['text' => $prompt]]]]];
 
@@ -355,6 +357,12 @@ class GeminiService
                 'responseMimeType'   => 'application/json',
                 'responseJsonSchema' => $esquema,
             ];
+        }
+
+        // Cuanto "piensa" el modelo antes de responder ('low' o 'high', modelos Gemini 3).
+        // Sin valor, usa el de la API. Pensar menos responde mas rapido
+        if ($nivelPensamiento !== null) {
+            $cuerpo['generationConfig']['thinkingConfig'] = ['thinkingLevel' => $nivelPensamiento];
         }
 
         // Orden de intento: primero el modelo principal, luego el de respaldo

@@ -11,7 +11,7 @@ Para cada semana entrega:
 - "numero_semana": entero consecutivo desde 1.
 - "titulo": nombre corto de la semana (maximo 80 caracteres).
 - "resumen": una o dos frases sobre lo que se estudia esa semana.
-- "inicio_texto": las primeras 5 a 12 palabras con las que empieza esa semana, copiadas LITERALMENTE del texto de la guia. No las corrijas, resumas ni traduzcas. Toma la frase del desarrollo de la guia, nunca del indice o tabla de contenido. Cada frase debe aparecer en la guia despues de la frase de la semana anterior.
+- "inicio_texto": las primeras 5 a 12 palabras con las que empieza esa semana, copiadas LITERALMENTE del texto de la guia. No las corrijas, resumas ni traduzcas. Toma la frase del desarrollo de la guia, nunca del indice o tabla de contenido. Cada frase debe aparecer en la guia despues de la frase de la semana anterior. Si en el desarrollo cada semana empieza con su propio titulo (por ejemplo una linea "Semana 3"), la frase debe empezar con ese titulo.
 - "temas": entre 1 y 5 temas de esa semana, cada uno con:
   - "nombre_tema": nombre corto (maximo 80 caracteres).
   - "descripcion": resumen detallado de lo que la guia explica sobre ese tema (conceptos, terminos, ejemplos y ejercicios), usando solo lo que dice la guia. No inventes contenido.
