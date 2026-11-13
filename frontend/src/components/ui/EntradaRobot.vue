@@ -87,6 +87,10 @@ onUnmounted(() => clearTimeout(temporizador))
 <template>
   <div v-if="visible" ref="raiz" class="intro" :class="{ 'intro--saliendo': fase === 'saliendo' }" role="dialog"
     aria-modal="true" aria-label="Bienvenida a TraineeIQ" @keydown.esc="cerrar">
+    <!-- Fondo a pantalla completa: el póster ampliado y desenfocado. El video es horizontal y el
+         teléfono vertical; así la pantalla entera tiene el brillo del video sin recortar al robot -->
+    <img class="intro__fondo" :src="POSTER" alt="" aria-hidden="true" />
+
     <!-- Decorativo: lo que importa para el lector de pantalla está en el mensaje de estado -->
     <img v-if="usarPoster" class="intro__medio" :src="POSTER" alt="" aria-hidden="true" />
     <video v-else ref="video" class="intro__medio" :src="VIDEO" :poster="POSTER" muted playsinline preload="auto"
@@ -120,12 +124,39 @@ onUnmounted(() => clearTimeout(temporizador))
   pointer-events: none;
 }
 
-/* contain: el robot y el texto "TraineeIQ" nunca se recortan; las franjas sobrantes son del mismo color */
-.intro__medio {
+/* overflow: hidden para que el fondo ampliado no genere scroll */
+.intro {
+  overflow: hidden;
+}
+
+/* cover + blur: llena toda la pantalla con los colores del video. scale evita el borde claro que deja el blur */
+.intro__fondo {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  max-width: 1100px;
+  object-fit: cover;
+  /* Oscuro y saturado: tiene que parecerse al fondo del video, no a una imagen gris de fondo */
+  filter: blur(28px) brightness(.3) saturate(1.3);
+  transform: scale(1.15);
+}
+
+/* contain: el robot y el texto "TraineeIQ" nunca se recortan. La máscara desvanece los cuatro bordes
+   del video hacia el fondo: así no se ve el "cuadrado" del video, en el teléfono ni en el escritorio */
+.intro__medio {
+  position: relative;
+  /* La caja mide exactamente lo que el video (864x496): así la máscara cae sobre sus bordes reales.
+     Cabe a lo ancho y a lo alto (100dvh por la proporción del video) y no pasa de 1100 px */
+  width: min(100%, 1100px, calc(100dvh * 864 / 496));
+  height: auto;
+  aspect-ratio: 864 / 496;
   object-fit: contain;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent),
+    linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent),
+    linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  mask-composite: intersect;
 }
 
 /* "Saltar" arriba a la derecha, como en los reproductores: visible desde el primer momento */
@@ -158,6 +189,15 @@ onUnmounted(() => clearTimeout(temporizador))
   font-size: .95rem;
   text-align: center;
   white-space: normal;
+}
+
+/* Teléfono en vertical: el video se amplía más allá del ancho para que el robot se vea grande; los lados
+   (solo fondo y partículas) quedan fuera y difuminados, y el texto "TraineeIQ" sigue completo */
+@media (max-width: 600px) and (orientation: portrait) {
+  .intro__medio {
+    width: 180%;
+    max-width: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
