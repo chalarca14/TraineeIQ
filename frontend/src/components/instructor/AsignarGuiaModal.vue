@@ -94,6 +94,9 @@ async function enviar() {
 <template>
   <ModalBase titulo="Asignar guía al grupo" :bloqueado="enviando" @cerrar="emit('cerrar')">
     <form class="formulario" novalidate @submit.prevent="enviar">
+      <!-- Igual que "Crear grupo": una frase bajo el título da aire y explica qué pasa al asignar -->
+      <p class="ayuda">La guía se divide en semanas y la IA prepara el contenido de cada semana.</p>
+
       <label :for="idNombre">Nombre de la guía</label>
       <input :id="idNombre" v-model="nombre" data-foco-inicial type="text" maxlength="255" autocomplete="off"
         placeholder="Ej: Introducción a HTML y CSS" :aria-invalid="!!errores.nombre" />
@@ -136,6 +139,12 @@ async function enviar() {
   display: flex;
   flex-direction: column;
   gap: var(--espacio-xs);
+}
+
+.ayuda {
+  margin-bottom: var(--espacio-sm);
+  color: var(--color-text-secondary);
+  font-size: .9rem;
 }
 
 label {

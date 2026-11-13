@@ -135,8 +135,11 @@ h1 {
 
 /* Tablet y celular: el instructor pasa debajo, sin la línea separadora */
 @media (max-width: 760px) {
+  /* row-gap pequeño: bajo "Copiar" ya hay una línea reservada para el aviso "Código copiado";
+     sumada al espacio normal entre filas dejaba un hueco grande antes del instructor */
   .cabecera {
     flex-wrap: wrap;
+    row-gap: var(--espacio-xs);
   }
 
   .instructor {

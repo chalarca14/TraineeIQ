@@ -105,10 +105,21 @@ onMounted(cargar)
   gap: var(--espacio-md);
 }
 
+/* 5 cifras en una fila quedaban apretadas (el detalle ocupaba 3 líneas). Con 6 columnas: las 3 primeras
+   ocupan 2 cada una y las 2 últimas 3 cada una → 3 arriba y 2 abajo, las dos filas a todo el ancho */
 .cifras {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--espacio-md);
+}
+
+.cifras > :nth-child(-n + 3) { grid-column: span 2; }
+.cifras > :nth-child(n + 4) { grid-column: span 3; }
+
+/* Pantallas angostas: como antes, tantas columnas como quepan (una sola en 360 px) */
+@media (max-width: 760px) {
+  .cifras { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .cifras > * { grid-column: auto; }
 }
 
 .graficas {
