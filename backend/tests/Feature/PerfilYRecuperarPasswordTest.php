@@ -6,9 +6,14 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Tests\TestCase;
 
 /**
@@ -96,6 +101,39 @@ class PerfilYRecuperarPasswordTest extends TestCase
 
         $this->assertSame($existe, $noExiste);
         Notification::assertCount(1);
+    }
+
+    /**
+     * Si el servicio de correo falla, responde igual que con un correo desconocido (no un 500,
+     * que revelaría que el correo tiene cuenta) y el error queda en el log sin el correo.
+     */
+    public function test_si_falla_el_correo_responde_lo_mismo(): void
+    {
+        // Un transporte de correo que siempre falla, como si Brevo estuviera caído
+        Mail::extend('falla', fn () => new class extends AbstractTransport {
+            protected function doSend(SentMessage $mensaje): void
+            {
+                throw new TransportException('Servicio de correo caído');
+            }
+
+            public function __toString(): string
+            {
+                return 'falla';
+            }
+        });
+        config(['mail.mailers.falla' => ['transport' => 'falla'], 'mail.default' => 'falla']);
+        User::factory()->create(['email' => 'ana@correo.com']);
+
+        Log::shouldReceive('error')->once()->withArgs(
+            fn (string $mensaje, array $contexto) => ! str_contains(json_encode($contexto), 'ana@correo.com')
+        );
+
+        $falla = $this->postJson('/api/password/olvide', ['email' => 'ana@correo.com'])
+            ->assertOk()
+            ->json('message');
+        $noExiste = $this->postJson('/api/password/olvide', ['email' => 'nadie@correo.com'])->json('message');
+
+        $this->assertSame($noExiste, $falla);
     }
 
     /**

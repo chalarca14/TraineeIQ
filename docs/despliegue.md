@@ -70,10 +70,16 @@ php artisan key:generate --show
 | `GEMINI_API_KEY` | Tu clave de Gemini |
 | `GEMINI_MODEL` | El mismo modelo que usas en local |
 | `GITHUB_TOKEN` | Tu token de GitHub, de solo lectura |
+| `MAIL_MAILER` | `brevo` |
+| `BREVO_API_KEY` | La clave de **API** de Brevo (no la SMTP) |
+| `MAIL_FROM_ADDRESS` | El correo verificado como remitente en Brevo |
+| `MAIL_FROM_NAME` | `TraineeIQ` |
 
 `SESSION_DRIVER` y `CACHE_STORE` evitan consultas a la base en cada petición: la API usa tokens, no sesiones.
 
 `MYSQL_ATTR_SSL_CA` activa la conexión cifrada que exige TiDB Cloud. No es un secreto: es la ruta de los certificados dentro de la imagen `php:8.3-apache`, comprobada el 2026-11-09.
+
+El correo de "¿Olvidaste tu contraseña?" sale por la API HTTP de Brevo, porque Render gratis bloquea los puertos de SMTP. El plan gratis de Brevo permite unos 300 correos al día. El enlace del correo se arma con `FRONTEND_URL`: si está mal, el enlace no sirve. Si Brevo falla, la API responde lo mismo de siempre y el error queda en el log de Render.
 
 Los límites de evaluación tienen valores por defecto y no hace falta definirlos. Si quieres cambiarlos, están en `backend/.env.example`.
 
