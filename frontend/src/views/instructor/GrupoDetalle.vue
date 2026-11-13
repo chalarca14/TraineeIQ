@@ -25,10 +25,7 @@
                 <SemanasGrupo v-else-if="pestana === 'semanas'" :grupo="grupo"
                     @semana-liberada="grupo.semana_actual = $event" @ir-a="pestana = $event" />
 
-                <!-- Pestaña de la tarea I-7: se ven desde ya para que la estructura y los
-                     enlaces ?tab= queden listos, con un aviso hasta que estén construidas -->
-                <EstadoVista v-else vacio :icono="pestanaActual.icono" texto-vacio="Esta sección llega pronto"
-                    :descripcion-vacio="pestanaActual.pronto" />
+                <EstadisticasGrupo v-else :grupo="grupo" @ir-a="pestana = $event" />
             </section>
         </EstadoVista>
     </main>
@@ -45,6 +42,7 @@ import CabeceraGrupoInstructor from '@/components/instructor/CabeceraGrupoInstru
 import ResumenGrupo from '@/components/instructor/ResumenGrupo.vue'
 import GuiasGrupoInstructor from '@/components/instructor/GuiasGrupoInstructor.vue'
 import SemanasGrupo from '@/components/instructor/SemanasGrupo.vue'
+import EstadisticasGrupo from '@/components/instructor/EstadisticasGrupo.vue'
 import { getGrupo } from '@/services/grupoService'
 import { mensajeDeErrorGrupo } from '@/utils/errores'
 
@@ -59,7 +57,7 @@ const PESTANAS = [
     { clave: 'resumen', etiqueta: 'Resumen', icono: LayoutDashboard },
     { clave: 'guias', etiqueta: 'Guías', icono: BookOpen },
     { clave: 'semanas', etiqueta: 'Semanas y proyectos', icono: CalendarRange },
-    { clave: 'estadisticas', etiqueta: 'Estadísticas', icono: BarChart3, pronto: 'Aquí verás el avance del grupo calculado con sus entregas.' }
+    { clave: 'estadisticas', etiqueta: 'Estadísticas', icono: BarChart3 }
 ]
 
 // La pestaña vive en la URL (?tab=guias): se puede enlazar, recargar y volver atrás con el navegador.
@@ -69,7 +67,6 @@ const pestana = computed({
     // Solo queda ?tab: el ?proyecto= de un aviso o una entrega solo tiene sentido en "Semanas y proyectos"
     set: (clave) => router.replace({ query: { tab: clave } })
 })
-const pestanaActual = computed(() => PESTANAS.find((p) => p.clave === pestana.value))
 
 const grupo = ref(null)
 const cargando = ref(true)
