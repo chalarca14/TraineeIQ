@@ -2,7 +2,7 @@
     <main class="mis-guias">
 
         <EncabezadoPagina titulo="Mis guías" :icono="BookOpen"
-            descripcion="Sube tus guías en PDF y las dividimos en temas para estudiarlas con ayuda de la IA.">
+            descripcion="Sube tus guías en PDF o Excel y las dividimos en temas para estudiarlas con ayuda de la IA.">
             <template #acciones>
                 <button class="btn btn-primario" type="button" @click="mostrarForm = !mostrarForm">
                     <Plus :size="18" /> Subir guía
@@ -14,7 +14,7 @@
 
         <EstadoVista :cargando="cargando" :error="error" :vacio="guias.length === 0" :icono="BookOpen"
             texto-cargando="Cargando tus guías..." texto-vacio="Aún no has subido ninguna guía."
-            descripcion-vacio="Sube tu primer PDF y lo organizamos por temas." @reintentar="cargarGuias">
+            descripcion-vacio="Sube tu primera guía en PDF o Excel y la organizamos por temas." @reintentar="cargarGuias">
             <div class="guias-grid">
                 <GuiaCard v-for="guia in guias" :key="guia.id" :guia="guia" />
             </div>

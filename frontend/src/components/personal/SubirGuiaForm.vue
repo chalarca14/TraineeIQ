@@ -10,18 +10,18 @@
         <div class="field-group">
             <label class="file-drop" :class="{ lleno: archivo }">
                 <FileUp :size="24" />
-                <span>{{ archivo ? archivo.name : 'Haz clic para elegir un PDF (máx. 10 MB)' }}</span>
-                <input type="file" accept="application/pdf" class="sr-only" @change="elegirArchivo" />
+                <span>{{ archivo ? archivo.name : 'Haz clic para elegir un PDF (máx. 10 MB) o un Excel .xlsx (máx. 2 MB)' }}</span>
+                <input type="file" :accept="TIPOS_ACEPTADOS" class="sr-only" @change="elegirArchivo" />
             </label>
-            <!-- Error de validación del archivo (falta, no es PDF, pesa de más o lo rechazó el backend).
+            <!-- Error de validación del archivo (falta, no es PDF ni Excel, pesa de más o lo rechazó el backend).
                  role="alert" hace que el lector de pantalla lo anuncie al aparecer. El <p> existe siempre
                  (vacío): un aviso que se inserta junto con su texto a veces no se anuncia. -->
             <p class="input-error" role="alert">{{ errores.archivo }}</p>
-            <!-- Se ve ANTES de subir: el aprendiz debe saber que el PDF original no se conserva
+            <!-- Se ve ANTES de subir: el aprendiz debe saber que el archivo original no se conserva
                  (el servidor no tiene disco persistente), para que guarde su propia copia -->
             <p class="aviso-pdf" role="note">
                 <Info :size="18" aria-hidden="true" />
-                <span>TraineeIQ guarda el texto de la guía, no el PDF original. Conserva tu copia del PDF.</span>
+                <span>TraineeIQ guarda el texto de la guía, no el archivo original. Conserva tu copia del PDF o del Excel.</span>
             </p>
             <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando"
                 @click="enviar">Reintentar</button>
@@ -49,7 +49,11 @@ import { subirGuia } from '@/services/guiaService'
 
 const emit = defineEmits(['subida', 'cancelar'])
 
-const MAX_MB = 10
+// Mismos límites que el backend: el Excel pesa menos porque ocupa mucha memoria al leerse
+const MAX_MB_PDF = 10
+const MAX_MB_EXCEL = 2
+// Extensión y tipo: algunos navegadores en Windows no informan el tipo de un .xlsx
+const TIPOS_ACEPTADOS = '.pdf,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 const nombre = ref('')
 const archivo = ref(null)
@@ -60,8 +64,16 @@ const puedeReintentar = ref(false)
 
 function elegirArchivo(evento) {
     archivo.value = evento.target.files[0] ?? null
-    // Un error viejo ("Selecciona un archivo PDF.") no debe seguir visible después de elegir uno
+    // Un error viejo ("Selecciona un archivo.") no debe seguir visible después de elegir uno
     errores.value.archivo = ''
+}
+
+// 'pdf', 'excel' o null, según la extensión del nombre (el tipo MIME no siempre llega)
+function tipoDeArchivo(file) {
+    const nombreArchivo = file.name.toLowerCase()
+    if (nombreArchivo.endsWith('.pdf')) return 'pdf'
+    if (nombreArchivo.endsWith('.xlsx')) return 'excel'
+    return null
 }
 
 function validar() {
@@ -72,14 +84,17 @@ function validar() {
         errores.value.nombre = 'Escribe un nombre para la guía.'
         esValido = false
     }
+    const tipo = archivo.value ? tipoDeArchivo(archivo.value) : null
+    const maxMb = tipo === 'excel' ? MAX_MB_EXCEL : MAX_MB_PDF
+
     if (!archivo.value) {
-        errores.value.archivo = 'Selecciona un archivo PDF.'
+        errores.value.archivo = 'Selecciona un PDF o un Excel (.xlsx).'
         esValido = false
-    } else if (archivo.value.type !== 'application/pdf') {
-        errores.value.archivo = 'El archivo debe ser un PDF.'
+    } else if (!tipo) {
+        errores.value.archivo = 'El archivo debe ser un PDF o un Excel (.xlsx).'
         esValido = false
-    } else if (archivo.value.size > MAX_MB * 1024 * 1024) {
-        errores.value.archivo = `El PDF no puede pesar más de ${MAX_MB} MB.`
+    } else if (archivo.value.size > maxMb * 1024 * 1024) {
+        errores.value.archivo = `El ${tipo === 'excel' ? 'Excel' : 'PDF'} no puede pesar más de ${maxMb} MB.`
         esValido = false
     }
     return esValido
@@ -106,7 +121,7 @@ async function enviar() {
             errores.value.nombre = datos.errors.nombre?.[0] ?? ''
             errores.value.archivo = datos.errors.archivo?.[0] ?? ''
         } else if (status === 422) {
-            error.value = datos?.message ?? 'No pudimos leer texto en ese PDF.'
+            error.value = datos?.message ?? 'No pudimos leer texto en ese archivo.'
         } else if (status === 403) {
             error.value = 'No tienes permiso para hacer esto.'
         } else if (status === 503 || err.code === 'ECONNABORTED') {

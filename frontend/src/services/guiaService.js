@@ -65,7 +65,7 @@ export async function listarMisGuias() {
     return (await pedirTodasLasGuias()).filter((guia) => guia.origen === 'personal')
 }
 
-/** Sube un PDF; el backend lo lee y lo divide en temas. */
+/** Sube un PDF o un Excel (.xlsx); el backend lo lee y lo divide en temas. */
 export async function subirGuia({ nombre, archivo }) {
     if (USAR_DATOS_PRUEBA) {
         await esperar(1200) // simula el tiempo de leer el PDF y dividirlo con la IA
@@ -87,7 +87,7 @@ export async function subirGuia({ nombre, archivo }) {
     formData.append('nombre', nombre)
     formData.append('archivo', archivo)
     // Sin 'origen' (lo decide el backend) y sin Content-Type (el navegador lo genera solo).
-    // El timeout es de 120 s porque el backend lee el PDF y llama a la IA
+    // El timeout es de 120 s porque el backend lee el archivo y llama a la IA
     const { data } = await api.post('/guias', formData, { timeout: 120000 })
     return data.guia
 }
