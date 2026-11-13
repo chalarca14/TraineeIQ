@@ -61,6 +61,10 @@ body {
     --color-primary-light: #A855F7;
     --color-border: #1E2235;
 
+    /* Azul casi negro del fondo de los videos del robot (medido en el video): la pantalla de entrada
+       usa este mismo color para que no se noten los bordes del video */
+    --color-fondo-intro: #00050F;
+
     /* Degradado y resplandor morado compartidos por botones, banners y tarjetas destacadas */
     --gradiente-primario: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
     --brillo-primario: 0 6px 18px color-mix(in srgb, var(--color-primary) 40%, transparent);
