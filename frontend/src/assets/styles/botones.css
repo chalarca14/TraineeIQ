@@ -71,3 +71,16 @@
 .btn-peligro:hover:not(:disabled) {
     box-shadow: 0 6px 18px color-mix(in srgb, var(--color-danger) 40%, transparent);
 }
+
+/* Igual de destructiva, pero más discreta: fondo transparente con borde y texto rojos. Para los
+   botones que solo ABREN la confirmación ("Eliminar grupo", "Eliminar" en una guía); el botón
+   sólido (.btn-peligro) queda para confirmar dentro del aviso */
+.btn-peligro-borde {
+    border: 1px solid var(--color-danger);
+    background: transparent;
+    color: var(--color-danger);
+}
+
+.btn-peligro-borde:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}

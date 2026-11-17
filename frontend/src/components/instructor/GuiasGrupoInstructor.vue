@@ -117,7 +117,7 @@ onMounted(cargar)
               <RouterLink :to="rutaGuia(g)" class="btn btn-primario btn-sm">
                 <Eye :size="16" aria-hidden="true" /> Ver guía
               </RouterLink>
-              <button type="button" class="btn btn-peligro btn-sm" :aria-label="`Eliminar la guía ${g.nombre}`"
+              <button type="button" class="btn btn-peligro-borde btn-sm" :aria-label="`Eliminar la guía ${g.nombre}`"
                 @click="porEliminar = g">
                 <Trash2 :size="16" aria-hidden="true" /> Eliminar
               </button>
