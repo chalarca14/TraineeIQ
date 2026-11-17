@@ -223,6 +223,8 @@ onMounted(cargar)
     background: var(--color-surface);
     color: var(--color-text);
     font: inherit;
+    /* inherit traería Puritan; los campos usan la fuente legible (ver variables.css) */
+    font-family: var(--fuente-campos);
 }
 
 /* Celular: el selector ocupa todo el ancho, con la etiqueta arriba */

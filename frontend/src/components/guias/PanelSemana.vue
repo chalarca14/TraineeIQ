@@ -43,7 +43,11 @@
         <!-- Generando: o la genera esta pantalla (espera) o el servidor dice "generando" por otra
              persona o porque quedó caída (se ofrece consultar UNA vez, sin polling) -->
         <template v-else-if="semana.estado_generacion === 'generando'">
-            <p v-if="generandoAqui" class="estado-texto" role="status">
+            <!-- Dueño de la guía (instructor o aprendiz en su guía personal): animación con los pasos.
+                 El aprendiz de Modo Grupo conserva el aviso corto de siempre -->
+            <AnimacionCarga v-if="generandoAqui && esDueno" :pasos="PASOS_SEMANA"
+                :detalle="`Semana ${semana.numero_semana} de ${total}. Puede tardar unos minutos.`" />
+            <p v-else-if="generandoAqui" class="estado-texto" role="status">
                 <span class="giro" aria-hidden="true"></span> La IA está preparando esta semana. Puede tardar un minuto.
             </p>
             <div v-else class="aviso" role="status">
@@ -75,6 +79,8 @@
 import { ref, nextTick, useId } from 'vue'
 import { FileText, ListChecks, Sparkles, Rocket, RefreshCw } from 'lucide-vue-next'
 import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import AnimacionCarga from '@/components/ui/AnimacionCarga.vue'
+import { PASOS_SEMANA } from '@/utils/pasosCarga'
 import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import SemanaBloqueada from '@/components/miniproyectos/SemanaBloqueada.vue'
 import CabeceraSemana from '@/components/guias/CabeceraSemana.vue'

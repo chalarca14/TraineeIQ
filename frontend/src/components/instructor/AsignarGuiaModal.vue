@@ -2,7 +2,9 @@
 import { ref, useId } from 'vue'
 import { FileUp, Info } from 'lucide-vue-next'
 import ModalBase from '@/components/ui/ModalBase.vue'
+import AnimacionCarga from '@/components/ui/AnimacionCarga.vue'
 import { asignarGuia } from '@/services/guiaService'
+import { PASOS_SUBIDA } from '@/utils/pasosCarga'
 import { MAX_MB_PDF, MAX_MB_EXCEL, TIPOS_ACEPTADOS, errorDeArchivoGuia } from '@/utils/archivoGuia'
 
 // Asignar una guía (PDF o Excel .xlsx) al grupo. El backend la lee y la divide en semanas; el
@@ -122,13 +124,17 @@ async function enviar() {
 
       <p v-if="error" class="error error--general" role="alert">{{ error }}</p>
 
+      <!-- Leer y dividir la guía (PDF o Excel) tarda hasta un par de minutos: la animación muestra que sigue trabajando
+           (reemplaza a la frase suelta "Esto puede tardar…", que ahora va como detalle) -->
+      <AnimacionCarga v-if="enviando" tamano="sm" :pasos="PASOS_SUBIDA"
+        detalle="Puede tardar hasta un par de minutos. No cierres esta ventana." />
+
       <div class="acciones">
         <button type="button" class="btn btn-secundario" :disabled="enviando" @click="emit('cerrar')">Cancelar</button>
         <button type="submit" class="btn btn-primario" :disabled="enviando">
           {{ enviando ? 'Leyendo la guía…' : 'Asignar guía' }}
         </button>
       </div>
-      <p v-if="enviando" class="espera" role="status">Esto puede tardar hasta un par de minutos. No cierres esta ventana.</p>
     </form>
   </ModalBase>
 </template>
@@ -168,6 +174,8 @@ input[type='number'] {
   background: var(--color-background);
   color: var(--color-text);
   font: inherit;
+  /* inherit traería Puritan; los campos usan la fuente legible (ver variables.css) */
+  font-family: var(--fuente-campos);
 }
 
 input:focus {
@@ -257,19 +265,9 @@ input:focus {
   margin-top: var(--espacio-sm);
 }
 
-.espera {
-  color: var(--color-text-secondary);
-  font-size: .82rem;
-  text-align: right;
-}
-
 @media (max-width: 480px) {
   .acciones {
     flex-direction: column-reverse;
-  }
-
-  .espera {
-    text-align: center;
   }
 }
 </style>

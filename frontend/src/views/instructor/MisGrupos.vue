@@ -180,6 +180,8 @@ onMounted(cargar)
     background: transparent;
     color: var(--color-text);
     font: inherit;
+    /* inherit traería Puritan; los campos usan la fuente legible (ver variables.css) */
+    font-family: var(--fuente-campos);
 }
 
 .sin-resultados {

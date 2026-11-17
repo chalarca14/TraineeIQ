@@ -102,6 +102,8 @@ h2 {
     background: var(--color-card);
     color: var(--color-text);
     font: inherit;
+    /* inherit traería Puritan; los campos usan la fuente legible (ver variables.css) */
+    font-family: var(--fuente-campos);
     text-overflow: ellipsis;
     appearance: none;
     cursor: pointer;

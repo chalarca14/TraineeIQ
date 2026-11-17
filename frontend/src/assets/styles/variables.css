@@ -1,6 +1,8 @@
 /* Colores principales */
 
-@import url('https://fonts.googleapis.com/css2?family=Puritan:wght@400;700&display=swap');
+/* Una sola petición a Google Fonts para las dos fuentes: Puritan (toda la interfaz) y
+   Atkinson Hyperlegible Next (solo los campos de formulario, ver --fuente-campos). */
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&family=Puritan:wght@400;700&display=swap');
 
 * {
     margin: 0;
@@ -72,4 +74,17 @@ body {
     --espacio-md: 1rem;
     --espacio-lg: 1.5rem;
 
+    /* Fuente de los campos (input, textarea, select). Atkinson Hyperlegible se diseñó para que
+       no se confundan 0/O, 1/l/I, 5/S ni rn/m: importa en códigos de grupo, contraseñas, correos
+       y números. Las de respaldo sirven si Google Fonts no carga (sin internet). */
+    --fuente-campos: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', system-ui, sans-serif;
+}
+
+/* Gana a la regla `*` de arriba porque un selector de etiqueta es más específico que `*`.
+   OJO: si un componente pone `font: inherit` en un campo, hereda Puritan del padre y pisa esto;
+   en esos casos el componente debe usar `font-family: var(--fuente-campos)` después del inherit. */
+input,
+textarea,
+select {
+    font-family: var(--fuente-campos);
 }
