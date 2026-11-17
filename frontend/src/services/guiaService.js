@@ -104,7 +104,38 @@ export async function getSemana(guiaId, numero) {
  */
 export async function generarSemana(guiaId, numero, forzar = false) {
     const { data } = await api.post(`/guias/${guiaId}/semanas/${numero}/generar`, { forzar }, { timeout: 200000 })
-    return data.semana
+    const semana = data.semana
+    // El backend manda solo_recomendaciones al lado de la semana (true = ya había entregas y solo se
+    // regeneraron las recomendaciones). Se copia DENTRO del objeto semana para no cambiar lo que
+    // devuelve esta función: la cola de stores/contenido.js y usePrepararSemana.js siguen igual.
+    if (semana) {
+        semana.solo_recomendaciones = Boolean(data.solo_recomendaciones)
+    }
+    return semana
+}
+
+/** Guías de la semana: las guías detalladas que el instructor adjuntó a una semana de la planeación. */
+export async function listarMaterialesSemana(guiaId, numero) {
+    const { data } = await api.get(`/guias/${guiaId}/semanas/${numero}/materiales`)
+    return data.materiales ?? []
+}
+
+/**
+ * Instructor: adjunta una guía detallada (PDF o .xlsx) a una semana. Devuelve { material, semana_lista }:
+ * con semana_lista la semana ya tenía contenido y conviene ofrecer "Actualizar". Sin Content-Type
+ * (el navegador arma el límite del FormData) y con 120 s, porque el backend lee el archivo.
+ */
+export async function subirMaterialSemana(guiaId, numero, { nombre, archivo }) {
+    const formData = new FormData()
+    formData.append('nombre', nombre)
+    formData.append('archivo', archivo)
+    const { data } = await api.post(`/guias/${guiaId}/semanas/${numero}/materiales`, formData, { timeout: 120000 })
+    return data
+}
+
+/** Instructor: quita una guía de la semana. */
+export async function eliminarMaterialSemana(guiaId, numero, id) {
+    await api.delete(`/guias/${guiaId}/semanas/${numero}/materiales/${id}`)
 }
 
 /**

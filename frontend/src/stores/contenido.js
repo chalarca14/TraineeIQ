@@ -32,6 +32,8 @@ export const useContenidoStore = defineStore('contenido', {
         generandoAqui: null,
         // true mientras "Revisar de nuevo" consulta el estado una vez
         revisando: false,
+        // true si la última generación solo rehízo las recomendaciones (ya había entregas de aprendices)
+        soloRecomendaciones: false,
         error: '',
         aviso: ''
     }),
@@ -155,10 +157,14 @@ export const useContenidoStore = defineStore('contenido', {
             this.procesandoCola = false
         },
 
-        // Vuelve a intentar una semana en error (solo lo ve el dueño de la guía)
+        // Vuelve a generar una semana con forzar (solo el dueño de la guía): "Reintentar" de una semana en
+        // error y "Actualizar con las guías de la semana". Devuelve { ok, soloRecomendaciones }; quien no
+        // lo necesita (el "Reintentar" de siempre) lo ignora. Si falla, el motivo queda en this.aviso.
         async reintentar(numero) {
             this.aviso = ''
-            await this.generar(numero, true)
+            this.soloRecomendaciones = false
+            const ok = await this.generar(numero, true)
+            return { ok, soloRecomendaciones: ok && this.soloRecomendaciones }
         },
 
         // Genera una semana. Retorna false si la cola debe detenerse
@@ -171,6 +177,7 @@ export const useContenidoStore = defineStore('contenido', {
                 const semana = await generarSemana(guiaId, numero, forzar)
 
                 if (guiaId === this.guiaId) {
+                    this.soloRecomendaciones = Boolean(semana.solo_recomendaciones)
                     this.actualizarSemana(numero, semana)
 
                     // Si la semana que terminó es la abierta, muestra su contenido
