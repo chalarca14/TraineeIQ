@@ -1,5 +1,9 @@
 <template>
   <div class="resultado">
+    <!-- Ánimo por entregar, el MISMO con cualquier puntaje: la evaluación es orientativa, no hay "aprobado" -->
+    <section class="tarjeta animo">
+      <RobotAnimo tamano="sm" mensaje="¡Buen trabajo por entregar! Revisa las sugerencias para seguir mejorando." />
+    </section>
 
     <!-- Puntaje y resumen de la IA. Siempre se dice que es orientativa. -->
     <section class="tarjeta principal">
@@ -75,6 +79,7 @@
 import { computed } from 'vue'
 import { Info, TriangleAlert, Star, ArrowRight, RotateCcw, ListChecks, Code, Lightbulb, Check, ShieldCheck } from 'lucide-vue-next'
 import Medalla from '@/components/ui/Medalla.vue'
+import RobotAnimo from '@/components/ui/RobotAnimo.vue'
 import AnilloPuntaje from '@/components/miniproyectos/AnilloPuntaje.vue'
 import CriteriosEvaluados from '@/components/miniproyectos/CriteriosEvaluados.vue'
 import ListaRequisitos from '@/components/miniproyectos/ListaRequisitos.vue'
@@ -115,6 +120,11 @@ const cumplidos = computed(() => requisitos.value.filter((r) => r.cumplido).leng
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-card) 55%, var(--color-surface)), var(--color-surface));
+}
+
+/* Franja de ánimo: menos alto que las demás tarjetas, el robot ya marca el espacio */
+.animo {
+  padding-block: .6rem;
 }
 
 .principal {

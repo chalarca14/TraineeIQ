@@ -1,8 +1,10 @@
 <template>
     <div class="guia">
-        <!-- Texto plano de la guía (transcrito del PDF). Se pinta con {{ }} y white-space: pre-line,
-             nunca con v-html: así conserva los saltos de línea sin interpretar nada como HTML -->
-        <p v-if="texto" class="texto">{{ texto }}</p>
+        <!-- Texto de la guía (transcrito del PDF), organizado en títulos, párrafos y código por TextoGuia.
+             Se pinta como texto, nunca con v-html: nada del PDF se interpreta como HTML -->
+        <div v-if="texto" class="lectura">
+            <TextoGuia :texto="texto" />
+        </div>
         <p v-else class="vacio">Esta semana no trae texto de la guía.</p>
 
         <!-- El id fijo deja que la vista le devuelva el foco al volver de "Guía completa" -->
@@ -14,6 +16,7 @@
 
 <script setup>
 import { FileText } from 'lucide-vue-next'
+import TextoGuia from '@/components/guias/TextoGuia.vue'
 
 // Pestaña "Guía": el contenido_texto de la semana elegida y el acceso a la guía completa
 defineProps({ texto: { type: String, default: '' } })
@@ -24,14 +27,23 @@ defineEmits(['ver-completa'])
 .guia {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--espacio-md);
 }
 
-.texto {
-    white-space: pre-line;
-    overflow-wrap: anywhere;
-    line-height: 1.65;
-    font-size: .93rem;
+/* Área de lectura: fondo suave y un borde de acento a la izquierda, para que el texto de la guía
+   se distinga del resto del panel */
+.lectura {
+    padding: var(--espacio-lg);
+    border: 1px solid var(--color-card);
+    border-left: 3px solid var(--color-primary);
+    border-radius: 14px;
+    background: var(--color-background);
+}
+
+@media (max-width: 520px) {
+    .lectura {
+        padding: var(--espacio-md);
+    }
 }
 
 .ver {

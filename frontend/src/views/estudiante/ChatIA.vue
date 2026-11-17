@@ -8,6 +8,7 @@ import ChatVacio from '@/components/chat/ChatVacio.vue'
 import ChatEscribiendo from '@/components/chat/ChatEscribiendo.vue'
 import ChatErrorEnvio from '@/components/chat/ChatErrorEnvio.vue'
 import PanelConversaciones from '@/components/chat/PanelConversaciones.vue'
+import EsqueletoChat from '@/components/chat/EsqueletoChat.vue'
 import { crearConversacion, enviarMensaje, obtenerConversacion } from '@/services/chatIaService'
 import { usePanelConversaciones } from '@/composables/usePanelConversaciones'
 import { obtenerGuia } from '@/services/guiaService'
@@ -201,7 +202,7 @@ watch(() => [route.params.conversacionId, route.query.guiaId], () => {
 
       <div class="chat__principal">
         <div ref="contenedor" class="chat__mensajes" aria-live="polite">
-          <p v-if="cargandoConversacion" class="chat__estado">Cargando la conversación…</p>
+          <EsqueletoChat v-if="cargandoConversacion" />
           <div v-else-if="errorConversacion" class="chat__estado chat__estado--error" role="alert">{{ errorConversacion }}
             <button type="button" class="btn btn-secundario btn-sm" @click="abrirDesdeRuta">Reintentar</button></div>
 

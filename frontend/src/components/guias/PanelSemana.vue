@@ -1,23 +1,14 @@
 <template>
-    <!-- Semana que el instructor (o el XP, en Modo Personal) todavía no abre: sin contenido ni pestañas -->
-    <SemanaBloqueada v-if="!semana.disponible" :semana="semana" :anterior="anterior" :es-personal="esPersonal" />
+    <section ref="seccion" class="panel" :aria-labelledby="idTitulo">
+        <CabeceraSemana :semana="semana" :total="total" :contenido="contenido" :generando-aqui="generandoAqui"
+            :es-personal="esPersonal" :id-titulo="idTitulo" />
 
-    <section v-else class="panel" :aria-labelledby="idTitulo">
-        <header class="titulo-fila">
-            <h2 :id="idTitulo">Semana {{ semana.numero_semana }}<template v-if="semana.titulo">: {{ semana.titulo }}</template></h2>
-            <ChipEstadoSemana :semana="semana" :generando-aqui="generandoAqui" />
-        </header>
-
-        <p v-if="semana.resumen" class="resumen">{{ semana.resumen }}</p>
-
-        <!-- Modo Personal: el XP de la semana tal como llega del backend (nunca se calcula aquí) -->
-        <p v-if="esPersonal && semana.xp_maximo != null" class="xp">
-            Experiencia: {{ semana.xp_obtenido }} / {{ semana.xp_maximo }} XP
-            <template v-if="semana.xp_requerido != null"> · para abrir la siguiente: {{ semana.xp_requerido }} XP</template>
-        </p>
+        <!-- Semana que el instructor (o el XP, en Modo Personal) todavía no abre: sin contenido ni pestañas,
+             pero dentro del mismo panel, con su cabecera y la navegación (antes quedaba una barra suelta) -->
+        <SemanaBloqueada v-if="!semana.disponible" :semana="semana" :anterior="anterior" :es-personal="esPersonal" />
 
         <!-- Listo: el contenido se pide al abrir la semana -->
-        <template v-if="semana.estado_generacion === 'listo'">
+        <template v-else-if="semana.estado_generacion === 'listo'">
             <template v-if="contenido">
                 <div class="pestanas" role="tablist" aria-label="Contenido de la semana" @keydown="teclas">
                     <button v-for="p in PESTANAS" :id="idPestana(p.id)" :key="p.id" type="button" role="tab" class="pestana"
@@ -33,7 +24,11 @@
                     <ContenidoSemana v-else :semana="contenido" :seccion="pestana" />
                 </div>
             </template>
-            <p v-else-if="cargandoContenido" class="estado-texto" role="status">Cargando la semana…</p>
+            <!-- Forma de las pestañas y de un párrafo de texto, que es lo primero que se ve (pestaña Guía) -->
+            <CargaEsqueleto v-else-if="cargandoContenido" texto="Cargando la semana…">
+                <EsqueletoBloque ancho="70%" alto="2.4rem" radio="12px" />
+                <EsqueletoBloque v-for="a in ANCHOS_TEXTO" :key="a" :ancho="a" />
+            </CargaEsqueleto>
             <div v-else class="aviso" role="alert">
                 <span>{{ errorContenido || 'No pudimos cargar el contenido de esta semana.' }}</span>
                 <button type="button" class="btn btn-secundario btn-sm" @click="$emit('recargar')">Intentar de nuevo</button>
@@ -71,24 +66,35 @@
                 Esta semana no se pudo generar. Avisa a tu instructor.
             </p>
         </template>
+
+        <NavegacionSemanas :anterior="anterior" :siguiente="siguiente" @ir="irA" />
     </section>
 </template>
 
 <script setup>
-import { nextTick, useId } from 'vue'
+import { ref, nextTick, useId } from 'vue'
 import { FileText, ListChecks, Sparkles, Rocket, RefreshCw } from 'lucide-vue-next'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import SemanaBloqueada from '@/components/miniproyectos/SemanaBloqueada.vue'
-import ChipEstadoSemana from '@/components/guias/ChipEstadoSemana.vue'
+import CabeceraSemana from '@/components/guias/CabeceraSemana.vue'
+import NavegacionSemanas from '@/components/guias/NavegacionSemanas.vue'
 import PestanaGuia from '@/components/guias/PestanaGuia.vue'
 import ContenidoSemana from '@/components/guias/ContenidoSemana.vue'
+
+// Anchos distintos para que las líneas del esqueleto parezcan un párrafo y no una tabla
+const ANCHOS_TEXTO = ['95%', '100%', '88%', '92%', '60%']
 
 // Columna izquierda: la semana elegida con sus pestañas. Los estados (pendiente, generando, error) y
 // sus botones son los mismos que tenía el acordeón; solo cambió dónde se pintan.
 const props = defineProps({
     // Semana de GET /guias/{id}/semanas (estado, resumen, disponible, XP)
     semana: { type: Object, required: true },
-    // Semana anterior (solo para el texto del candado en Modo Personal)
+    // Semanas vecinas: el candado de Modo Personal usa la anterior; la navegación, las dos
     anterior: { type: Object, default: null },
+    siguiente: { type: Object, default: null },
+    // Cuántas semanas tiene la guía ("Semana 2 de 4")
+    total: { type: Number, default: 0 },
     // Contenido de la semana ya abierta (GET .../semanas/{n}) o null
     contenido: { type: Object, default: null },
     cargandoContenido: { type: Boolean, default: false },
@@ -102,7 +108,7 @@ const props = defineProps({
     // Pestaña activa. La guarda la vista (no este componente) para que "Volver a la semana" regrese a la misma
     pestana: { type: String, default: 'guia' }
 })
-const emit = defineEmits(['reintentar', 'revisar', 'recargar', 'update:pestana', 'ver-completa'])
+const emit = defineEmits(['reintentar', 'revisar', 'recargar', 'update:pestana', 'ver-completa', 'seleccionar'])
 
 const PESTANAS = [
     { id: 'guia', texto: 'Guía', icono: FileText },
@@ -115,6 +121,15 @@ const idTitulo = useId()
 const idPanel = useId()
 const idBase = useId()
 const idPestana = (id) => `${idBase}-${id}`
+
+// Al cambiar de semana desde abajo se sube al inicio del panel: si no, se vería el final de la nueva
+const seccion = ref(null)
+async function irA(numero) {
+    emit('seleccionar', numero)
+    await nextTick()
+    const suave = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    seccion.value?.scrollIntoView({ block: 'start', behavior: suave ? 'smooth' : 'auto' })
+}
 
 // Flechas izquierda/derecha cambian de pestaña (patrón de pestañas accesibles)
 function teclas(evento) {
@@ -130,40 +145,18 @@ function teclas(evento) {
 </script>
 
 <style scoped>
+/* Más aire entre cabecera, pestañas y contenido: antes todo quedaba pegado */
 .panel {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--espacio-lg);
     min-width: 0;
-    padding: 1.1rem;
+    padding: var(--espacio-lg);
     border: 1px solid var(--color-border);
-    border-radius: 16px;
-    background: var(--color-surface);
-}
-
-.titulo-fila {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: .5rem .8rem;
-}
-
-h2 {
-    min-width: 0;
-    font-size: 1.15rem;
-    overflow-wrap: anywhere;
-}
-
-.resumen {
-    color: var(--color-text-secondary);
-    font-size: .9rem;
-    overflow-wrap: anywhere;
-}
-
-.xp {
-    color: var(--color-text-secondary);
-    font-size: .82rem;
+    border-radius: 18px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-card) 45%, var(--color-surface)), var(--color-surface) 160px);
+    /* Al saltar de semana, el panel no queda escondido bajo la barra superior */
+    scroll-margin-top: 90px;
 }
 
 /* En escritorio, una fila. En celular pasan a 2 × 2 (ver @media abajo): con scroll horizontal
@@ -181,7 +174,8 @@ h2 {
     align-items: center;
     gap: .4rem;
     flex-shrink: 0;
-    padding: .6rem .9rem;
+    min-height: 44px;
+    padding: .6rem 1rem;
     border: none;
     border-bottom: 2px solid transparent;
     background: none;
@@ -200,6 +194,10 @@ h2 {
     border-bottom-color: var(--color-primary-light);
     color: var(--color-text);
     font-weight: 700;
+}
+
+.pestana.activa svg {
+    color: var(--color-primary-light);
 }
 
 .contenido-pestana {
@@ -251,7 +249,7 @@ h2 {
 }
 
 @media (max-width: 520px) {
-    .panel { padding: .9rem; }
+    .panel { padding: var(--espacio-md); gap: var(--espacio-md); }
 
     /* Cuadrícula de 2 columnas: las cuatro pestañas se ven sin deslizar.
        Cada pestaña lleva su propio subrayado, así se sigue viendo cuál está activa. */

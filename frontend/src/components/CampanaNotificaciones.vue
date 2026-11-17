@@ -17,12 +17,14 @@ import { useRouter } from 'vue-router'
 import { Bell } from 'lucide-vue-next'
 import PanelNotificaciones from './PanelNotificaciones.vue'
 import { getNotificaciones, marcarLeida, marcarTodasLeidas } from '@/services/notificacionService'
+import { useAuthStore } from '@/stores/auth'
 import { mensajeDeError } from '@/utils/errores'
 
 // No hay tiempo real (el backend no usa colas ni websockets): se consulta cada minuto, como pide el PLAN.
 const INTERVALO_MS = 60000
 
 const router = useRouter()
+const authStore = useAuthStore()
 const raiz = ref(null)
 const abierto = ref(false)
 const avisos = ref([])
@@ -72,7 +74,7 @@ async function abrir(aviso) {
             aviso.leida_en = actualizado?.leida_en ?? new Date().toISOString()
             noLeidas.value = Math.max(0, noLeidas.value - 1)
         } catch {
-            // Si falla, igual se lleva al aprendiz a la guía: el aviso seguirá sin leer y lo verá en la próxima consulta
+            // Si falla, igual se lleva a su destino: el aviso seguirá sin leer y se verá en la próxima consulta
         }
     }
     abierto.value = false
@@ -94,10 +96,18 @@ async function marcarTodas() {
     }
 }
 
-// "Guía nueva" y "semana liberada" llevan a la guía del grupo; la semana que se abre la decide la
-// vista de la guía (la última liberada), igual que al entrar desde Mis grupos.
+// A dónde lleva cada aviso, según quién lo recibe:
+// - Instructor ("evaluación de una entrega"): la pestaña Semanas y proyectos del grupo con ese proyecto
+//   abierto (?proyecto=ID), para ver la entrega que la IA acaba de evaluar.
+// - Estudiante ("guía nueva", "semana liberada"): la guía del grupo; la semana que se abre la decide
+//   la vista de la guía (la última liberada), igual que al entrar desde Mis grupos.
 function destinoDe(aviso) {
-    const { grupo_id: grupoId, guia_id: guiaId } = aviso.datos ?? {}
+    const { grupo_id: grupoId, guia_id: guiaId, mini_proyecto_id: proyectoId } = aviso.datos ?? {}
+    if (authStore.rolUsuario === 'instructor') {
+        if (!grupoId) return null
+        const query = proyectoId ? { tab: 'semanas', proyecto: proyectoId } : { tab: 'semanas' }
+        return { name: 'InstructorGrupoDetalle', params: { id: grupoId }, query }
+    }
     if (grupoId && guiaId) return `/estudiante/grupos/${grupoId}/guias/${guiaId}`
     if (grupoId) return `/estudiante/grupos/${grupoId}`
     return null

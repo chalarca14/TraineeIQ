@@ -71,7 +71,7 @@ async function alCambiar({ actual, nueva }) {
   <main class="perfil">
     <EstadoVista :vacio="!usuario" :icono="User" texto-vacio="No pudimos cargar tu perfil."
       descripcion-vacio="Cierra sesión y vuelve a entrar.">
-      <PerfilCabecera :nombre="usuario?.name" :correo="usuario?.email" :rol="usuario?.rol"
+      <PerfilCabecera :nombre="usuario?.name" :rol="usuario?.rol"
         :miembro-desde="usuario?.created_at" />
 
       <Pestanas v-model="pestana" :pestanas="PESTANAS" />

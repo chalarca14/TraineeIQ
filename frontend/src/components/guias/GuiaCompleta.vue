@@ -15,7 +15,11 @@
             <span>TraineeIQ guarda el texto de la guía, no el PDF original. Conserva tu copia del PDF.</span>
         </p>
 
-        <p v-if="cargando" class="estado" role="status">Cargando la guía completa…</p>
+        <!-- Forma de una semana del texto: su título y un párrafo -->
+        <CargaEsqueleto v-if="cargando" texto="Cargando la guía completa…">
+            <EsqueletoBloque ancho="45%" alto="1.3rem" />
+            <EsqueletoBloque v-for="a in ['100%', '94%', '97%', '90%', '55%']" :key="a" :ancho="a" />
+        </CargaEsqueleto>
 
         <div v-else-if="error" class="error" role="alert">
             <span>{{ error }}</span>
@@ -33,8 +37,8 @@
                 <p v-if="!s.disponible || s.contenido_texto == null" class="proximamente">
                     <Lock :size="15" aria-hidden="true" /> Próximamente
                 </p>
-                <!-- Texto plano con {{ }} y white-space: pre-line (conserva saltos de línea); nunca v-html -->
-                <p v-else-if="s.contenido_texto.trim()" class="texto">{{ s.contenido_texto }}</p>
+                <!-- Organizado en títulos, párrafos y código (TextoGuia); como texto, nunca v-html -->
+                <TextoGuia v-else-if="s.contenido_texto.trim()" :texto="s.contenido_texto" />
                 <p v-else class="estado">Esta semana no trae texto.</p>
             </article>
 
@@ -51,6 +55,9 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ArrowLeft, Info, Lock } from 'lucide-vue-next'
 import { getTextoGuia } from '@/services/guiaService'
+import TextoGuia from '@/components/guias/TextoGuia.vue'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import { mensajeDeError } from '@/utils/errores'
 
 // Todas las semanas como un documento continuo. Funciona igual en los dos modos: el backend ya
@@ -151,13 +158,6 @@ h3 {
     gap: .5rem;
     padding-top: 1rem;
     border-top: 1px solid var(--color-border);
-}
-
-.texto {
-    white-space: pre-line;
-    overflow-wrap: anywhere;
-    line-height: 1.65;
-    font-size: .93rem;
 }
 
 .proximamente {

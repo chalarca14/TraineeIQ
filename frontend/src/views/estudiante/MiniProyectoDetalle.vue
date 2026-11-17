@@ -3,6 +3,13 @@
 
         <EstadoVista :cargando="cargando" :error="error" :vacio="!proyecto" texto-cargando="Cargando el mini proyecto..."
             texto-vacio="No encontramos este mini proyecto." @reintentar="cargar">
+            <!-- Cabecera del proyecto, las pestañas y el bloque de la descripción -->
+            <template #cargando>
+                <EsqueletoBloque ancho="200px" alto="2.4rem" radio="999px" />
+                <EsqueletoTarjeta :lineas="3" alto="180px" />
+                <EsqueletoBloque ancho="260px" alto="2.6rem" radio="12px" />
+                <EsqueletoTarjeta :lineas="5" :con-icono="false" alto="240px" />
+            </template>
             <template #vacio>
                 <RouterLink class="btn btn-secundario" to="/estudiante/mini-proyectos">Volver a mis mini proyectos</RouterLink>
             </template>
@@ -33,6 +40,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { FileText, Star } from 'lucide-vue-next'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import BotonVolver from '@/components/ui/BotonVolver.vue'
 import Pestanas from '@/components/ui/Pestanas.vue'
 import HeaderProyecto from '@/components/miniproyectos/HeaderProyecto.vue'

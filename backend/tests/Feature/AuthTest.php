@@ -127,12 +127,54 @@ class AuthTest extends TestCase
             'rol' => 'estudiante',
         ]);
 
+        // Contraseña correcta, pestaña equivocada: 403 y le dice por cuál entrar
         $this->postJson('/api/login', [
             'email' => 'aprendiz@example.com',
             'password' => 'password-seguro',
             'rol' => 'instructor',
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'Esta cuenta es de aprendiz. Elige «Aprendiz» para ingresar.')
+            ->assertJsonMissingPath('token');
+    }
+
+    public function test_login_does_not_reveal_the_role_with_a_wrong_password(): void
+    {
+        User::factory()->create([
+            'email' => 'aprendiz@example.com',
+            'password' => Hash::make('password-seguro'),
+            'rol' => 'estudiante',
+        ]);
+
+        // Contraseña incorrecta Y rol equivocado: gana la contraseña, el rol no se revela
+        $this->postJson('/api/login', [
+            'email' => 'aprendiz@example.com',
+            'password' => 'incorrecta',
+            'rol' => 'instructor',
         ])->assertUnauthorized()
             ->assertJsonPath('message', 'Credenciales incorrectas');
+    }
+
+    public function test_login_tells_when_the_user_is_not_registered(): void
+    {
+        $this->postJson('/api/login', [
+            'email' => 'nadie@example.com',
+            'password' => 'password-seguro',
+            'rol' => 'estudiante',
+        ])->assertUnauthorized()
+            ->assertJsonPath('message', 'Usuario no registrado.');
+    }
+
+    public function test_registration_rejects_a_taken_email_in_spanish(): void
+    {
+        User::factory()->create(['email' => 'aprendiz@example.com']);
+
+        $this->postJson('/api/register', [
+            'name' => 'Otra persona',
+            'email' => 'aprendiz@example.com',
+            'password' => 'password-seguro',
+            'rol' => 'estudiante',
+        ])->assertUnprocessable()
+            ->assertJsonPath('errors.email.0', 'Este correo ya está registrado. Inicia sesión o usa otro correo.');
     }
 
     public function test_instructor_can_log_in_with_the_instructor_role(): void

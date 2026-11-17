@@ -1,22 +1,10 @@
 import api from './api'
 
-// Datos reales (CLAUDE.md: USAR_DATOS_PRUEBA = false). Solo se llama a la API desde aquí,
-// con la instancia de api.js, para que el token y el manejo del 401 sean los mismos de siempre.
-const USAR_DATOS_PRUEBA = false
-
-const GRUPOS_PRUEBA = [
-    { id: 1, nombre: 'Grupo Demo SENA', descripcion: 'Grupo de prueba para desarrollo', instructor: { id: 2, name: 'Carlos Méndez' } }
-]
-
-const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+// Solo se llama a la API desde aquí, con la instancia de api.js, para que el token y el manejo
+// del 401 sean los mismos de siempre. Siempre datos reales del backend.
 
 /** Grupos en los que está inscrito el aprendiz. El backend los manda en data.data. */
 export async function listarMisGrupos() {
-    if (USAR_DATOS_PRUEBA) {
-        await esperar(300)
-        return [...GRUPOS_PRUEBA]
-    }
-
     const { data } = await api.get('/grupos')
     return data.data
 }
@@ -27,11 +15,6 @@ export async function listarMisGrupos() {
  * (422 = código inexistente, 400 = ya eres miembro).
  */
 export async function unirseAGrupo(codigo) {
-    if (USAR_DATOS_PRUEBA) {
-        await esperar(400)
-        return GRUPOS_PRUEBA[0]
-    }
-
     const { data } = await api.post('/grupos/unirse', { codigo_acceso: codigo })
     return data.data
 }
@@ -69,4 +52,25 @@ export async function crearGrupo({ nombre, descripcion = null }) {
 /** Borra un grupo con todas sus guías y entregas (solo su instructor). */
 export async function eliminarGrupo(id) {
     await api.delete(`/grupos/${id}`)
+}
+
+// Tope de seguridad: 20 páginas de 30 son 600 entregas, más de las que tendrá un grupo del SENA
+const MAX_PAGINAS_ENTREGAS = 20
+
+/**
+ * TODAS las entregas del grupo (solo su instructor): recorre las páginas en orden, una tras otra.
+ * La pestaña "Semanas y proyectos" las necesita todas para contar quién entregó en cada semana y
+ * en cada proyecto; así cada proyecto se abre al instante, sin otra petición.
+ */
+export async function getTodasEntregasGrupo(id) {
+    const entregas = []
+    let pagina = 1
+    let ultima = 1
+    do {
+        const data = await getEntregasGrupo(id, pagina)
+        entregas.push(...(data.data ?? []))
+        ultima = data.last_page ?? 1
+        pagina++
+    } while (pagina <= ultima && pagina <= MAX_PAGINAS_ENTREGAS)
+    return entregas
 }

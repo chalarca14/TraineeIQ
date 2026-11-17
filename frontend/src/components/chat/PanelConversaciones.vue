@@ -1,7 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Plus, X, MessageSquare, BookOpen, History } from 'lucide-vue-next'
+import { X, MessageSquare, BookOpen, History } from 'lucide-vue-next'
+import NuevaConversacion from './NuevaConversacion.vue'
 import { fechaRelativa, horaCorta } from '@/utils/fechas'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 
 // Panel lateral de conversaciones (como el de ChatGPT). En escritorio es una columna fija;
 // en pantallas angostas es un cajón que abre y cierra la vista (props/eventos), por eso este
@@ -25,7 +28,7 @@ const metaDe = (c) => [fechaRelativa(c.updated_at), horaCorta(c.updated_at)].fil
 
 // La vista llama a esto al abrir el cajón para llevar el foco adentro (accesibilidad con teclado)
 const nueva = ref(null)
-defineExpose({ enfocar: () => nueva.value?.$el?.focus() })
+defineExpose({ enfocar: () => nueva.value?.enfocar() })
 </script>
 
 <template>
@@ -37,12 +40,13 @@ defineExpose({ enfocar: () => nueva.value?.$el?.focus() })
       </button>
     </header>
 
-    <!-- "Nueva conversación" siempre abre una LIBRE: va a /estudiante/ia sin ?guiaId -->
-    <RouterLink ref="nueva" :to="{ name: 'ChatIA' }" class="btn btn-primario" @click="$emit('cerrar')">
-      <Plus :size="18" /> Nueva conversación
-    </RouterLink>
+    <!-- Elegir Chat libre o Chat guía (y la guía) antes de empezar: ver NuevaConversacion.vue -->
+    <NuevaConversacion ref="nueva" @cerrar="$emit('cerrar')" />
 
-    <p v-if="cargando" class="panel__estado">Cargando conversaciones…</p>
+    <!-- Filas con título y fecha, como las conversaciones reales (sin ícono: el panel es angosto) -->
+    <CargaEsqueleto v-if="cargando" texto="Cargando conversaciones…">
+      <EsqueletoLista :filas="4" :con-icono="false" />
+    </CargaEsqueleto>
 
     <div v-else-if="error" class="panel__estado panel__estado--error">
       <p>No se pudieron cargar.</p>

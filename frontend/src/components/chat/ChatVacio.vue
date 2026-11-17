@@ -1,7 +1,8 @@
 <script setup>
 import { computed } from 'vue'
-import { MessageSquare, Check, Lightbulb } from 'lucide-vue-next'
-import Medalla from '@/components/ui/Medalla.vue'
+import { Check, Lightbulb } from 'lucide-vue-next'
+import RobotAnimo from '@/components/ui/RobotAnimo.vue'
+import { useAuthStore } from '@/stores/auth'
 
 // Estado vacío del chat: mientras no hay mensajes, estas pistas sí sirven para saber qué
 // preguntar (antes vivían en un panel fijo que quitaba espacio al chat).
@@ -26,14 +27,25 @@ const GUIADO = [
 ]
 
 const items = computed(() => (props.guiado ? GUIADO : LIBRE))
+
+// Saludo del robot con el primer nombre. En el chat guiado nombra la guía; en el libre no hay guía que nombrar
+const authStore = useAuthStore()
+const nombre = computed(() => authStore.usuario?.name?.split(' ')[0] ?? '')
+const saludo = computed(() => {
+  const hola = nombre.value ? `¡Hola, ${nombre.value}!` : '¡Hola!'
+  return props.guiado
+    ? `${hola} Pregúntame lo que quieras sobre ${props.guiaNombre || 'tu guía'}.`
+    : `${hola} Pregúntame lo que quieras.`
+})
 </script>
 
 <template>
   <div class="vacio">
-    <Medalla :icono="MessageSquare" :size="56" />
+    <!-- El robot saluda mientras el chat está vacío; con el primer mensaje esta pantalla desaparece -->
+    <RobotAnimo tamano="md" vertical :mensaje="saludo" />
     <h2>¿Qué puedes hacer aquí?</h2>
-    <p v-if="guiado" class="intro">Pregúntame sobre el contenido de <strong>{{ guiaNombre || 'esta guía' }}</strong>.</p>
-    <p v-else class="intro">Escribe tu primera pregunta para empezar la conversación.</p>
+    <!-- En el chat guía el saludo del robot ya nombra la guía: repetirlo aquí sobraba -->
+    <p v-if="!guiado" class="intro">Escribe tu primera pregunta para empezar la conversación.</p>
 
     <ul>
       <li v-for="item in items" :key="item">
@@ -66,8 +78,6 @@ h2 { font-size: 1.15rem; }
   color: var(--color-text-secondary);
   font-size: .9rem;
 }
-
-.intro strong { color: var(--color-text); }
 
 ul {
   display: flex;

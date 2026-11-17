@@ -2,7 +2,11 @@
     <aside class="avance" aria-labelledby="titulo-avance">
         <h2 id="titulo-avance">Tu avance en este grupo</h2>
 
-        <p v-if="cargando" class="estado">Cargando tu avance...</p>
+        <!-- El anillo de avance y las cifras de abajo -->
+        <CargaEsqueleto v-if="cargando" texto="Cargando tu avance…">
+            <EsqueletoBloque ancho="110px" alto="110px" redondo />
+            <EsqueletoBloque v-for="a in ['80%', '65%', '72%']" :key="a" :ancho="a" />
+        </CargaEsqueleto>
         <p v-else-if="error" class="estado estado--error">No pudimos calcular tu avance.</p>
 
         <template v-else>
@@ -36,6 +40,8 @@
 import { computed } from 'vue'
 import { Code, Award, CalendarDays } from 'lucide-vue-next'
 import { contarPorEstado, puntajePromedio } from '@/utils/estadoEntrega'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 
 // Recibe los MISMOS bloques que las pestañas: así "Tu avance" y "Mi progreso" nunca se contradicen.
 // semanaActual y ultimaSemana llegan de GET /grupos/{id} y se muestran tal cual

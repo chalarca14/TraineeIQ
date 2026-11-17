@@ -5,6 +5,11 @@
       :icono="Star" texto-vacio="Aún no has entregado tu proyecto"
       descripcion-vacio="Guarda el enlace de tu repositorio y pide la evaluación de la IA."
       @reintentar="$emit('recargar')">
+      <!-- La cabecera de la entrega (repositorio, fecha) y el bloque del resultado -->
+      <template #cargando>
+        <EsqueletoTarjeta :lineas="2" alto="72px" />
+        <EsqueletoTarjeta :lineas="5" :con-icono="false" alto="220px" />
+      </template>
       <template #vacio>
         <button type="button" class="btn btn-primario" @click="$emit('ir-descripcion')">Ir a Descripción</button>
       </template>
@@ -55,6 +60,7 @@
 import { computed } from 'vue'
 import { Star, CircleCheck, Github, ExternalLink, TriangleAlert } from 'lucide-vue-next'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
 import EvaluacionEnCurso from '@/components/miniproyectos/EvaluacionEnCurso.vue'
 import ResultadoEvaluacion from '@/components/miniproyectos/ResultadoEvaluacion.vue'
 import EvaluacionError from '@/components/miniproyectos/EvaluacionError.vue'

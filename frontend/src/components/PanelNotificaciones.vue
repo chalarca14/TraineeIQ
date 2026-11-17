@@ -8,7 +8,9 @@
         </header>
 
         <!-- "Cargando" solo la primera vez: en las consultas de cada minuto la lista ya está en pantalla -->
-        <p v-if="cargando && !avisos.length" class="estado" role="status">Cargando notificaciones…</p>
+        <CargaEsqueleto v-if="cargando && !avisos.length" texto="Cargando notificaciones…">
+            <EsqueletoLista :filas="3" :con-icono="false" />
+        </CargaEsqueleto>
 
         <div v-else-if="error" class="error" role="alert">
             <span>{{ error }}</span>
@@ -36,6 +38,8 @@
 <script setup>
 import { CheckCheck } from 'lucide-vue-next'
 import { fechaRelativa, horaCorta } from '@/utils/fechas'
+import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
+import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 
 // Solo dibuja la lista: los datos y las acciones (marcar, navegar) los maneja CampanaNotificaciones.
 defineProps({

@@ -18,6 +18,12 @@
                     texto-cargando="Cargando tus grupos..." texto-vacio="Aún no perteneces a ningún grupo"
                     descripcion-vacio="Pídele el código de acceso a tu instructor para unirte."
                     @reintentar="cargarGrupos">
+                    <!-- Buscador y tarjetas. La columna "¿Tienes otro código?" no se adelanta: depende de
+                         si hay grupos, y eso se sabe solo al terminar de cargar -->
+                    <template #cargando>
+                        <EsqueletoBloque alto="2.8rem" radio="12px" />
+                        <div class="grupos-grid"><EsqueletoTarjeta v-for="n in 2" :key="n" :lineas="3" alto="280px" /></div>
+                    </template>
                     <template #vacio>
                         <button class="btn btn-primario" type="button" @click="mostrarModal = true">
                             <Plus :size="18" /> Unirse a un grupo
@@ -56,6 +62,8 @@ import { ref, computed, onMounted } from 'vue'
 import { Users, Plus, Search, KeyRound } from 'lucide-vue-next'
 import EncabezadoPagina from '@/components/ui/EncabezadoPagina.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
+import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
+import EsqueletoBloque from '@/components/ui/EsqueletoBloque.vue'
 import GrupoCard from '@/components/grupos/GrupoCard.vue'
 import UnirseGrupoModal from '@/components/grupos/UnirseGrupoModal.vue'
 import { listarMisGrupos } from '@/services/grupoService'

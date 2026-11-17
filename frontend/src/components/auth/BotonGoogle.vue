@@ -6,8 +6,9 @@
             <span><strong>Recomendado:</strong> con Google tu correo queda verificado y no dependes solo de una contraseña.</span>
         </p>
 
-        <!-- Google dibuja aquí su botón oficial; mientras responde el backend se bloquea -->
-        <div ref="contenedor" class="contenedor" :class="{ ocupado: cargando }" :aria-busy="cargando"></div>
+        <!-- Google dibuja aquí su botón oficial; mientras responde el backend se bloquea.
+             tabindex="-1": permite devolverle el foco por código si el iframe aún no está -->
+        <div ref="contenedor" class="contenedor" tabindex="-1" :class="{ ocupado: cargando }" :aria-busy="cargando"></div>
 
         <p v-if="cargando" class="estado">Verificando tu cuenta de Google...</p>
         <p v-else-if="error || errorCarga" class="error" role="alert">{{ error || errorCarga }}</p>
@@ -33,6 +34,14 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['credencial'])
+
+// Devuelve el foco al botón (al cancelar la ventana "Completa tu registro"). El botón vive dentro
+// del iframe de Google: se enfoca el iframe, y si todavía no existe, el contenedor
+function enfocar() {
+    const iframe = contenedor.value?.querySelector('iframe')
+    ;(iframe ?? contenedor.value)?.focus()
+}
+defineExpose({ enfocar })
 
 const contenedor = ref(null)
 const errorCarga = ref('')
@@ -78,10 +87,15 @@ onMounted(async () => {
     color: var(--color-text);
 }
 
+/* color-scheme: light porque la página es dark (variables.css) y el iframe de Google es light.
+   Si no coinciden, Chrome pinta el iframe con fondo blanco opaco, y como el iframe es más ancho
+   que el botón redondeado, se veía un rectángulo blanco a los lados */
 .contenedor {
     display: flex;
     justify-content: center;
     min-height: 44px;
+    color-scheme: light;
+    outline: none;
 }
 
 .contenedor.ocupado {

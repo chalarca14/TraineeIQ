@@ -1,6 +1,6 @@
 <template>
     <section class="semanas" :aria-labelledby="idTitulo">
-        <h2 :id="idTitulo">Semanas</h2>
+        <h2 :id="idTitulo">Recorrido</h2>
 
         <!-- 360 px: un selector nativo. Lo maneja el teclado del celular y no necesita scroll -->
         <div class="selector">
@@ -19,7 +19,17 @@
                     <span class="numero" aria-hidden="true">{{ s.numero_semana }}</span>
                     <span class="datos">
                         <span class="titulo">{{ s.titulo || `Semana ${s.numero_semana}` }}</span>
-                        <ChipEstadoSemana :semana="s" :generando-aqui="generandoAqui === s.numero_semana" />
+                        <!-- Estado y visibilidad en UNA línea debajo del título: antes eran tres renglones -->
+                        <span class="estado-fila">
+                            <ChipEstadoSemana :semana="s" :generando-aqui="generandoAqui === s.numero_semana" />
+                            <!-- Instructor: él ve todas las semanas; aquí sabe cuáles ven ya sus estudiantes -->
+                            <span v-if="semanaLiberada != null" class="visibilidad"
+                                :class="{ 'visibilidad--no': s.numero_semana > semanaLiberada }">
+                                <Eye v-if="s.numero_semana <= semanaLiberada" :size="13" aria-hidden="true" />
+                                <EyeOff v-else :size="13" aria-hidden="true" />
+                                {{ textoVisibilidad(s) }}
+                            </span>
+                        </span>
                     </span>
                     <Lock v-if="!s.disponible" :size="16" class="candado" aria-label="Semana bloqueada" />
                 </button>
@@ -30,7 +40,7 @@
 
 <script setup>
 import { useId } from 'vue'
-import { ChevronDown, Lock } from 'lucide-vue-next'
+import { ChevronDown, Lock, Eye, EyeOff } from 'lucide-vue-next'
 import ChipEstadoSemana from '@/components/guias/ChipEstadoSemana.vue'
 import { estadoSemana } from '@/utils/estadoSemana'
 
@@ -41,7 +51,9 @@ const props = defineProps({
     // Número de la semana elegida
     activa: { type: Number, default: null },
     // Número de la semana que esta pantalla está generando ahora (para el chip "Generando…")
-    generandoAqui: { type: Number, default: null }
+    generandoAqui: { type: Number, default: null },
+    // Solo el instructor: semana_actual del grupo (hasta dónde la ven los estudiantes). null = no aplica
+    semanaLiberada: { type: Number, default: null }
 })
 defineEmits(['seleccionar'])
 
@@ -52,7 +64,12 @@ const idSelect = useId()
 function textoOpcion(semana) {
     const { texto } = estadoSemana(semana, props.generandoAqui === semana.numero_semana)
     const candado = semana.disponible ? '' : '🔒 '
-    return `${candado}${semana.numero_semana}. ${semana.titulo || 'Sin título'} · ${texto}`
+    const visibilidad = props.semanaLiberada != null ? ` · ${textoVisibilidad(semana)}` : ''
+    return `${candado}${semana.numero_semana}. ${semana.titulo || 'Sin título'} · ${texto}${visibilidad}`
+}
+
+function textoVisibilidad(semana) {
+    return semana.numero_semana <= props.semanaLiberada ? 'La ven tus estudiantes' : 'Aún no liberada'
 }
 </script>
 
@@ -102,7 +119,7 @@ h2 {
 .lista {
     display: flex;
     flex-direction: column;
-    gap: .4rem;
+    gap: 0;
     max-height: 60vh;
     margin: 0;
     padding: 0;
@@ -110,12 +127,29 @@ h2 {
     list-style: none;
 }
 
+/* Recorrido: una línea vertical une los números, como una ruta de una semana a la siguiente */
+.lista li {
+    position: relative;
+}
+
+.lista li:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: 2.6rem;
+    bottom: -.4rem;
+    left: calc(.7rem + 15px);
+    width: 2px;
+    background: color-mix(in srgb, var(--color-primary) 35%, var(--color-card));
+}
+
 .fila {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: .7rem;
+    gap: .8rem;
     width: 100%;
-    padding: .65rem .7rem;
+    margin-bottom: .4rem;
+    padding: .7rem;
     border: 1px solid transparent;
     border-radius: 12px;
     background: none;
@@ -136,6 +170,8 @@ h2 {
 }
 
 .numero {
+    position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
     width: 30px;
@@ -161,8 +197,16 @@ h2 {
 }
 
 .titulo {
-    font-size: .9rem;
+    font-size: .92rem;
+    font-weight: 600;
     overflow-wrap: anywhere;
+}
+
+.estado-fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem .6rem;
 }
 
 .candado {
@@ -183,5 +227,17 @@ h2 {
     .selector { display: block; }
     .lista { display: none; }
     .semanas { padding: .8rem; }
+}
+
+.visibilidad {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    color: var(--color-success);
+    font-size: .72rem;
+}
+
+.visibilidad--no {
+    color: var(--color-text-secondary);
 }
 </style>

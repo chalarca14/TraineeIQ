@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { Calendar, Mail } from 'lucide-vue-next'
+import { Calendar } from 'lucide-vue-next'
 import Medalla from '@/components/ui/Medalla.vue'
 import { formatearFecha } from '@/utils/fechas'
 import { ETIQUETA_ROL, inicialesDe } from '@/utils/usuario'
@@ -9,7 +9,6 @@ import { ETIQUETA_ROL, inicialesDe } from '@/utils/usuario'
 // todo llega por props, así el perfil del instructor puede reutilizarla tal cual.
 const props = defineProps({
   nombre: { type: String, default: '' },
-  correo: { type: String, default: '' },
   rol: { type: String, default: '' },
   // Fecha ISO de registro (created_at). Si no llega, la tarjeta "Miembro desde" se oculta.
   miembroDesde: { type: String, default: '' }
@@ -31,14 +30,11 @@ const desde = computed(() => (props.miembroDesde ? formatearFecha(props.miembroD
       </div>
     </div>
 
-    <ul class="franja">
-      <li v-if="desde">
+    <!-- Sin el correo: ya está en "Datos personales" y repetirlo solo ocupaba espacio -->
+    <ul v-if="desde" class="franja">
+      <li>
         <Medalla :icono="Calendar" :size="40" />
         <div><small>Miembro desde</small><strong>{{ desde }}</strong></div>
-      </li>
-      <li>
-        <Medalla :icono="Mail" :size="40" color="info" />
-        <div><small>Correo</small><strong>{{ correo }}</strong></div>
       </li>
     </ul>
   </header>
