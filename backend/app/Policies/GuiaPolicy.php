@@ -40,6 +40,24 @@ class GuiaPolicy
     }
 
     /**
+     * Permite pedir a Gemini el contenido de una semana a quien ve la guia, solo si la
+     * semana ya esta liberada (Guia::semanaGenerable). Ni el instructor genera semanas
+     * futuras: se preparan al liberarlas, para no gastar la cuota diaria de Gemini.
+     */
+    public function generarSemana(User $user, Guia $guia, int $numeroSemana): Response
+    {
+        $acceso = $this->view($user, $guia);
+
+        if ($acceso->denied()) {
+            return $acceso;
+        }
+
+        return $guia->semanaGenerable($numeroSemana)
+            ? Response::allow()
+            : Response::deny('Esta semana aún no está liberada: su contenido se prepara cuando se libera.');
+    }
+
+    /**
      * Solo el dueño cambia una guia: el estudiante en las personales
      * y el instructor del grupo en las de grupo.
      */

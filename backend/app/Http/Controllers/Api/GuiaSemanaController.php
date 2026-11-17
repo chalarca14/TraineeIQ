@@ -90,7 +90,8 @@ class GuiaSemanaController extends Controller
      * Genera el contenido de una semana. Lo llama el frontend, una semana por vez.
      * Cualquier miembro puede generar lo pendiente; forzar es solo para el dueño.
      * Responde 200 con el estado que quedo, aunque sea 'generando' o 'error'.
-     * Una semana bloqueada se genera igual, pero su contenido no viaja en la respuesta.
+     * Solo se generan semanas liberadas (GuiaPolicy::generarSemana): una bloqueada
+     * responde 403 sin llamar a Gemini, también para el instructor.
      */
     public function generar(
         GenerarSemanaRequest $request,
@@ -101,13 +102,15 @@ class GuiaSemanaController extends Controller
         $guia = Guia::with('grupo')->findOrFail($guiaId);
         Gate::authorize('view', $guia);
 
+        // Primero el 404 (semana que no existe) y luego el 403 (existe pero no está liberada)
+        $semana = $guia->semanas()->where('numero_semana', $numero)->firstOrFail();
+        Gate::authorize('generarSemana', [$guia, $numero]);
+
         $forzar = $request->boolean('forzar');
 
         if ($forzar) {
             Gate::authorize('update', $guia);
         }
-
-        $semana = $guia->semanas()->where('numero_semana', $numero)->firstOrFail();
 
         try {
             $semana = $servicio->generar($semana, $forzar);
