@@ -9,15 +9,14 @@ use App\Http\Requests\FiltrarEntregasGrupoRequest;
 use App\Models\EntregaMiniProyecto;
 use App\Models\Grupo;
 use App\Models\EstudianteGrupo;
+use App\Services\EliminarGuiaService;
 use App\Services\NotificacionService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class GrupoController extends Controller
@@ -139,23 +138,16 @@ class GrupoController extends Controller
     /**
      * Borra el grupo (solo su instructor). La base borra en cascada sus inscripciones,
      * sus guías con todo su contenido y las entregas de sus estudiantes, así que el
-     * código deja de funcionar. Después se borran los PDF del disco.
+     * código deja de funcionar. EliminarGuiaService borra además los chats y avisos de sus
+     * guías, que no caen en cascada, y después los archivos del disco.
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(int $id, EliminarGuiaService $eliminador): JsonResponse
     {
         $grupo = Grupo::findOrFail($id);
         Gate::authorize('delete', $grupo);
 
-        $pdfs = $grupo->guias()->whereNotNull('archivo_pdf')->pluck('archivo_pdf')->all();
-
-        DB::transaction(fn () => $grupo->delete());
-
-        try {
-            Storage::disk('public')->delete($pdfs);
-        } catch (\Throwable $e) {
-            // El grupo ya se borró: un PDF que quede en disco no afecta a nadie
-            Log::warning('No se pudieron borrar los PDF del grupo', ['mensaje' => $e->getMessage()]);
-        }
+        // Borra también los chats y avisos de sus guías, y los archivos del disco
+        $eliminador->eliminarGrupo($grupo);
 
         return response()->json([
             'success' => true,
@@ -173,6 +165,8 @@ class GrupoController extends Controller
     {
         $grupo = Grupo::with(['estudiantes:id,name,email', 'instructor:id,name'])
             ->withMax('guias as ultima_semana', 'semanas_totales')
+            // guias_count: el aviso de "Eliminar grupo" dice cuántas guías se borran
+            ->withCount('guias')
             ->findOrFail($id);
         Gate::authorize('view', $grupo);
 

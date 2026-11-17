@@ -13,6 +13,7 @@ use App\Http\Requests\StoreGuiaRequest;
 use App\Models\Guia;
 use App\Models\Grupo;
 use App\Models\User;
+use App\Services\EliminarGuiaService;
 use App\Services\NotificacionService;
 use App\Services\ProcesarGuiaService;
 use Illuminate\Http\JsonResponse;
@@ -162,6 +163,27 @@ class GuiaController extends Controller
         Gate::authorize('view', $guia);
 
         return response()->json(['guia' => $this->prepararLectura($guia, $request->user())], 200);
+    }
+
+    /**
+     * Borra una guía con todo lo suyo: semanas, mini proyectos, entregas, chats guiados,
+     * avisos y el archivo. La personal la borra su estudiante; la de grupo, su instructor.
+     */
+    public function destroy(int $id, EliminarGuiaService $eliminador): JsonResponse
+    {
+        $guia = Guia::findOrFail($id);
+        Gate::authorize('delete', $guia);
+
+        try {
+            $eliminador->eliminarGuia($guia);
+        } catch (\Throwable $e) {
+            // La transacción ya deshizo todo: la guía sigue completa
+            Log::error('No se pudo borrar la guía', ['guia_id' => $id, 'mensaje' => $e->getMessage()]);
+
+            return response()->json(['message' => 'No se pudo borrar la guía. Intenta de nuevo.'], 500);
+        }
+
+        return response()->json(['message' => 'Guía borrada correctamente'], 200);
     }
 
     /**

@@ -83,6 +83,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/guias', [GuiaController::class, 'store']);
     Route::get('/guias/{id}', [GuiaController::class, 'show']);
     Route::put('/guias/{id}', [GuiaController::class, 'update']);
+    // Borrar: ambos roles entran, pero GuiaPolicy::delete deja solo al dueño (estudiante en las
+    // personales, instructor del grupo en las de grupo)
+    Route::delete('/guias/{id}', [GuiaController::class, 'destroy'])->whereNumber('id');
     Route::get('/guias/{guiaId}/semanas', [GuiaSemanaController::class, 'index'])->whereNumber('guiaId');
     Route::get('/guias/{guiaId}/texto', [GuiaSemanaController::class, 'texto'])->whereNumber('guiaId');
     Route::get('/guias/{guiaId}/semanas/{numero}', [GuiaSemanaController::class, 'show'])
