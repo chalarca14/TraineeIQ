@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ActualizarGrupoRequest;
 use App\Http\Requests\ActualizarSemanaActualRequest;
 use App\Http\Requests\FiltrarEntregasGrupoRequest;
 use App\Models\EntregaMiniProyecto;
@@ -178,6 +179,26 @@ class GrupoController extends Controller
         return response()->json([
             'success' => true,
             'data' => $grupo
+        ], 200);
+    }
+
+    /**
+     * Cambia el nombre y la descripción del grupo (solo su instructor).
+     * El código de acceso, la semana liberada, los estudiantes y las guías no cambian.
+     */
+    public function update(ActualizarGrupoRequest $request, int $id): JsonResponse
+    {
+        $grupo = Grupo::findOrFail($id);
+        Gate::authorize('update', $grupo);
+
+        // validated() solo trae nombre y descripcion, y la descripcion solo si se envio:
+        // si no llega, se conserva la que tenia (enviarla vacia si la borra)
+        $grupo->update($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Grupo actualizado correctamente',
+            'data'    => $grupo,
         ], 200);
     }
 

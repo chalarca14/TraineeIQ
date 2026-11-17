@@ -20,11 +20,13 @@ class GrupoPolicy
     }
 
     /**
-     * Solo el instructor dueño cambia los datos de su grupo.
+     * Solo el instructor dueño cambia los datos de su grupo: nombre, descripción y semana liberada.
      */
-    public function update(User $user, Grupo $grupo): bool
+    public function update(User $user, Grupo $grupo): Response
     {
-        return $grupo->instructor_id === $user->id;
+        return $grupo->instructor_id === $user->id
+            ? Response::allow()
+            : Response::deny('Solo el instructor del grupo puede modificarlo.');
     }
 
     /**
