@@ -30,7 +30,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, pdo_sqlite, fileinfo
+          # zip y gd: los pide phpoffice/phpspreadsheet (guías en Excel)
+          extensions: mbstring, pdo_sqlite, fileinfo, zip, gd
           coverage: none
 
       - name: Instalar dependencias de Composer

@@ -1,13 +1,14 @@
 <script setup>
 import { computed } from 'vue'
-import { Users, CalendarDays, CalendarClock } from 'lucide-vue-next'
+import { Users, CalendarDays, CalendarClock, Pencil } from 'lucide-vue-next'
 import BotonCopiarCodigo from './BotonCopiarCodigo.vue'
 import { inicialesDe } from '@/utils/usuario'
 import { formatearFecha } from '@/utils/fechas'
 
-// Cabecera del detalle del grupo (instructor). Sin "Grupo activo", foto ni "Editar": el backend no
-// tiene esos datos ni un endpoint para editar el grupo (PLAN I-2).
+// Cabecera del detalle del grupo (instructor). Sin "Grupo activo" ni foto: el backend no tiene esos
+// datos. "Editar" solo avisa a la vista, que abre la ventana (PATCH /grupos/{id}: nombre y descripción)
 const props = defineProps({ grupo: { type: Object, required: true } })
+const emit = defineEmits(['editar'])
 
 const instructor = computed(() => props.grupo.instructor?.name ?? '')
 const estudiantes = computed(() => props.grupo.estudiantes?.length ?? 0)
@@ -24,7 +25,12 @@ const textoSemana = computed(() => {
     <span class="icono" aria-hidden="true"><Users :size="34" /></span>
 
     <div class="texto">
-      <h1>{{ grupo.nombre }}</h1>
+      <div class="titulo">
+        <h1>{{ grupo.nombre }}</h1>
+        <button type="button" class="btn btn-secundario btn-sm" @click="emit('editar')">
+          <Pencil :size="16" aria-hidden="true" /> Editar
+        </button>
+      </div>
       <p class="descripcion">{{ grupo.descripcion || 'Este grupo aún no tiene descripción.' }}</p>
 
       <ul class="datos">
@@ -78,9 +84,24 @@ const textoSemana = computed(() => {
   min-width: 0;
 }
 
+/* Nombre y "Editar" en la misma línea; en pantallas angostas el botón baja solo */
+.titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-sm) var(--espacio-md);
+}
+
 h1 {
   font-size: clamp(1.3rem, 3vw, 1.8rem);
   overflow-wrap: anywhere;
+}
+
+.titulo .btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: .4rem;
 }
 
 .descripcion {
