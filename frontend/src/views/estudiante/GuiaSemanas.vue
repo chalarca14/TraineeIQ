@@ -156,12 +156,11 @@ async function volverASemana() {
     document.getElementById('btn-ver-guia-completa')?.focus()
 }
 
-// El aprendiz de Modo Grupo no pide semanas sin liberar (soloLiberadas): el backend las generaría igual.
-// El instructor sí genera TODAS: además, el backend le manda todas con disponible: true
+// Solo se generan semanas liberadas (cuota de Gemini). Al instructor, que ve todas, lo limita la semana_actual del grupo
 async function abrirSemanas() {
     cargandoSemanas.value = true
     try {
-        await store.abrirGuia(guiaId.value, { soloLiberadas: esGrupo.value && !esInstructor.value })
+        await store.abrirGuia(guiaId.value, { semanaLimite: esGrupo.value && esInstructor.value ? (grupo.value?.semana_actual ?? 1) : null })
         // El store abre la primera disponible; aquí se pasa a la más avanzada (la "semana actual")
         const objetivo = semanaPorDefecto.value
         if (objetivo != null && objetivo !== store.semanaActiva) {

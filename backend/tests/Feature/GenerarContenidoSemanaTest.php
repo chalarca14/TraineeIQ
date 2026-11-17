@@ -359,6 +359,56 @@ class GenerarContenidoSemanaTest extends TestCase
     }
 
     /**
+     * Ni el instructor dueño genera una semana que no ha liberado (tampoco con forzar):
+     * su contenido se prepara al liberarla, para no gastar la cuota de Gemini.
+     */
+    public function test_el_instructor_no_genera_semanas_sin_liberar(): void
+    {
+        [$instructor, , $semana1] = $this->semanaDeGrupo();
+        $semana2 = $this->crearSemana($semana1->guia, 'pendiente', 2);
+        Http::fake();
+        Sanctum::actingAs($instructor);
+
+        $this->generar($semana2)
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Esta semana aún no está liberada: su contenido se prepara cuando se libera.');
+        $this->generar($semana2, ['forzar' => true])->assertForbidden();
+
+        Http::assertNothingSent();
+        $this->assertSame('pendiente', $semana2->fresh()->estado_generacion);
+    }
+
+    /**
+     * Al liberar la semana 2, ya se puede generar (lo hace el frontend del instructor).
+     */
+    public function test_al_liberar_la_semana_se_puede_generar(): void
+    {
+        [$instructor, , $semana1] = $this->semanaDeGrupo();
+        $semana2 = $this->crearSemana($semana1->guia, 'pendiente', 2);
+        Http::fake(['*' => $this->respuestaGemini($this->contenido())]);
+        Sanctum::actingAs($instructor);
+
+        $this->patchJson("/api/grupos/{$semana1->guia->grupo_id}/semana-actual", ['semana_actual' => 2])->assertOk();
+
+        $this->generar($semana2)->assertOk()->assertJsonPath('semana.estado_generacion', 'listo');
+    }
+
+    /**
+     * En Modo Personal, la semana 2 no se genera hasta que la experiencia de la 1 la abre.
+     */
+    public function test_semana_personal_bloqueada_por_xp_no_se_genera(): void
+    {
+        [$estudiante, $semana1] = $this->semanaPersonal();
+        $semana2 = $this->crearSemana($semana1->guia, 'pendiente', 2);
+        Http::fake();
+        Sanctum::actingAs($estudiante);
+
+        $this->generar($semana2)->assertForbidden();
+
+        Http::assertNothingSent();
+    }
+
+    /**
      * Una semana que no existe responde 404.
      */
     public function test_semana_inexistente_responde_404(): void
@@ -414,12 +464,12 @@ class GenerarContenidoSemanaTest extends TestCase
     }
 
     /**
-     * Crea la semana 1 de una guía.
+     * Crea una semana de una guía (la 1 si no se indica otra).
      */
-    private function crearSemana(Guia $guia, string $estado): GuiaSemana
+    private function crearSemana(Guia $guia, string $estado, int $numero = 1): GuiaSemana
     {
         return $guia->semanas()->create([
-            'numero_semana'     => 1,
+            'numero_semana'     => $numero,
             'titulo'            => 'Fundamentos',
             'resumen'           => 'Variables y tipos de datos.',
             'contenido_texto'   => 'Texto real de la semana.',

@@ -56,18 +56,22 @@ class FlujosCompletosTest extends TestCase
             $this->postJson('/api/grupos/unirse', ['codigo_acceso' => $grupo['codigo_acceso']])->assertOk();
         }
 
-        // Subir la guía deja las semanas pendientes y el frontend las genera una por una
+        // Subir la guía deja las semanas pendientes. Solo se genera la liberada (la 1): ni el
+        // instructor puede generar la 2 antes de liberarla, para no gastar la cuota de Gemini
         Sanctum::actingAs($instructor);
         $guiaId = $this->subirGuia(['grupo_id' => $grupo['id']]);
-        $this->generarSemanas($guiaId);
+        $this->generarSemana($guiaId, 1);
+        $this->postJson("/api/guias/{$guiaId}/semanas/2/generar")->assertForbidden();
 
         // Antes de liberar, el estudiante solo llega a la semana actual
         Sanctum::actingAs($ana);
         $this->getJson("/api/guias/{$guiaId}/semanas/1")->assertOk();
         $this->getJson("/api/guias/{$guiaId}/semanas/2")->assertForbidden();
 
+        // Al liberar la semana 2, el frontend del instructor pide generarla
         Sanctum::actingAs($instructor);
         $this->patchJson("/api/grupos/{$grupo['id']}/semana-actual", ['semana_actual' => 2])->assertOk();
+        $this->generarSemana($guiaId, 2);
 
         // Dos estudiantes del mismo grupo reciben exactamente el mismo contenido
         Sanctum::actingAs($ana);
@@ -106,7 +110,9 @@ class FlujosCompletosTest extends TestCase
 
         Sanctum::actingAs($dueno);
         $guiaId = $this->subirGuia();
-        $this->generarSemanas($guiaId);
+        $this->generarSemana($guiaId, 1);
+        // La semana 2 se genera cuando la abre la experiencia, no antes
+        $this->postJson("/api/guias/{$guiaId}/semanas/2/generar")->assertForbidden();
 
         // Al empezar solo está abierta la semana 1
         $this->getJson("/api/guias/{$guiaId}/semanas")
@@ -127,6 +133,7 @@ class FlujosCompletosTest extends TestCase
             ->assertOk()
             ->assertJsonPath('semanas.0.xp_obtenido', 240)
             ->assertJsonPath('semanas.1.disponible', true);
+        $this->generarSemana($guiaId, 2);
         $this->getJson("/api/guias/{$guiaId}/semanas/2")->assertOk();
         $this->getJson('/api/usuario/xp')->assertOk()->assertJsonPath('xp_total', 240);
 
@@ -155,15 +162,14 @@ class FlujosCompletosTest extends TestCase
     }
 
     /**
-     * Genera las dos semanas, como hace la cola del frontend.
+     * Genera una semana liberada, como hace el frontend (la cola al abrir la guía, o el
+     * instructor al liberarla).
      */
-    private function generarSemanas(int $guiaId): void
+    private function generarSemana(int $guiaId, int $numero): void
     {
-        foreach ([1, 2] as $numero) {
-            $this->postJson("/api/guias/{$guiaId}/semanas/{$numero}/generar")
-                ->assertOk()
-                ->assertJsonPath('semana.estado_generacion', 'listo');
-        }
+        $this->postJson("/api/guias/{$guiaId}/semanas/{$numero}/generar")
+            ->assertOk()
+            ->assertJsonPath('semana.estado_generacion', 'listo');
     }
 
     /**

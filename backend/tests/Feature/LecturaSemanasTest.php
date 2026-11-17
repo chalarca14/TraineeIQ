@@ -101,18 +101,20 @@ class LecturaSemanasTest extends TestCase
     }
 
     /**
-     * Pedir generar una semana futura no revela su contenido al estudiante.
+     * Una semana futura no se puede generar: responde 403 sin llamar a Gemini, así que
+     * tampoco revela nada. Su contenido se prepara cuando el instructor la libera.
      */
-    public function test_generar_una_semana_futura_no_revela_el_contenido(): void
+    public function test_generar_una_semana_futura_responde_403_sin_llamar_a_gemini(): void
     {
+        Http::fake();
         Sanctum::actingAs($this->estudiante);
 
-        $respuesta = $this->postJson("/api/guias/{$this->guiaGrupo->id}/semanas/3/generar")
-            ->assertOk()
-            ->assertJsonPath('semana.disponible', false);
+        $this->postJson("/api/guias/{$this->guiaGrupo->id}/semanas/3/generar")
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Esta semana aún no está liberada: su contenido se prepara cuando se libera.')
+            ->assertJsonMissingPath('semana');
 
-        $this->assertArrayNotHasKey('recomendaciones', $respuesta->json('semana'));
-        $this->assertArrayNotHasKey('mini_proyectos', $respuesta->json('semana'));
+        Http::assertNothingSent();
     }
 
     /**

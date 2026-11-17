@@ -7,6 +7,7 @@ import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 import FilaSemana from './FilaSemana.vue'
 import LiberarSemanaModal from './LiberarSemanaModal.vue'
 import { useSemanasGrupo } from '@/composables/useSemanasGrupo'
+import { usePrepararSemana } from '@/composables/usePrepararSemana'
 
 // Pestaña "Semanas y proyectos" (Tarea I-4), la pantalla central del instructor: liberar semanas en
 // orden y ver, por proyecto, quién entregó. Sin "Nuevo proyecto", filtros, "Aprobado" ni colores
@@ -17,6 +18,7 @@ const emit = defineEmits(['semana-liberada', 'ir-a'])
 const route = useRoute()
 
 const { cargando, error, cargar, semanas, entregasPorProyecto, guias } = useSemanasGrupo(() => props.grupo)
+const { preparando, avisoPreparacion, preparar } = usePrepararSemana()
 
 const actual = computed(() => props.grupo.semana_actual ?? 1)
 const ultima = computed(() => props.grupo.ultima_semana ?? null)
@@ -45,6 +47,11 @@ async function alLiberar(numero) {
   // El botón "Liberar" que tenía el foco desapareció: el foco pasa a la semana recién liberada
   await nextTick()
   document.querySelector(`[data-semana="${numero}"] .alternar`)?.focus()
+
+  // Recién ahora se pide a la IA el contenido de esta semana (no antes, para no gastar la cuota de
+  // Gemini). Al terminar se recargan las semanas para ver sus mini proyectos
+  await preparar(numero, guias.value)
+  await cargar()
 }
 
 // Enlace directo ?tab=semanas&proyecto=ID (lo usará la campanita, Tarea I-5): abre esa semana y
@@ -92,6 +99,13 @@ watch(() => route.query.proyecto, () => { if (!cargando.value) abrirDesdeEnlace(
       <template #vacio>
         <button type="button" class="btn btn-primario btn-sm" @click="emit('ir-a', 'guias')">Ir a Guías</button>
       </template>
+
+      <p v-if="preparando" class="nota" role="status">
+        <span class="giro" aria-hidden="true"></span>
+        La IA está preparando la semana {{ preparando.numero }} en «{{ preparando.guia }}»
+        ({{ preparando.hechas + 1 }} de {{ preparando.total }}). Puede tardar un minuto por guía.
+      </p>
+      <p v-else-if="avisoPreparacion" class="nota nota--error" role="alert">{{ avisoPreparacion }}</p>
 
       <p v-if="!siguiente" class="nota" role="note">
         <Info :size="16" aria-hidden="true" /> Ya liberaste todas las semanas de las guías del grupo.
@@ -165,6 +179,29 @@ h2 svg {
   padding: var(--espacio-sm) var(--espacio-md);
   border-radius: 10px;
   background: color-mix(in srgb, var(--color-info) 12%, transparent);
+}
+
+.nota--error {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+
+/* Mismo indicador de carga que el panel de la semana (PanelSemana.vue) */
+.giro {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-card);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: girar 1s linear infinite;
+}
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .giro { animation: none; }
 }
 
 .lista {

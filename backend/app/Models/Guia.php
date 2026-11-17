@@ -48,6 +48,23 @@ class Guia extends Model
     }
 
     /**
+     * Indica si ya se puede pedir a Gemini el contenido de una semana. Solo se generan las
+     * semanas que alguien va a usar, para no gastar la cuota diaria de Gemini:
+     * - De grupo: hasta la semana_actual que liberó el instructor. A diferencia de
+     *   semanaLiberadaPara, aquí el instructor no tiene excepción: ve las semanas futuras,
+     *   pero su contenido se prepara cuando las libera.
+     * - Personal: las que ya abrió la experiencia (XP) de la semana anterior.
+     */
+    public function semanaGenerable(int $numeroSemana): bool
+    {
+        if ($this->origen === 'personal') {
+            return $numeroSemana <= app(ExperienciaService::class)->ultimaSemanaLiberada($this->progresoExperiencia());
+        }
+
+        return $numeroSemana <= (int) $this->grupo?->semana_actual;
+    }
+
+    /**
      * XP de cada semana de esta guia personal. Se guarda en la instancia para no
      * consultar la base cada vez que se revisa una semana o un tema.
      */

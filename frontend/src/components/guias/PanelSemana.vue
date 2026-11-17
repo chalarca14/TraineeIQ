@@ -35,6 +35,12 @@
             </div>
         </template>
 
+        <!-- Pendiente y sin liberar (solo el instructor ve esto): no se genera hasta liberarla, para no
+             gastar la cuota diaria de Gemini -->
+        <p v-else-if="semana.estado_generacion === 'pendiente' && semana.sin_liberar" class="estado-texto" role="status">
+            Sus recomendaciones y mini proyectos se preparan cuando liberes esta semana al grupo.
+        </p>
+
         <!-- Pendiente: está en la cola de esta pantalla -->
         <p v-else-if="semana.estado_generacion === 'pendiente'" class="estado-texto" role="status">
             La IA preparará esta semana en un momento.

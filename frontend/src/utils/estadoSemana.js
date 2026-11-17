@@ -4,13 +4,15 @@
 // `generandoAqui` = esta pantalla está generando AHORA esa semana (no otra persona ni el servidor).
 export function estadoSemana(semana, generandoAqui = false) {
     // Sin liberar: no se mira estado_generacion, porque su contenido ni siquiera se puede abrir.
-    // Excepción: en Modo Personal la cola también genera las semanas bloqueadas por XP (para que estén
-    // listas al llegar al XP); mientras ESTA pantalla la genera se dice "Generando…" para que se note
-    // que algo pasa. El candado lo sigue poniendo la lista según `disponible`.
+    // Solo se generan semanas liberadas, así que una bloqueada nunca está "Generando…" aquí.
     if (!semana.disponible) {
-        return generandoAqui
-            ? { texto: 'Generando…', clase: 'generando', girando: true }
-            : { texto: 'Próximamente', clase: 'bloqueada' }
+        return { texto: 'Próximamente', clase: 'bloqueada' }
+    }
+
+    // El instructor ve todas sus semanas, pero las que no ha liberado no se generan todavía
+    // (sin_liberar lo pone stores/contenido.js). Si ya se generaron antes, se muestra su estado real
+    if (semana.sin_liberar && semana.estado_generacion === 'pendiente') {
+        return { texto: 'Se prepara al liberarla', clase: 'bloqueada' }
     }
 
     switch (semana.estado_generacion) {

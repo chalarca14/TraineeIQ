@@ -37,6 +37,10 @@ async function confirmar() {
       Se abrirá para <strong>todos los estudiantes</strong> en <strong>todas las guías</strong> del grupo:
       verán su contenido y sus mini proyectos, y les llegará un aviso.
     </p>
+    <p class="texto">
+      Al liberarla, la IA preparará sus recomendaciones y mini proyectos. Puede tardar un minuto por guía:
+      no cierres esta pantalla mientras tanto.
+    </p>
     <p class="aviso">
       <TriangleAlert :size="18" aria-hidden="true" />
       <span>Desde aquí no se puede deshacer.</span>
