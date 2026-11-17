@@ -26,6 +26,10 @@ class ExcelTextExtractor
     // porque son nombres o categorías que tienen sentido en cada fila
     private const LARGO_PARA_NO_REPETIR = 60;
 
+    // Entre los datos de una misma fila: una línea en blanco, para que la pantalla los muestre como
+    // párrafos separados y no los junte en uno solo
+    private const SEPARADOR_DATOS = "\n\n";
+
     /**
      * Devuelve el texto del Excel ordenado por semanas, o null si no tiene texto.
      *
@@ -318,9 +322,13 @@ class ExcelTextExtractor
     }
 
     /**
-     * Arma el texto final. Si el Excel tiene semanas: primero la información general (queda en
-     * la semana 1, como la portada de un PDF) y luego cada semana con las filas de todas sus
-     * hojas. Si no tiene semanas, va hoja por hoja y Gemini las organiza como un PDF.
+     * Arma el texto final con una forma fácil de leer en la pantalla de la guía (utils/textoGuia.js
+     * del frontend la reconoce como la de un PDF): cada hoja es un título en mayúsculas y cada dato
+     * va en su propia línea "Título: valor", con una línea en blanco entre filas.
+     *
+     * Si el Excel tiene semanas: primero la información general (queda en la semana 1, como la
+     * portada de un PDF) y luego cada semana con las filas de todas sus hojas. Si no tiene semanas,
+     * va hoja por hoja y Gemini las organiza como un PDF.
      */
     private function armarTexto(array $hojas): string
     {
@@ -335,13 +343,15 @@ class ExcelTextExtractor
             $bloques = [];
             foreach ($hojas as $hoja) {
                 $vistos = [];
-                $lineas = $this->lineas($hoja['nombre'], $hoja['general'], $vistos);
-                if ($lineas !== []) {
-                    $bloques[] = "Hoja: {$hoja['nombre']}\n" . implode("\n", $lineas);
+                $seccion = $this->seccion($hoja['nombre'], $hoja['general'], $vistos);
+                if ($seccion !== null) {
+                    $bloques[] = $seccion;
                 }
             }
 
-            return implode("\n\n", $bloques);
+            return implode("
+
+", $bloques);
         }
 
         $bloques = [];
@@ -349,10 +359,17 @@ class ExcelTextExtractor
         $vistos = [];
         $general = [];
         foreach ($hojas as $hoja) {
-            array_push($general, ...$this->lineas($hoja['nombre'], $hoja['general'], $vistos, 1));
+            $seccion = $this->seccion($hoja['nombre'], $hoja['general'], $vistos, 1);
+            if ($seccion !== null) {
+                $general[] = $seccion;
+            }
         }
         if ($general !== []) {
-            $bloques[] = "Información general\n" . implode("\n", $general);
+            $bloques[] = "INFORMACIÓN GENERAL
+
+" . implode("
+
+", $general);
         }
 
         ksort($semanas);
@@ -360,28 +377,54 @@ class ExcelTextExtractor
             // Cada semana lleva su propia lista de vistos: así una fila que repite lo de otra
             // hoja de la misma semana ("Temas actualizados" repite "Formato") no se duplica
             $vistos = [];
-            $lineas = [];
+            $secciones = [];
             foreach ($hojas as $hoja) {
-                array_push($lineas, ...$this->lineas($hoja['nombre'], $hoja['porSemana'][$numero] ?? [], $vistos));
+                $seccion = $this->seccion($hoja['nombre'], $hoja['porSemana'][$numero] ?? [], $vistos);
+                if ($seccion !== null) {
+                    $secciones[] = $seccion;
+                }
             }
-            $bloques[] = "Semana {$numero}\n" . implode("\n", $lineas);
+            $bloques[] = "Semana {$numero}
+
+" . implode("
+
+", $secciones);
         }
 
-        return implode("\n\n", $bloques);
+        return implode("
+
+", $bloques);
     }
 
     /**
-     * Escribe cada fila como "[Hoja] Título: valor | Título: valor". Los textos largos que ya
+     * Una hoja dentro de un bloque: su nombre en mayúsculas como título y debajo sus filas.
+     * Devuelve null si la hoja no aporta nada nuevo a este bloque.
+     *
+     * @param  array<string, true>  $vistos  Textos largos ya escritos en el bloque (se actualiza)
+     * @param  int  $largoMinimo  Desde qué largo un texto no se repite (1: ninguno se repite)
+     */
+    private function seccion(string $hoja, array $filas, array &$vistos, int $largoMinimo = self::LARGO_PARA_NO_REPETIR): ?string
+    {
+        $textos = $this->filas($filas, $vistos, $largoMinimo);
+
+        return $textos === [] ? null : mb_strtoupper($hoja) . "
+
+" . implode("
+
+", $textos);
+    }
+
+    /**
+     * Escribe cada fila con un dato por línea ("Título: valor"). Los textos largos que ya
      * aparecieron en el mismo bloque no se repiten; los cortos sí ("Producto", "10 %"), porque
      * se repiten con sentido en cada fila. Una fila que no aporta nada nuevo se omite.
      *
      * @param  array<string, true>  $vistos  Textos largos ya escritos en el bloque (se actualiza)
-     * @param  int  $largoMinimo  Desde qué largo un texto no se repite (1: ninguno se repite)
      * @return list<string>
      */
-    private function lineas(string $hoja, array $filas, array &$vistos, int $largoMinimo = self::LARGO_PARA_NO_REPETIR): array
+    private function filas(array $filas, array &$vistos, int $largoMinimo): array
     {
-        $lineas = [];
+        $textos = [];
         foreach ($filas as $fila) {
             $partes = [];
             $aportaAlgo = false;
@@ -394,21 +437,40 @@ class ExcelTextExtractor
                     $vistos[$clave] = true;
                     $aportaAlgo = true;
                 }
-                $partes[] = is_string($titulo) ? "{$titulo}: {$valor}" : $valor;
+                $partes[] = is_string($titulo) ? $this->etiqueta($titulo) . ": {$valor}" : $valor;
             }
 
+            // Con títulos, un dato por párrafo. Sin títulos (el encabezado del formato: "INSTRUCTOR",
+            // "TRIM", "PROGRAMA"…) la fila va en una sola línea: cada celda suelta parecería un título
+            $sinTitulos = array_filter(array_keys($fila), 'is_string') === [];
+            $texto = implode($sinTitulos ? ' · ' : self::SEPARADOR_DATOS, $partes);
+
             // Una fila con solo textos cortos se escribe si no es idéntica a otra ya escrita
-            $linea = implode(' | ', $partes);
             if (! $aportaAlgo) {
-                $clave = 'fila:' . mb_strtolower($linea);
-                if ($linea === '' || isset($vistos[$clave])) {
+                $clave = 'fila:' . mb_strtolower($texto);
+                if ($texto === '' || isset($vistos[$clave])) {
                     continue;
                 }
                 $vistos[$clave] = true;
             }
-            $lineas[] = "[{$hoja}] {$linea}";
+            $textos[] = $texto;
         }
 
-        return $lineas;
+        return $textos;
+    }
+
+    /**
+     * Un título de columna escrito todo en mayúsculas ("ACCIONES A DESARROLLAR") se pasa a
+     * "Acciones a desarrollar": así se lee como etiqueta y no como el título de una sección.
+     * Las siglas cortas ("URL", "TRIM") se dejan como están.
+     */
+    private function etiqueta(string $titulo): string
+    {
+        if ($titulo !== mb_strtoupper($titulo) || mb_strlen($titulo) <= 4) {
+            return $titulo;
+        }
+        $minusculas = mb_strtolower($titulo);
+
+        return mb_strtoupper(mb_substr($minusculas, 0, 1)) . mb_substr($minusculas, 1);
     }
 }
