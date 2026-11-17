@@ -58,14 +58,14 @@ class GuiaExcelTest extends TestCase
         $texto = $this->extraer($this->libroPlaneacion());
 
         $this->assertMatchesRegularExpression(
-            '/^Información general\n.*Ciencia de datos con Python.*\n\nSemana 1\n.*\n\nSemana 2\n/su',
+            '/^INFORMACIÓN GENERAL\n.*Ciencia de datos con Python.*\nSemana 1\n.*\nSemana 2\n/su',
             $texto
         );
 
         // La actividad de la hoja "Actividades" queda dentro de la semana 2, no al final del texto
         $semana2 = $this->bloque($texto, 'Semana 2');
-        $this->assertStringContainsString('[Formato] Conocimientos: Leer archivos CSV con pandas y revisar su estructura.', $semana2);
-        $this->assertStringContainsString('[Actividades] Actividad: Cargar un dataset de ventas y describir sus columnas.', $semana2);
+        $this->assertStringContainsString("FORMATO\n\nConocimientos: Leer archivos CSV con pandas y revisar su estructura.", $semana2);
+        $this->assertStringContainsString("ACTIVIDADES\n\nActividad: Cargar un dataset de ventas y describir sus columnas.", $semana2);
         $this->assertStringNotContainsString('Cargar un dataset', $this->bloque($texto, 'Semana 1'));
     }
 
@@ -80,7 +80,24 @@ class GuiaExcelTest extends TestCase
 
         $this->assertSame(1, substr_count($texto, 'Comprender qué es la ciencia de datos, su ciclo de vida y cómo apoya la toma de decisiones.'));
         // "Temas" repite los conocimientos de "Formato": solo aporta su enfoque
-        $this->assertStringContainsString('[Temas] Enfoque: Contexto y ética de los datos', $semana1);
+        $this->assertStringContainsString("TEMAS\n\nEnfoque: Contexto y ética de los datos", $semana1);
+    }
+
+    /**
+     * Forma que la pantalla de la guía muestra ordenada (utils/textoGuia.js del frontend): un título
+     * en mayúsculas por hoja, un dato por párrafo, y los títulos de columna en mayúsculas pasan a
+     * "Acciones a desarrollar". Una fila sin títulos (el encabezado del formato) va en una línea.
+     */
+    public function test_el_texto_tiene_forma_de_secciones_y_etiquetas(): void
+    {
+        $texto = $this->extraer($this->libroPlaneacion());
+
+        $this->assertStringContainsString(
+            "FORMATO\n\nConocimientos: Comprender qué es la ciencia de datos, su ciclo de vida y cómo apoya la toma de decisiones.\n\n"
+            . 'Acciones a desarrollar: Analizar casos reales de decisiones tomadas con datos en el SENA.',
+            $texto
+        );
+        $this->assertStringContainsString('SERVICIO NACIONAL DE APRENDIZAJE - SENA · 3/02/2026', $texto);
     }
 
     /**
@@ -113,7 +130,7 @@ class GuiaExcelTest extends TestCase
         $texto = $this->extraer($this->libroPlaneacion());
 
         $this->assertStringContainsString(
-            '[Semana 2 - Detalle] Paso: 2.1 | Contenido: Abrir el notebook y cargar el CSV de práctica.',
+            "SEMANA 2 - DETALLE\n\nPaso: 2.1\n\nContenido: Abrir el notebook y cargar el CSV de práctica.",
             $this->bloque($texto, 'Semana 2')
         );
     }
@@ -131,9 +148,9 @@ class GuiaExcelTest extends TestCase
         ]);
 
         $this->assertSame(
-            "Hoja: Temario\n"
-            . "[Temario] Tema: Variables | Descripción: Qué es una variable y cómo se declara en Python.\n"
-            . "[Temario] Tema: Funciones | Descripción: Funciones con parámetros y valor de retorno.",
+            "TEMARIO\n\n"
+            . "Tema: Variables\n\nDescripción: Qué es una variable y cómo se declara en Python.\n\n"
+            . "Tema: Funciones\n\nDescripción: Funciones con parámetros y valor de retorno.",
             $this->extraer($libro)
         );
     }
@@ -170,7 +187,7 @@ class GuiaExcelTest extends TestCase
         [$semana1, $semana2] = GuiaSemana::orderBy('numero_semana')->get()->all();
 
         // La información general queda en la semana 1, como la portada de un PDF
-        $this->assertStringStartsWith('Información general', $semana1->contenido_texto);
+        $this->assertStringStartsWith('INFORMACIÓN GENERAL', $semana1->contenido_texto);
         $this->assertStringContainsString('ciclo de vida', $semana1->contenido_texto);
         $this->assertStringStartsWith('Semana 2', $semana2->contenido_texto);
         $this->assertStringContainsString('Cargar un dataset de ventas', $semana2->contenido_texto);
@@ -223,7 +240,7 @@ class GuiaExcelTest extends TestCase
             ['SERVICIO NACIONAL DE APRENDIZAJE - SENA'],
             ['ACTIVIDAD DE PROYECTO: Ciencia de datos con Python'],
             [],
-            ['SEMANA', 'Conocimientos', 'Acciones'],
+            ['SEMANA', 'Conocimientos', 'ACCIONES A DESARROLLAR'],
             ['PROGRAMADA'],
             ['Semana 01', 'Comprender qué es la ciencia de datos, su ciclo de vida y cómo apoya la toma de decisiones.', 'Analizar casos reales de decisiones tomadas con datos en el SENA.'],
             [],
@@ -305,11 +322,11 @@ class GuiaExcelTest extends TestCase
     }
 
     /**
-     * El bloque de una semana: desde su título hasta la línea en blanco que separa los bloques.
+     * El bloque de una semana: desde su título hasta el título de la semana siguiente.
      */
     private function bloque(string $texto, string $titulo): string
     {
-        preg_match('/^' . preg_quote($titulo, '/') . '\n(.*?)(?=\n\n|\z)/msu', $texto, $m);
+        preg_match('/^' . preg_quote($titulo, '/') . '\n(.*?)(?=\nSemana \d+\n|\z)/msu', $texto, $m);
 
         return $m[1] ?? '';
     }
