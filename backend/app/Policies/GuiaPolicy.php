@@ -58,6 +58,21 @@ class GuiaPolicy
     }
 
     /**
+     * Adjuntar o quitar guías de la semana: solo el instructor del grupo, y solo en guías de
+     * grupo (en Modo Personal no existe por ahora).
+     */
+    public function gestionarMateriales(User $user, Guia $guia): Response
+    {
+        if ($guia->origen !== 'grupo') {
+            return Response::deny('Solo se pueden adjuntar guías de la semana a las guías de un grupo.');
+        }
+
+        return $guia->grupo?->instructor_id === $user->id
+            ? Response::allow()
+            : Response::deny('Solo el instructor del grupo puede adjuntar guías a la semana.');
+    }
+
+    /**
      * Solo el dueño cambia una guia: el estudiante en las personales
      * y el instructor del grupo en las de grupo.
      */

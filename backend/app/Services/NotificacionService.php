@@ -22,6 +22,9 @@ class NotificacionService
     private const TIPO_GUIA_NUEVA = 'guia_nueva';
     private const TIPO_SEMANA_LIBERADA = 'semana_liberada';
 
+    // Guía detallada adjuntada a una semana ya liberada (guías de la semana)
+    private const TIPO_MATERIAL_NUEVO = 'material_nuevo';
+
     // Largo máximo de cada nombre dentro del mensaje: la columna mensaje admite 500 caracteres
     private const LARGO_NOMBRE = 120;
 
@@ -106,6 +109,32 @@ class NotificacionService
         // numero_semana es la semana que el grupo ya puede leer de esta guía
         $this->crearParaEstudiantes($grupo, self::TIPO_GUIA_NUEVA, [
             [$mensaje, $this->datosDeGuia($grupo, $guia, (int) $grupo->semana_actual)],
+        ]);
+    }
+
+    /**
+     * Avisa a cada estudiante del grupo que el instructor adjuntó una guía detallada a una
+     * semana que ya pueden leer. Si la semana aún no está liberada no avisa: ya les llegará
+     * el aviso de "semana liberada", y ahí la verán.
+     */
+    public function avisarMaterialNuevo(Guia $guia, int $numeroSemana, string $nombreMaterial): void
+    {
+        $guia->loadMissing('grupo');
+        $grupo = $guia->grupo;
+
+        if ($guia->origen !== 'grupo' || $grupo === null || $numeroSemana > (int) $grupo->semana_actual) {
+            return;
+        }
+
+        $mensaje = sprintf(
+            'Tu instructor agregó la guía «%s» a la semana %d de «%s».',
+            $this->recortar($nombreMaterial),
+            $numeroSemana,
+            $this->recortar($guia->nombre)
+        );
+
+        $this->crearParaEstudiantes($grupo, self::TIPO_MATERIAL_NUEVO, [
+            [$mensaje, $this->datosDeGuia($grupo, $guia, $numeroSemana)],
         ]);
     }
 
