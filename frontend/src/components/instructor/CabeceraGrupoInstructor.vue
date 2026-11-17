@@ -31,7 +31,7 @@ const textoSemana = computed(() => {
           <button type="button" class="btn btn-secundario btn-sm" @click="emit('editar')">
             <Pencil :size="16" aria-hidden="true" /> Editar
           </button>
-          <button type="button" class="btn btn-peligro btn-sm" @click="emit('eliminar')">
+          <button type="button" class="btn btn-peligro-borde btn-sm" @click="emit('eliminar')">
             <Trash2 :size="16" aria-hidden="true" /> Eliminar grupo
           </button>
         </div>
