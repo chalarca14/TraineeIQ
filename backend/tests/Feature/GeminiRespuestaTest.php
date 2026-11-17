@@ -13,6 +13,15 @@ use Tests\TestCase;
 class GeminiRespuestaTest extends TestCase
 {
     /**
+     * Borra la instancia del Singleton para que otras pruebas no hereden los modelos de aquí.
+     */
+    protected function tearDown(): void
+    {
+        (new \ReflectionProperty(GeminiService::class, 'instancia'))->setValue(null, null);
+        parent::tearDown();
+    }
+
+    /**
      * Una respuesta del chat partida en dos partes llega completa, no solo la primera mitad.
      * Las partes de "pensamiento" del modelo no se muestran.
      */
@@ -50,6 +59,79 @@ class GeminiRespuestaTest extends TestCase
             ->withArgs(fn ($mensaje, $datos) => $mensaje === 'Gemini uso de tokens'
                 && $datos['entrada'] === 120 && $datos['salida'] === 30 && $datos['pensamiento'] === 0)
             ->once();
+    }
+
+    /**
+     * Con Flash Lite de principal, la evaluación de código va primero al modelo de evaluación
+     * (3.6 Flash), mientras el chat sigue usando el principal.
+     */
+    public function test_la_evaluacion_usa_primero_su_propio_modelo(): void
+    {
+        $this->modelos('gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.6-flash');
+        Http::fake(['*' => Http::response($this->respuestaEvaluacion())]);
+
+        $this->evaluar();
+        GeminiService::obtenerInstancia()->generarRespuestaChat('Hola');
+
+        $urls = Http::recorded()->map(fn ($par) => $par[0]->url())->values();
+        $this->assertStringContainsString('gemini-3.6-flash:', $urls[0]);
+        $this->assertStringContainsString('gemini-3.5-flash-lite:', $urls[1]);
+    }
+
+    /**
+     * Si el modelo de evaluación no tiene cuota (429), evalúa el principal y no se pierde la evaluación.
+     */
+    public function test_si_el_modelo_de_evaluacion_falla_evalua_el_principal(): void
+    {
+        $this->modelos('gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.6-flash');
+        Http::fake([
+            '*gemini-3.6-flash:*'      => Http::response(['error' => ['message' => 'Sin cuota']], 429),
+            '*gemini-3.5-flash-lite:*' => Http::response($this->respuestaEvaluacion()),
+        ]);
+
+        $evaluacion = $this->evaluar();
+
+        $this->assertSame('Buen trabajo.', $evaluacion['resumen']);
+        Http::assertSentCount(2);
+    }
+
+    /**
+     * Configura los modelos y crea una instancia nueva del Singleton para que los lea.
+     */
+    private function modelos(string $principal, string $respaldo, string $evaluacion): void
+    {
+        config([
+            'services.gemini.model'             => $principal,
+            'services.gemini.fallback_model'    => $respaldo,
+            'services.gemini.modelo_evaluacion' => $evaluacion,
+        ]);
+        (new \ReflectionProperty(GeminiService::class, 'instancia'))->setValue(null, null);
+    }
+
+    /**
+     * Evalúa un código pequeño con un criterio, un requisito y una buena práctica.
+     */
+    private function evaluar(): array
+    {
+        return GeminiService::obtenerInstancia()->evaluarCodigo(
+            ['Funciona'], ['Suma dos números'], ['Nombres claros'], 'function suma(a, b) { return a + b }'
+        );
+    }
+
+    /**
+     * Respuesta válida de Gemini para la evaluación de `evaluar()`.
+     */
+    private function respuestaEvaluacion(): array
+    {
+        $json = json_encode([
+            'resumen'          => 'Buen trabajo.',
+            'criterios'        => [['criterio' => 'Funciona', 'cumplimiento' => 90, 'comentario' => 'Suma bien.']],
+            'requisitos'       => [['requisito' => 'Suma dos números', 'cumple' => true, 'comentario' => 'Sí.']],
+            'buenas_practicas' => [['practica' => 'Nombres claros', 'cumple' => true, 'comentario' => 'Sí.']],
+            'sugerencias'      => ['Agrega pruebas.'],
+        ]);
+
+        return ['candidates' => [['finishReason' => 'STOP', 'content' => ['parts' => [['text' => $json]]]]]];
     }
 
     /**
