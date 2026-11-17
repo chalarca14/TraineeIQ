@@ -41,6 +41,10 @@ class GeminiService
     // Tope de semanas que se aceptan en una guia
     private const MAX_SEMANAS = 52;
 
+    // Esperas entre reintentos cuando Gemini responde 503 (saturado): 3 reintentos más, unos
+    // 14 s en total por modelo antes de pasar al de respaldo
+    private const ESPERAS_REINTENTO_MS = [2000, 4000, 8000];
+
     // Cantidad fija de recomendaciones por semana (contrato 2.2 de la Fase 0)
     private const TOTAL_RECOMENDACIONES = 4;
 
@@ -374,12 +378,14 @@ class GeminiService
                     'x-goog-api-key' => $this->apiKey, // La clave va por cabecera, no en la URL
                 ])
                     ->timeout(60)
+                    // 503 = Google saturado un momento: se reintenta con esperas que crecen (2, 4 y
+                    // 8 s). 429 (sin cuota) no se reintenta: la cuota no vuelve en segundos, así que
+                    // se pasa de una al modelo de respaldo, que tiene la suya
                     ->retry(
-                        2,
-                        1000,
-                        fn ($excepcion) => $excepcion instanceof RequestException
-                            && in_array($excepcion->response->status(), [429, 503]),
-                        throw: false
+                        self::ESPERAS_REINTENTO_MS,
+                        throw: false,
+                        when: fn ($excepcion) => $excepcion instanceof RequestException
+                            && $excepcion->response->status() === 503,
                     )
                     ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", $cuerpo);
 
