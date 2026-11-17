@@ -294,7 +294,9 @@ class GeminiService
             '{{GUIAS_SEMANA}}' => implode("\n", $bloques),
         ]);
 
-        $texto = $this->llamarApi($prompt, self::ESQUEMA_CONTENIDO);
+        // Pensamiento bajo: el esquema JSON ya guía la respuesta, y con el nivel por defecto el
+        // modelo pensaba miles de tokens y a veces pasaba del tiempo de espera (60 s)
+        $texto = $this->llamarApi($prompt, self::ESQUEMA_CONTENIDO, 'low');
 
         if ($texto === null) {
             throw new IaNoDisponibleException('Gemini no respondio al generar la semana.');
@@ -351,7 +353,9 @@ class GeminiService
      */
     public function generarRespuestaChat(string $prompt): string
     {
-        $texto = $this->llamarApi($prompt);
+        // Pensamiento bajo: el chat explica temas de programación de nivel aprendiz y debe
+        // responder rápido. No limita el largo de la respuesta
+        $texto = $this->llamarApi($prompt, null, 'low');
 
         if ($texto === null) {
             return 'No fue posible generar una respuesta en este momento. Intenta nuevamente.';
@@ -440,6 +444,17 @@ class GeminiService
         if ($motivo !== null && $motivo !== 'STOP') {
             Log::warning('Gemini terminó la respuesta antes de tiempo', ['modelo' => $modelo, 'motivo' => $motivo]);
         }
+
+        // Cuántos tokens gastó la llamada (entrada, salida y pensamiento): sirve para vigilar el
+        // consumo y, si una respuesta sale incompleta, ver si se le fue en pensar
+        $uso = $cuerpo['usageMetadata'] ?? [];
+        Log::info('Gemini uso de tokens', [
+            'modelo'      => $modelo,
+            'entrada'     => $uso['promptTokenCount'] ?? null,
+            'salida'      => $uso['candidatesTokenCount'] ?? null,
+            'pensamiento' => $uso['thoughtsTokenCount'] ?? null,
+            'total'       => $uso['totalTokenCount'] ?? null,
+        ]);
 
         $textos = [];
         foreach ($candidato['content']['parts'] ?? [] as $parte) {

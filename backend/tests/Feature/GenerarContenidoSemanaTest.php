@@ -498,6 +498,21 @@ class GenerarContenidoSemanaTest extends TestCase
     }
 
     /**
+     * Generar la semana pide pensamiento bajo: el esquema guía la respuesta y así no pasa del
+     * tiempo de espera.
+     */
+    public function test_generar_la_semana_pide_pensamiento_bajo(): void
+    {
+        [$estudiante, $semana] = $this->semanaPersonal();
+        Http::fake(['*' => $this->respuestaGemini($this->contenido())]);
+        Sanctum::actingAs($estudiante);
+
+        $this->generar($semana)->assertOk();
+
+        Http::assertSent(fn ($peticion) => ($peticion['generationConfig']['thinkingConfig']['thinkingLevel'] ?? null) === 'low');
+    }
+
+    /**
      * Una semana que no existe responde 404.
      */
     public function test_semana_inexistente_responde_404(): void
