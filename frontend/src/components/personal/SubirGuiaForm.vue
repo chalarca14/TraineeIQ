@@ -46,14 +46,9 @@ import { FileUp, Info } from 'lucide-vue-next'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { subirGuia } from '@/services/guiaService'
+import { TIPOS_ACEPTADOS, errorDeArchivoGuia } from '@/utils/archivoGuia'
 
 const emit = defineEmits(['subida', 'cancelar'])
-
-// Mismos límites que el backend: el Excel pesa menos porque ocupa mucha memoria al leerse
-const MAX_MB_PDF = 10
-const MAX_MB_EXCEL = 2
-// Extensión y tipo: algunos navegadores en Windows no informan el tipo de un .xlsx
-const TIPOS_ACEPTADOS = '.pdf,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 const nombre = ref('')
 const archivo = ref(null)
@@ -68,14 +63,6 @@ function elegirArchivo(evento) {
     errores.value.archivo = ''
 }
 
-// 'pdf', 'excel' o null, según la extensión del nombre (el tipo MIME no siempre llega)
-function tipoDeArchivo(file) {
-    const nombreArchivo = file.name.toLowerCase()
-    if (nombreArchivo.endsWith('.pdf')) return 'pdf'
-    if (nombreArchivo.endsWith('.xlsx')) return 'excel'
-    return null
-}
-
 function validar() {
     errores.value = { nombre: '', archivo: '' }
     let esValido = true
@@ -84,17 +71,10 @@ function validar() {
         errores.value.nombre = 'Escribe un nombre para la guía.'
         esValido = false
     }
-    const tipo = archivo.value ? tipoDeArchivo(archivo.value) : null
-    const maxMb = tipo === 'excel' ? MAX_MB_EXCEL : MAX_MB_PDF
-
-    if (!archivo.value) {
-        errores.value.archivo = 'Selecciona un PDF o un Excel (.xlsx).'
-        esValido = false
-    } else if (!tipo) {
-        errores.value.archivo = 'El archivo debe ser un PDF o un Excel (.xlsx).'
-        esValido = false
-    } else if (archivo.value.size > maxMb * 1024 * 1024) {
-        errores.value.archivo = `El ${tipo === 'excel' ? 'Excel' : 'PDF'} no puede pesar más de ${maxMb} MB.`
+    // Tipo (PDF o Excel) y peso: mismas reglas que "Asignar guía" del instructor
+    const errorArchivo = errorDeArchivoGuia(archivo.value)
+    if (errorArchivo) {
+        errores.value.archivo = errorArchivo
         esValido = false
     }
     return esValido
