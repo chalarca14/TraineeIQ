@@ -398,7 +398,7 @@ class GeminiService
                     continue; // Pasa al siguiente modelo de la lista
                 }
 
-                return $respuesta->json('candidates.0.content.parts.0.text');
+                return $this->textoDeRespuesta($respuesta->json() ?? [], $modelo);
             } catch (\Exception $e) {
                 Log::error('Excepcion en GeminiService', [
                     'modelo'  => $modelo,
@@ -409,6 +409,32 @@ class GeminiService
 
         // Ningun modelo respondio: los metodos publicos ya manejan el null
         return null;
+    }
+
+    /**
+     * Junta el texto de TODAS las partes de la respuesta. Gemini puede devolver el texto partido
+     * en varias partes (sobre todo los modelos que "piensan"): leer solo la primera dejaba
+     * respuestas del chat cortadas a mitad de frase. Las partes de pensamiento (thought) no son
+     * la respuesta y se saltan. Si Gemini terminó por otra razón que no sea STOP (por ejemplo,
+     * MAX_TOKENS), se anota en el log para saber por qué una respuesta salió incompleta.
+     */
+    private function textoDeRespuesta(array $cuerpo, string $modelo): ?string
+    {
+        $candidato = $cuerpo['candidates'][0] ?? [];
+        $motivo = $candidato['finishReason'] ?? null;
+
+        if ($motivo !== null && $motivo !== 'STOP') {
+            Log::warning('Gemini terminó la respuesta antes de tiempo', ['modelo' => $modelo, 'motivo' => $motivo]);
+        }
+
+        $textos = [];
+        foreach ($candidato['content']['parts'] ?? [] as $parte) {
+            if (isset($parte['text']) && empty($parte['thought'])) {
+                $textos[] = $parte['text'];
+            }
+        }
+
+        return $textos === [] ? null : implode('', $textos);
     }
 
     /**
