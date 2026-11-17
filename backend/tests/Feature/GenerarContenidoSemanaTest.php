@@ -10,6 +10,7 @@ use App\Models\Recomendacion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -406,6 +407,65 @@ class GenerarContenidoSemanaTest extends TestCase
         $this->generar($semana2)->assertForbidden();
 
         Http::assertNothingSent();
+    }
+
+    /**
+     * Si Gemini está saturado (503) un momento, se reintenta con esperas de 2 y 4 s con el mismo
+     * modelo, y la semana queda lista sin que el usuario vea el aviso de "IA ocupada".
+     */
+    public function test_un_503_pasajero_se_reintenta_con_esperas_que_crecen(): void
+    {
+        Sleep::fake();
+        [$estudiante, $semana] = $this->semanaPersonal();
+        Http::fake(['*' => Http::sequence()
+            ->push('saturado', 503)
+            ->push('saturado', 503)
+            ->push($this->cuerpoGemini(json_encode($this->contenido())))]);
+        Sanctum::actingAs($estudiante);
+
+        $this->generar($semana)->assertOk()->assertJsonPath('semana.estado_generacion', 'listo');
+
+        Http::assertSentCount(3);
+        Http::assertSent(fn ($peticion) => str_contains($peticion->url(), config('services.gemini.model')));
+        Sleep::assertSequence([Sleep::usleep(2_000_000), Sleep::usleep(4_000_000)]);
+    }
+
+    /**
+     * Si el modelo principal sigue saturado tras los 3 reintentos (2, 4 y 8 s), se pasa al de respaldo.
+     */
+    public function test_si_el_503_sigue_se_usa_el_modelo_de_respaldo(): void
+    {
+        Sleep::fake();
+        [$estudiante, $semana] = $this->semanaPersonal();
+        $principal = config('services.gemini.model');
+        Http::fake(fn ($peticion) => str_contains($peticion->url(), "/{$principal}:")
+            ? Http::response('saturado', 503)
+            : $this->respuestaGemini($this->contenido()));
+        Sanctum::actingAs($estudiante);
+
+        $this->generar($semana)->assertOk()->assertJsonPath('semana.estado_generacion', 'listo');
+
+        Http::assertSentCount(5); // 4 al principal (1 + 3 reintentos) y 1 al de respaldo
+        Sleep::assertSleptTimes(3);
+    }
+
+    /**
+     * Sin cuota (429) no se reintenta ni se espera: se pasa de una al modelo de respaldo.
+     */
+    public function test_sin_cuota_pasa_al_respaldo_sin_esperar(): void
+    {
+        Sleep::fake();
+        [$estudiante, $semana] = $this->semanaPersonal();
+        $principal = config('services.gemini.model');
+        Http::fake(fn ($peticion) => str_contains($peticion->url(), "/{$principal}:")
+            ? Http::response('sin cuota', 429)
+            : $this->respuestaGemini($this->contenido()));
+        Sanctum::actingAs($estudiante);
+
+        $this->generar($semana)->assertOk()->assertJsonPath('semana.estado_generacion', 'listo');
+
+        Http::assertSentCount(2);
+        Sleep::assertNeverSlept();
     }
 
     /**

@@ -41,6 +41,10 @@ class GeminiService
     // Tope de semanas que se aceptan en una guia
     private const MAX_SEMANAS = 52;
 
+    // Esperas entre reintentos cuando Gemini responde 503 (saturado): 3 reintentos más, unos
+    // 14 s en total por modelo antes de pasar al de respaldo
+    private const ESPERAS_REINTENTO_MS = [2000, 4000, 8000];
+
     // Cantidad fija de recomendaciones por semana (contrato 2.2 de la Fase 0)
     private const TOTAL_RECOMENDACIONES = 4;
 
@@ -374,12 +378,14 @@ class GeminiService
                     'x-goog-api-key' => $this->apiKey, // La clave va por cabecera, no en la URL
                 ])
                     ->timeout(60)
+                    // 503 = Google saturado un momento: se reintenta con esperas que crecen (2, 4 y
+                    // 8 s). 429 (sin cuota) no se reintenta: la cuota no vuelve en segundos, así que
+                    // se pasa de una al modelo de respaldo, que tiene la suya
                     ->retry(
-                        2,
-                        1000,
-                        fn ($excepcion) => $excepcion instanceof RequestException
-                            && in_array($excepcion->response->status(), [429, 503]),
-                        throw: false
+                        self::ESPERAS_REINTENTO_MS,
+                        throw: false,
+                        when: fn ($excepcion) => $excepcion instanceof RequestException
+                            && $excepcion->response->status() === 503,
                     )
                     ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", $cuerpo);
 
@@ -392,7 +398,7 @@ class GeminiService
                     continue; // Pasa al siguiente modelo de la lista
                 }
 
-                return $respuesta->json('candidates.0.content.parts.0.text');
+                return $this->textoDeRespuesta($respuesta->json() ?? [], $modelo);
             } catch (\Exception $e) {
                 Log::error('Excepcion en GeminiService', [
                     'modelo'  => $modelo,
@@ -403,6 +409,32 @@ class GeminiService
 
         // Ningun modelo respondio: los metodos publicos ya manejan el null
         return null;
+    }
+
+    /**
+     * Junta el texto de TODAS las partes de la respuesta. Gemini puede devolver el texto partido
+     * en varias partes (sobre todo los modelos que "piensan"): leer solo la primera dejaba
+     * respuestas del chat cortadas a mitad de frase. Las partes de pensamiento (thought) no son
+     * la respuesta y se saltan. Si Gemini terminó por otra razón que no sea STOP (por ejemplo,
+     * MAX_TOKENS), se anota en el log para saber por qué una respuesta salió incompleta.
+     */
+    private function textoDeRespuesta(array $cuerpo, string $modelo): ?string
+    {
+        $candidato = $cuerpo['candidates'][0] ?? [];
+        $motivo = $candidato['finishReason'] ?? null;
+
+        if ($motivo !== null && $motivo !== 'STOP') {
+            Log::warning('Gemini terminó la respuesta antes de tiempo', ['modelo' => $modelo, 'motivo' => $motivo]);
+        }
+
+        $textos = [];
+        foreach ($candidato['content']['parts'] ?? [] as $parte) {
+            if (isset($parte['text']) && empty($parte['thought'])) {
+                $textos[] = $parte['text'];
+            }
+        }
+
+        return $textos === [] ? null : implode('', $textos);
     }
 
     /**
