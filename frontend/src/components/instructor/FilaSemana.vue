@@ -59,7 +59,12 @@ const bloqueada = computed(() => props.semana.estado === 'bloqueada')
 
       <section v-for="g in semana.porGuia" v-else :key="g.guia.id" class="guia">
         <h4>{{ g.guia.nombre }}<span v-if="g.titulo"> · {{ g.titulo }}</span></h4>
-        <p v-if="!g.proyectos.length" class="vacio">Esta semana no trae mini proyectos en esta guía.</p>
+        <!-- Sin proyectos porque la IA aún no prepara la semana (se genera al liberarla) no es lo mismo
+             que una semana ya preparada que no trae proyectos -->
+        <p v-if="!g.proyectos.length && g.estado !== 'listo'" class="vacio">
+          La IA todavía no prepara el contenido de esta semana en esta guía. Si no avanza, abre la guía.
+        </p>
+        <p v-else-if="!g.proyectos.length" class="vacio">Esta semana no trae mini proyectos en esta guía.</p>
         <EntregasProyecto v-for="p in g.proyectos" :key="p.id" :proyecto="p" :estudiantes="estudiantes"
           :entregas="entregasPorProyecto[p.id] ?? []" :abierto="proyectoAbierto === p.id"
           @alternar="$emit('alternar-proyecto', p.id)" />

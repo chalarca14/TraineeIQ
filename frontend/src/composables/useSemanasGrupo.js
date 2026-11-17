@@ -67,6 +67,8 @@ export function useSemanasGrupo(grupo) {
                 // La guía puede tener menos semanas que el grupo: entonces no aparece en esta fila
                 existe: lista.some((s) => s.numero_semana === numero),
                 titulo: lista.find((s) => s.numero_semana === numero)?.titulo ?? '',
+                // estado_generacion de la semana en esta guía: sin 'listo' aún no tiene proyectos
+                estado: lista.find((s) => s.numero_semana === numero)?.estado_generacion ?? 'pendiente',
                 proyectos: liberada
                     ? proyectos.filter((p) => p.semana?.numero_semana === numero)
                         .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
