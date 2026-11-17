@@ -33,9 +33,12 @@ Mini proyectos: exactamente 3, en este orden:
 
 Cada mini proyecto debe poder desarrollarse en pocas horas y entregarse en un repositorio de GitHub.
 
+{{INSTRUCCION_GUIAS_SEMANA}}
+
 <semana>
 Titulo: {{TITULO}}
 Resumen: {{RESUMEN}}
 
 {{CONTENIDO}}
 </semana>
+{{GUIAS_SEMANA}}

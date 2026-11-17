@@ -120,9 +120,14 @@ class GenerarContenidoSemanaService
     {
         $gemini = GeminiService::obtenerInstancia();
 
+        // Guías detalladas que el instructor adjuntó a esta semana: la IA las usa como fuente principal
+        $guiasSemana = $semana->materiales()->get(['nombre', 'contenido_texto'])
+            ->map(fn ($material) => ['nombre' => $material->nombre, 'texto' => $material->contenido_texto])
+            ->all();
+
         for ($intento = 1; ; $intento++) {
             try {
-                return $gemini->generarContenidoSemana($semana->titulo, $semana->resumen, $semana->contenido_texto);
+                return $gemini->generarContenidoSemana($semana->titulo, $semana->resumen, $semana->contenido_texto, $guiasSemana);
             } catch (RespuestaIaInvalidaException $e) {
                 if ($intento >= self::MAX_INTENTOS) {
                     throw $e;
@@ -150,9 +155,16 @@ class GenerarContenidoSemanaService
     /**
      * Guarda el contenido y marca la semana como lista. Usa updateOrCreate por
      * (semana, orden) sin borrar filas: borrar un mini proyecto borraria sus entregas.
+     * Si algún aprendiz ya guardó una entrega en los mini proyectos de la semana, solo se
+     * actualizan las recomendaciones: cambiar los requisitos de un proyecto que alguien ya
+     * está haciendo haría que su evaluación compare contra otra cosa.
      */
     private function guardar(GuiaSemana $semana, array $contenido): void
     {
+        if (self::tieneEntregas($semana)) {
+            $contenido['mini_proyectos'] = [];
+        }
+
         foreach ($contenido['recomendaciones'] as $recomendacion) {
             Recomendacion::updateOrCreate(
                 ['guia_semana_id' => $semana->id, 'orden' => $recomendacion['orden']],
@@ -178,5 +190,14 @@ class GenerarContenidoSemanaService
         }
 
         $semana->update(['estado_generacion' => 'listo', 'error_mensaje' => null]);
+    }
+
+    /**
+     * ¿Algún aprendiz ya guardó una entrega (aunque no la haya evaluado) en los mini proyectos
+     * de esta semana? Entonces una regeneración solo puede tocar las recomendaciones.
+     */
+    public static function tieneEntregas(GuiaSemana $semana): bool
+    {
+        return $semana->entregas()->exists();
     }
 }

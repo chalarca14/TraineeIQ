@@ -184,9 +184,9 @@ class GenerarContenidoSemanaTest extends TestCase
     }
 
     /**
-     * El dueño regenera con forzar: los mini proyectos conservan su id y sus entregas.
+     * Regenerar con forzar SIN entregas reemplaza también los mini proyectos (conservan su id).
      */
-    public function test_forzar_actualiza_el_contenido_sin_perder_entregas(): void
+    public function test_forzar_sin_entregas_regenera_los_mini_proyectos(): void
     {
         [$estudiante, $semana] = $this->semanaPersonal();
         $nuevo = $this->contenido();
@@ -197,17 +197,46 @@ class GenerarContenidoSemanaTest extends TestCase
         Sanctum::actingAs($estudiante);
 
         $this->generar($semana)->assertOk();
+        $proyecto = MiniProyecto::where('orden', 1)->firstOrFail();
+
+        $this->generar($semana, ['forzar' => true])
+            ->assertOk()
+            ->assertJsonPath('solo_recomendaciones', false);
+
+        $this->assertSame('Título regenerado', $proyecto->fresh()->titulo);
+        $this->assertSame(3, MiniProyecto::count());
+    }
+
+    /**
+     * Regenerar con forzar CON entregas solo cambia las recomendaciones: los mini proyectos
+     * que alguien ya está haciendo no cambian, y su entrega se conserva.
+     */
+    public function test_forzar_con_entregas_solo_cambia_las_recomendaciones(): void
+    {
+        [$estudiante, $semana] = $this->semanaPersonal();
+        $nuevo = $this->contenido();
+        $nuevo['mini_proyectos'][0]['titulo'] = 'Título regenerado';
+        $nuevo['recomendaciones'][0]['titulo'] = 'Recomendación regenerada';
+        Http::fake(['*' => Http::sequence()
+            ->push($this->cuerpoGemini(json_encode($this->contenido())))
+            ->push($this->cuerpoGemini(json_encode($nuevo)))]);
+        Sanctum::actingAs($estudiante);
+
+        $this->generar($semana)->assertOk();
 
         $proyecto = MiniProyecto::where('orden', 1)->firstOrFail();
+        $tituloOriginal = $proyecto->titulo;
         $entrega = $proyecto->entregas()->create([
             'estudiante_id' => $estudiante->id,
             'repo_url'      => 'https://github.com/ejemplo/repo',
         ]);
 
-        $this->generar($semana, ['forzar' => true])->assertOk();
+        $this->generar($semana, ['forzar' => true])
+            ->assertOk()
+            ->assertJsonPath('solo_recomendaciones', true);
 
-        $this->assertSame('Título regenerado', $proyecto->fresh()->titulo);
-        $this->assertSame(3, MiniProyecto::count());
+        $this->assertSame($tituloOriginal, $proyecto->fresh()->titulo);
+        $this->assertSame('Recomendación regenerada', Recomendacion::where('orden', 1)->value('contenido')['titulo']);
         $this->assertDatabaseHas('entregas_mini_proyecto', [
             'id'               => $entrega->id,
             'mini_proyecto_id' => $proyecto->id,
