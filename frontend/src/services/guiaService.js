@@ -62,6 +62,14 @@ export async function subirGuia({ nombre, archivo }) {
     return data.guia
 }
 
+/**
+ * Borra una guía con todo lo suyo (semanas, mini proyectos, entregas, chats y avisos). La personal
+ * solo la borra su estudiante; la de grupo, solo el instructor del grupo (si no, 403).
+ */
+export async function eliminarGuia(id) {
+    await api.delete(`/guias/${id}`)
+}
+
 /** Devuelve una guía con todos sus temas (para la pantalla de detalle). */
 export async function obtenerGuia(id) {
     const { data } = await api.get(`/guias/${id}`)

@@ -1,14 +1,14 @@
 <script setup>
 import { computed } from 'vue'
-import { Users, CalendarDays, CalendarClock, Pencil } from 'lucide-vue-next'
+import { Users, CalendarDays, CalendarClock, Pencil, Trash2 } from 'lucide-vue-next'
 import BotonCopiarCodigo from './BotonCopiarCodigo.vue'
 import { inicialesDe } from '@/utils/usuario'
 import { formatearFecha } from '@/utils/fechas'
 
 // Cabecera del detalle del grupo (instructor). Sin "Grupo activo" ni foto: el backend no tiene esos
-// datos. "Editar" solo avisa a la vista, que abre la ventana (PATCH /grupos/{id}: nombre y descripción)
+// datos. "Editar" y "Eliminar grupo" solo avisan a la vista, que abre la ventana correspondiente
 const props = defineProps({ grupo: { type: Object, required: true } })
-const emit = defineEmits(['editar'])
+const emit = defineEmits(['editar', 'eliminar'])
 
 const instructor = computed(() => props.grupo.instructor?.name ?? '')
 const estudiantes = computed(() => props.grupo.estudiantes?.length ?? 0)
@@ -27,9 +27,14 @@ const textoSemana = computed(() => {
     <div class="texto">
       <div class="titulo">
         <h1>{{ grupo.nombre }}</h1>
-        <button type="button" class="btn btn-secundario btn-sm" @click="emit('editar')">
-          <Pencil :size="16" aria-hidden="true" /> Editar
-        </button>
+        <div class="titulo__acciones">
+          <button type="button" class="btn btn-secundario btn-sm" @click="emit('editar')">
+            <Pencil :size="16" aria-hidden="true" /> Editar
+          </button>
+          <button type="button" class="btn btn-peligro btn-sm" @click="emit('eliminar')">
+            <Trash2 :size="16" aria-hidden="true" /> Eliminar grupo
+          </button>
+        </div>
       </div>
       <p class="descripcion">{{ grupo.descripcion || 'Este grupo aún no tiene descripción.' }}</p>
 
@@ -95,6 +100,12 @@ const textoSemana = computed(() => {
 h1 {
   font-size: clamp(1.3rem, 3vw, 1.8rem);
   overflow-wrap: anywhere;
+}
+
+.titulo__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-sm);
 }
 
 .titulo .btn {

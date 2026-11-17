@@ -51,4 +51,21 @@ class GuiaPolicy
 
         return $guia->grupo?->instructor_id === $user->id;
     }
+
+    /**
+     * Borrar una guía: la personal solo su estudiante dueño, y la de grupo solo el instructor
+     * del grupo. Un estudiante nunca borra una guía de su grupo, aunque la pueda ver.
+     */
+    public function delete(User $user, Guia $guia): Response
+    {
+        if ($guia->origen === 'personal') {
+            return $guia->usuario_id === $user->id
+                ? Response::allow()
+                : Response::deny('Solo puedes borrar tus propias guías.');
+        }
+
+        return $guia->grupo?->instructor_id === $user->id
+            ? Response::allow()
+            : Response::deny('Solo el instructor del grupo puede borrar sus guías.');
+    }
 }
