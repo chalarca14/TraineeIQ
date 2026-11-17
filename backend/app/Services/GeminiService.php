@@ -206,6 +206,7 @@ class GeminiService
     private string $apiKey;
     private string $modelo;
     private string $modeloRespaldo;
+    private string $modeloEvaluacion;
 
     /**
      * Constructor privado para aplicar el patron Singleton.
@@ -216,6 +217,7 @@ class GeminiService
         $this->apiKey = (string) config('services.gemini.key');
         $this->modelo = (string) config('services.gemini.model');
         $this->modeloRespaldo = (string) config('services.gemini.fallback_model');
+        $this->modeloEvaluacion = (string) config('services.gemini.modelo_evaluacion');
     }
 
     /**
@@ -329,7 +331,13 @@ class GeminiService
             '{{CODIGO}}'     => str_ireplace(['<repositorio>', '</repositorio>'], ' ', $codigo),
         ]);
 
-        $texto = $this->llamarApi($prompt, self::ESQUEMA_EVALUACION);
+        // Primero el modelo de evaluación (más preciso) y, si falla, el principal. Sin repetir
+        // modelos y con máximo dos intentos, para no alargar la espera del aprendiz
+        $modelos = array_slice(array_values(array_unique(array_filter([
+            $this->modeloEvaluacion, $this->modelo, $this->modeloRespaldo,
+        ]))), 0, 2);
+
+        $texto = $this->llamarApi($prompt, self::ESQUEMA_EVALUACION, null, $modelos);
 
         if ($texto === null) {
             throw new IaNoDisponibleException('Gemini no respondio al evaluar el codigo.');
@@ -369,7 +377,7 @@ class GeminiService
      * Reintenta si Gemini esta saturado y usa un modelo de respaldo si el principal falla.
      * Centraliza el manejo de errores HTTP para no repetir try-catch en cada metodo publico.
      */
-    private function llamarApi(string $prompt, ?array $esquema = null, ?string $nivelPensamiento = null): ?string
+    private function llamarApi(string $prompt, ?array $esquema = null, ?string $nivelPensamiento = null, ?array $modelos = null): ?string
     {
         $cuerpo = ['contents' => [['parts' => [['text' => $prompt]]]]];
 
@@ -387,8 +395,9 @@ class GeminiService
             $cuerpo['generationConfig']['thinkingConfig'] = ['thinkingLevel' => $nivelPensamiento];
         }
 
-        // Orden de intento: primero el modelo principal, luego el de respaldo
-        $modelos = [$this->modelo, $this->modeloRespaldo];
+        // Orden de intento: el que pida quien llama (la evaluación) o, por defecto, primero el
+        // modelo principal y luego el de respaldo
+        $modelos ??= [$this->modelo, $this->modeloRespaldo];
 
         foreach ($modelos as $modelo) {
             try {
