@@ -98,7 +98,10 @@ async function liberar() {
     try {
         semanaLiberada.value = await liberarSemana(grupo.value.id, semanaLiberada.value)
         mensajeLiberar.value = 'Semana liberada.'
+        // Solo se generan semanas liberadas: con el límite nuevo, la cola prepara las recién liberadas
+        store.semanaLimite = semanaLiberada.value
         await store.refrescarSemanas()
+        store.procesarCola()
     } catch (e) {
         mensajeLiberar.value = e.response?.data?.message ?? 'No pudimos liberar la semana.'
     } finally {
@@ -128,7 +131,8 @@ onMounted(async () => {
         cargando.value = false
     }
 
-    await store.abrirGuia(guia.value.id)
+    // El instructor ve todas las semanas, pero solo se generan las liberadas al grupo
+    await store.abrirGuia(guia.value.id, { semanaLimite: grupo.value ? semanaLiberada.value : null })
 })
 
 onUnmounted(() => {

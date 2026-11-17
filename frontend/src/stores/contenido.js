@@ -21,10 +21,12 @@ export const useContenidoStore = defineStore('contenido', {
         cargandoContenido: false,
         // true mientras la cola está pidiendo semanas al backend
         procesandoCola: false,
-        // Modo Grupo: solo se piden las semanas liberadas. El backend genera también las bloqueadas
-        // (no lo impide), así que el filtro tiene que estar aquí o se gastaría Gemini en semanas que
-        // el aprendiz todavía no puede ver.
-        soloLiberadas: false,
+        // Hasta qué semana se puede generar. Solo se generan semanas liberadas, para no gastar la
+        // cuota diaria de Gemini (el backend responde 403 a las demás). Para el instructor es la
+        // semana_actual del grupo: él ve todas las semanas como disponibles, pero las futuras se
+        // preparan al liberarlas. Para el aprendiz (grupo o Modo Personal) es null y manda
+        // "disponible", que el backend ya calcula con la semana del grupo o con la experiencia (XP).
+        semanaLimite: null,
         // Número de la semana que ESTA pantalla está generando ahora mismo. Sirve para distinguirla de
         // una que el servidor reporta "generando" por otra persona o porque quedó caída.
         generandoAqui: null,
@@ -39,16 +41,20 @@ export const useContenidoStore = defineStore('contenido', {
         semanaSeleccionada: (state) => state.semanas.find((s) => s.numero_semana === state.semanaActiva) ?? null,
 
         // Sirve para volver a consultar mientras alguna semana se está preparando
-        hayGenerando: (state) => state.semanas.some((s) => s.estado_generacion === 'generando')
+        hayGenerando: (state) => state.semanas.some((s) => s.estado_generacion === 'generando'),
+
+        // ¿Se puede pedir a Gemini el contenido de esta semana? Ver semanaLimite
+        esGenerable: (state) => (semana) =>
+            state.semanaLimite != null ? semana.numero_semana <= state.semanaLimite : Boolean(semana.disponible)
     },
 
     actions: {
         // Carga las semanas de una guía, abre la primera disponible y lanza la cola.
-        // opciones.soloLiberadas = true en Modo Grupo: no pide generar semanas no liberadas.
+        // opciones.semanaLimite: solo para el instructor, la semana_actual de su grupo (ver el state).
         async abrirGuia(guiaId, opciones = {}) {
             this.cerrarGuia()
             this.guiaId = guiaId
-            this.soloLiberadas = Boolean(opciones.soloLiberadas)
+            this.semanaLimite = opciones.semanaLimite ?? null
 
             let semanas
 
@@ -64,7 +70,7 @@ export const useContenidoStore = defineStore('contenido', {
                 return
             }
 
-            this.semanas = semanas
+            this.semanas = this.marcarSinLiberar(semanas)
 
             const primera = this.semanas.find((s) => s.disponible) ?? this.semanas[0]
             if (primera) {
@@ -74,13 +80,14 @@ export const useContenidoStore = defineStore('contenido', {
             this.procesarCola()
         },
 
-        // Abre una semana. Si sigue pendiente, vuelve a lanzar la cola
+        // Abre una semana. Si sigue pendiente y ya está liberada, vuelve a lanzar la cola
         async seleccionarSemana(numero) {
             this.semanaActiva = numero
             this.contenido = null
             await this.cargarContenido()
 
-            if (this.semanaSeleccionada?.estado_generacion === 'pendiente') {
+            const semana = this.semanaSeleccionada
+            if (semana?.estado_generacion === 'pendiente' && this.esGenerable(semana)) {
                 this.procesarCola()
             }
         },
@@ -110,7 +117,7 @@ export const useContenidoStore = defineStore('contenido', {
             }
         },
 
-        // Pide las semanas una por una, sin botón. También incluye las que están en
+        // Pide las semanas liberadas una por una, sin botón. También incluye las que están en
         // 'generando': el backend responde al instante y retoma las que quedaron caídas
         async procesarCola() {
             if (this.procesandoCola) {
@@ -120,7 +127,7 @@ export const useContenidoStore = defineStore('contenido', {
             const id = ++idColaVigente
             const porGenerar = this.semanas
                 .filter((s) => ['pendiente', 'generando'].includes(s.estado_generacion))
-                .filter((s) => !this.soloLiberadas || s.disponible)
+                .filter((s) => this.esGenerable(s))
                 .map((s) => s.numero_semana)
 
             this.procesandoCola = true
@@ -207,7 +214,7 @@ export const useContenidoStore = defineStore('contenido', {
                     return
                 }
 
-                this.semanas = semanas
+                this.semanas = this.marcarSinLiberar(semanas)
 
                 if (this.semanaSeleccionada?.estado_generacion === 'listo' && !this.contenido) {
                     await this.cargarContenido()
@@ -250,10 +257,16 @@ export const useContenidoStore = defineStore('contenido', {
         // Vuelve a pedir la lista, por ejemplo después de liberar semanas
         async refrescarSemanas() {
             try {
-                this.semanas = await getSemanas(this.guiaId)
+                this.semanas = this.marcarSinLiberar(await getSemanas(this.guiaId))
             } catch (e) {
                 this.error = e.response?.data?.message ?? 'No pudimos actualizar las semanas.'
             }
+        },
+
+        // Marca con sin_liberar las semanas que el instructor ve pero aún no libera: su contenido no se
+        // genera hasta liberarlas, y la pantalla lo dice ("Se prepara al liberarla") en vez de "Pendiente"
+        marcarSinLiberar(semanas) {
+            return semanas.map((s) => ({ ...s, sin_liberar: !this.esGenerable(s) }))
         },
 
         // Detiene la cola en curso y limpia el estado
