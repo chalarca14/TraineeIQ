@@ -35,7 +35,7 @@ export async function listarMisGuias() {
  * Arma el FormData de una guía y la envía. grupoId y semanasTotales solo van si vienen: el estudiante
  * NUNCA manda grupo_id (el backend responde 422) y el instructor SIEMPRE (si no, 422).
  * Sin 'origen' (lo decide el backend) y sin Content-Type (el navegador lo genera con el límite del
- * FormData). Timeout de 120 s porque el backend lee el PDF y llama a la IA.
+ * FormData). Timeout de 120 s porque el backend lee el archivo (PDF o Excel) y llama a la IA.
  */
 async function enviarGuia({ nombre, archivo, grupoId = null, semanasTotales = null }) {
     const formData = new FormData()
@@ -56,10 +56,18 @@ export async function asignarGuia({ nombre, archivo, grupoId, semanasTotales = n
     return { guia: data.guia, yaExistia: Boolean(data.ya_existia) }
 }
 
-/** Estudiante (Modo Personal): sube un PDF; el backend lo lee y lo divide en temas. */
+/** Estudiante (Modo Personal): sube un PDF o un Excel (.xlsx); el backend lo lee y lo divide en temas. */
 export async function subirGuia({ nombre, archivo }) {
     const data = await enviarGuia({ nombre, archivo })
     return data.guia
+}
+
+/**
+ * Borra una guía con todo lo suyo (semanas, mini proyectos, entregas, chats y avisos). La personal
+ * solo la borra su estudiante; la de grupo, solo el instructor del grupo (si no, 403).
+ */
+export async function eliminarGuia(id) {
+    await api.delete(`/guias/${id}`)
 }
 
 /** Devuelve una guía con todos sus temas (para la pantalla de detalle). */

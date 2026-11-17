@@ -49,6 +49,12 @@ export async function crearGrupo({ nombre, descripcion = null }) {
     return data.data
 }
 
+/** Cambia el nombre y la descripción de un grupo (solo su instructor). Devuelve el grupo actualizado. */
+export async function editarGrupo(id, { nombre, descripcion = null }) {
+    const { data } = await api.patch(`/grupos/${id}`, { nombre, descripcion })
+    return data.data
+}
+
 /** Borra un grupo con todas sus guías y entregas (solo su instructor). */
 export async function eliminarGrupo(id) {
     await api.delete(`/grupos/${id}`)

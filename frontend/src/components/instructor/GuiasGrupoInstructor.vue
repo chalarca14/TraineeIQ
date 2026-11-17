@@ -1,12 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { BookOpen, FileText, Plus, Eye } from 'lucide-vue-next'
+import { BookOpen, FileText, Plus, Eye, Trash2 } from 'lucide-vue-next'
 import PanelTarjeta from '@/components/ui/PanelTarjeta.vue'
 import EstadoVista from '@/components/ui/EstadoVista.vue'
 import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 import AsignarGuiaModal from './AsignarGuiaModal.vue'
 import FiltrosGuias from './FiltrosGuias.vue'
+import EliminarGuiaModal from '@/components/guias/EliminarGuiaModal.vue'
 import { listarGuiasDeGrupo } from '@/services/guiaService'
 import { formatearFecha } from '@/utils/fechas'
 
@@ -62,6 +63,16 @@ function alSubir({ guia, yaExistia }) {
   router.push(rutaGuia(guia))
 }
 
+// Guía que se va a eliminar (abre la confirmación)
+const porEliminar = ref(null)
+
+// Se quita de la lista sin recargar. Si era la que se avisó como repetida, el aviso también se va
+function alEliminar(id) {
+  guias.value = guias.value.filter((g) => g.id !== id)
+  if (repetida.value?.id === id) repetida.value = null
+  porEliminar.value = null
+}
+
 onMounted(cargar)
 </script>
 
@@ -102,9 +113,15 @@ onMounted(cargar)
               </span>
               <span v-if="g.created_at">Asignada el {{ formatearFecha(g.created_at) }}</span>
             </div>
-            <RouterLink :to="rutaGuia(g)" class="btn btn-primario btn-sm">
-              <Eye :size="16" aria-hidden="true" /> Ver guía
-            </RouterLink>
+            <div class="guia__acciones">
+              <RouterLink :to="rutaGuia(g)" class="btn btn-primario btn-sm">
+                <Eye :size="16" aria-hidden="true" /> Ver guía
+              </RouterLink>
+              <button type="button" class="btn btn-peligro-borde btn-sm" :aria-label="`Eliminar la guía ${g.nombre}`"
+                @click="porEliminar = g">
+                <Trash2 :size="16" aria-hidden="true" /> Eliminar
+              </button>
+            </div>
           </li>
         </ul>
       </EstadoVista>
@@ -114,6 +131,8 @@ onMounted(cargar)
       :total="cargando ? null : guias.length" />
 
     <AsignarGuiaModal v-if="asignando" :grupo-id="grupoId" @cerrar="asignando = false" @subida="alSubir" />
+    <EliminarGuiaModal v-if="porEliminar" :guia="porEliminar" contexto="grupo" @cerrar="porEliminar = null"
+      @eliminada="alEliminar" />
   </div>
 </template>
 
@@ -201,6 +220,19 @@ onMounted(cargar)
 .guia__datos span {
   color: var(--color-text-secondary);
   font-size: .82rem;
+}
+
+/* "Ver guía" y "Eliminar" juntos; en pantallas angostas bajan bajo los datos (la fila ya envuelve) */
+.guia__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-sm);
+}
+
+.guia__acciones .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
 }
 
 </style>

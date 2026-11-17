@@ -14,8 +14,12 @@ RUN composer dump-autoload --optimize --no-dev --no-scripts
 # Etapa 2: la imagen que corre en Render
 FROM php:8.3-apache
 
-# Apache atiende varias peticiones a la vez: una evaluacion larga no bloquea a los demas
-RUN docker-php-ext-install pdo_mysql opcache \
+# Apache atiende varias peticiones a la vez: una evaluacion larga no bloquea a los demas.
+# zip: para leer las guías en Excel (.xlsx), que por dentro son un archivo comprimido
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libzip-dev \
+    && docker-php-ext-install pdo_mysql opcache zip \
+    && rm -rf /var/lib/apt/lists/* \
     && a2enmod rewrite
 
 COPY docker/php.ini /usr/local/etc/php/conf.d/traineeiq.ini

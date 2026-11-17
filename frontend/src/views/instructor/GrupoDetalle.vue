@@ -15,7 +15,7 @@
                 </div>
             </template>
 
-            <CabeceraGrupoInstructor :grupo="grupo" />
+            <CabeceraGrupoInstructor :grupo="grupo" @editar="editando = true" @eliminar="eliminando = true" />
 
             <section class="contenido" aria-label="Contenido del grupo">
                 <Pestanas v-model="pestana" :pestanas="PESTANAS" cuadricula />
@@ -28,6 +28,9 @@
                 <EstadisticasGrupo v-else :grupo="grupo" @ir-a="pestana = $event" />
             </section>
         </EstadoVista>
+
+        <EditarGrupoModal v-if="editando" :grupo="grupo" @cerrar="editando = false" @editado="alEditar" />
+        <EliminarGrupoModal v-if="eliminando" :grupo="grupo" @cerrar="eliminando = false" @eliminado="alEliminar" />
     </main>
 </template>
 
@@ -39,6 +42,8 @@ import EstadoVista from '@/components/ui/EstadoVista.vue'
 import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
 import Pestanas from '@/components/ui/Pestanas.vue'
 import CabeceraGrupoInstructor from '@/components/instructor/CabeceraGrupoInstructor.vue'
+import EditarGrupoModal from '@/components/instructor/EditarGrupoModal.vue'
+import EliminarGrupoModal from '@/components/instructor/EliminarGrupoModal.vue'
 import ResumenGrupo from '@/components/instructor/ResumenGrupo.vue'
 import GuiasGrupoInstructor from '@/components/instructor/GuiasGrupoInstructor.vue'
 import SemanasGrupo from '@/components/instructor/SemanasGrupo.vue'
@@ -83,6 +88,25 @@ async function cargar() {
     } finally {
         cargando.value = false
     }
+}
+
+// Ventana "Editar grupo"
+const editando = ref(false)
+
+// Solo cambian nombre y descripción: se copian sin recargar el grupo, para no perder los
+// estudiantes y la última semana que trae getGrupo (el PATCH no los devuelve)
+function alEditar(actualizado) {
+    grupo.value.nombre = actualizado.nombre
+    grupo.value.descripcion = actualizado.descripcion
+    editando.value = false
+}
+
+// Ventana "Eliminar grupo". Borrado el grupo, esta página ya no tiene qué mostrar: vuelve a la lista
+const eliminando = ref(false)
+
+function alEliminar() {
+    eliminando.value = false
+    router.push({ name: 'InstructorMisGrupos' })
 }
 
 onMounted(cargar)

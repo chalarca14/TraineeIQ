@@ -5,14 +5,14 @@ import ModalBase from '@/components/ui/ModalBase.vue'
 import AnimacionCarga from '@/components/ui/AnimacionCarga.vue'
 import { asignarGuia } from '@/services/guiaService'
 import { PASOS_SUBIDA } from '@/utils/pasosCarga'
+import { MAX_MB_PDF, MAX_MB_EXCEL, TIPOS_ACEPTADOS, errorDeArchivoGuia } from '@/utils/archivoGuia'
 
-// Asignar una guía (PDF) al grupo. El backend lee el PDF y lo divide en semanas; el contenido de
-// cada semana se genera DESPUÉS, al abrir la guía (cola de stores/contenido.js).
+// Asignar una guía (PDF o Excel .xlsx) al grupo. El backend la lee y la divide en semanas; el
+// contenido de cada semana se genera DESPUÉS, al abrir la guía (cola de stores/contenido.js).
 const props = defineProps({ grupoId: { type: Number, required: true } })
 // subida: { guia, yaExistia }
 const emit = defineEmits(['cerrar', 'subida'])
 
-const MAX_MB = 10
 const idNombre = useId()
 const idArchivo = useId()
 const idSemanas = useId()
@@ -26,7 +26,7 @@ const enviando = ref(false)
 
 function elegirArchivo(evento) {
   archivo.value = evento.target.files[0] ?? null
-  // Un error viejo ("Selecciona un PDF") no debe quedarse después de elegir uno
+  // Un error viejo ("Selecciona un PDF o un Excel") no debe quedarse después de elegir uno
   errores.value.archivo = ''
 }
 
@@ -36,11 +36,10 @@ function validar() {
   if (!nombre.value.trim()) e.nombre = 'Escribe el nombre de la guía.'
   else if (nombre.value.trim().length > 255) e.nombre = 'El nombre es demasiado largo (máximo 255 caracteres).'
 
-  if (!archivo.value) e.archivo = 'Selecciona el PDF de la guía.'
-  else if (archivo.value.type !== 'application/pdf') e.archivo = 'El archivo debe ser un PDF.'
-  else if (archivo.value.size > MAX_MB * 1024 * 1024) e.archivo = `El PDF no puede pesar más de ${MAX_MB} MB.`
+  const errorArchivo = errorDeArchivoGuia(archivo.value)
+  if (errorArchivo) e.archivo = errorArchivo
 
-  // Opcional: vacío = lo decide el backend según el PDF
+  // Opcional: vacío = lo decide el backend según la guía
   const n = Number(semanas.value)
   if (semanas.value !== '' && (!Number.isInteger(n) || n < 1 || n > 52)) {
     e.semanas = 'Escribe un número de semanas entre 1 y 52, o déjalo vacío.'
@@ -75,13 +74,13 @@ async function enviar() {
       if (datos.errors.grupo_id) error.value = datos.errors.grupo_id[0]
     } else if (status === 422) {
       // Por ejemplo, un PDF escaneado sin texto: el backend explica qué pasó
-      error.value = datos?.message ?? 'No pudimos leer texto en ese PDF.'
+      error.value = datos?.message ?? 'No pudimos leer texto en ese archivo.'
     } else if (status === 403) {
       error.value = 'No tienes acceso a este grupo.'
     } else if (status === 503) {
       error.value = datos?.message ?? 'La IA está ocupada, intenta en un momento.'
     } else if (err.code === 'ECONNABORTED') {
-      error.value = 'La lectura del PDF tardó demasiado. Intenta de nuevo.'
+      error.value = 'La lectura de la guía tardó demasiado. Intenta de nuevo.'
     } else if (!err.response) {
       error.value = 'No se pudo conectar con el servidor. Revisa tu conexión.'
     } else {
@@ -104,11 +103,11 @@ async function enviar() {
         placeholder="Ej: Introducción a HTML y CSS" :aria-invalid="!!errores.nombre" />
       <p class="error">{{ errores.nombre }}</p>
 
-      <label :for="idArchivo">Archivo PDF <span class="opcional">(máximo {{ MAX_MB }} MB)</span></label>
+      <label :for="idArchivo">Archivo <span class="opcional">(PDF hasta {{ MAX_MB_PDF }} MB o Excel .xlsx hasta {{ MAX_MB_EXCEL }} MB)</span></label>
       <label class="archivo" :class="{ 'archivo--lleno': archivo, 'archivo--error': errores.archivo }">
         <FileUp :size="22" aria-hidden="true" />
-        <span>{{ archivo ? archivo.name : 'Elegir el PDF de la guía' }}</span>
-        <input :id="idArchivo" type="file" accept="application/pdf" class="oculto" @change="elegirArchivo" />
+        <span>{{ archivo ? archivo.name : 'Elegir el PDF o el Excel de la guía' }}</span>
+        <input :id="idArchivo" type="file" :accept="TIPOS_ACEPTADOS" class="oculto" @change="elegirArchivo" />
       </label>
       <p class="error" role="alert">{{ errores.archivo }}</p>
 
@@ -117,15 +116,15 @@ async function enviar() {
         placeholder="Si lo dejas vacío, se calcula según la guía" :aria-invalid="!!errores.semanas" />
       <p class="error">{{ errores.semanas }}</p>
 
-      <!-- Se ve ANTES de subir: el PDF original no se conserva (el servidor no tiene disco persistente) -->
+      <!-- Se ve ANTES de subir: el archivo original no se conserva (el servidor no tiene disco persistente) -->
       <p class="aviso-pdf" role="note">
         <Info :size="18" aria-hidden="true" />
-        <span>TraineeIQ guarda el texto de la guía, no el PDF original. Conserva tu copia del PDF.</span>
+        <span>TraineeIQ guarda el texto de la guía, no el archivo original. Conserva tu copia del PDF o del Excel.</span>
       </p>
 
       <p v-if="error" class="error error--general" role="alert">{{ error }}</p>
 
-      <!-- Leer y dividir el PDF tarda hasta un par de minutos: la animación muestra que sigue trabajando
+      <!-- Leer y dividir la guía (PDF o Excel) tarda hasta un par de minutos: la animación muestra que sigue trabajando
            (reemplaza a la frase suelta "Esto puede tardar…", que ahora va como detalle) -->
       <AnimacionCarga v-if="enviando" tamano="sm" :pasos="PASOS_SUBIDA"
         detalle="Puede tardar hasta un par de minutos. No cierres esta ventana." />
@@ -133,7 +132,7 @@ async function enviar() {
       <div class="acciones">
         <button type="button" class="btn btn-secundario" :disabled="enviando" @click="emit('cerrar')">Cancelar</button>
         <button type="submit" class="btn btn-primario" :disabled="enviando">
-          {{ enviando ? 'Leyendo el PDF…' : 'Asignar guía' }}
+          {{ enviando ? 'Leyendo la guía…' : 'Asignar guía' }}
         </button>
       </div>
     </form>

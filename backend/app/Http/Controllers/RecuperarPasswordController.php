@@ -8,8 +8,10 @@ use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * "¿Olvidaste tu contraseña?". Usa el password broker de Laravel: él crea el token, lo guarda
@@ -25,7 +27,15 @@ class RecuperarPasswordController extends Controller
      */
     public function enviarEnlace(OlvidePasswordRequest $request): JsonResponse
     {
-        Password::sendResetLink(['email' => $request->validated('email')]);
+        try {
+            Password::sendResetLink(['email' => $request->validated('email')]);
+        } catch (Throwable $e) {
+            // Si el servicio de correo falla, se responde igual: un 500 solo para los correos
+            // registrados revelaría cuáles tienen cuenta. El correo de la persona no va al log
+            Log::error('No se pudo enviar el correo de recuperación de contraseña', [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,

@@ -22,6 +22,11 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    // Clave de la API de Brevo (no la SMTP). Solo en el .env y en Render
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
@@ -42,6 +47,14 @@ return [
     // Una guia mas larga se rechaza con un mensaje claro, en vez de recortarla en silencio
     'max_caracteres_guia' => (int) env('GEMINI_MAX_CARACTERES_GUIA', 300000),
 ],
+
+    // Guías en Excel (.xlsx): hojas que no se leen (separadas por coma) y tope de celdas,
+    // para no gastar la memoria de Render. PlanEvaluacion de la plantilla RP33 suele ser de otro curso
+    'guia_excel' => [
+        'hojas_ignoradas' => array_filter(array_map('trim', explode(',', (string) env('GUIA_EXCEL_HOJAS_IGNORADAS', 'PlanEvaluacion')))),
+        'max_celdas'      => (int) env('GUIA_EXCEL_MAX_CELDAS', 60000),
+        'max_kb'          => (int) env('GUIA_EXCEL_MAX_KB', 2048),
+    ],
 
     'github' => [
         // Token del servidor: solo sube el limite de consultas, no da acceso a nada privado

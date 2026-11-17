@@ -2,7 +2,7 @@
     <main class="mis-guias">
 
         <EncabezadoPagina titulo="Mis guías" :icono="BookOpen"
-            descripcion="Sube tus guías en PDF y las dividimos en temas para estudiarlas con ayuda de la IA.">
+            descripcion="Sube tus guías en PDF o Excel y las dividimos en temas para estudiarlas con ayuda de la IA.">
             <template #acciones>
                 <button class="btn btn-primario" type="button" @click="mostrarForm = !mostrarForm">
                     <Plus :size="18" /> Subir guía
@@ -14,14 +14,17 @@
 
         <EstadoVista :cargando="cargando" :error="error" :vacio="guias.length === 0" :icono="BookOpen"
             texto-cargando="Cargando tus guías..." texto-vacio="Aún no has subido ninguna guía."
-            descripcion-vacio="Sube tu primer PDF y lo organizamos por temas." @reintentar="cargarGuias">
+            descripcion-vacio="Sube tu primera guía en PDF o Excel y la organizamos por temas." @reintentar="cargarGuias">
             <template #cargando>
                 <div class="guias-grid"><EsqueletoTarjeta v-for="n in 3" :key="n" :lineas="3" alto="150px" /></div>
             </template>
             <div class="guias-grid">
-                <GuiaCard v-for="guia in guias" :key="guia.id" :guia="guia" />
+                <GuiaCard v-for="guia in guias" :key="guia.id" :guia="guia" @eliminar="porEliminar = $event" />
             </div>
         </EstadoVista>
+
+        <EliminarGuiaModal v-if="porEliminar" :guia="porEliminar" contexto="personal" @cerrar="porEliminar = null"
+            @eliminada="alEliminar" />
 
     </main>
 </template>
@@ -34,6 +37,7 @@ import EstadoVista from '@/components/ui/EstadoVista.vue'
 import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
 import GuiaCard from '@/components/personal/GuiaCard.vue'
 import SubirGuiaForm from '@/components/personal/SubirGuiaForm.vue'
+import EliminarGuiaModal from '@/components/guias/EliminarGuiaModal.vue'
 import { listarMisGuias } from '@/services/guiaService'
 
 const guias = ref([])
@@ -56,6 +60,14 @@ async function cargarGuias() {
 function alSubir(guia) {
     guias.value.unshift(guia)
     mostrarForm.value = false
+}
+
+// Guía que se va a eliminar (abre la confirmación). Al borrarla se quita sin recargar
+const porEliminar = ref(null)
+
+function alEliminar(id) {
+    guias.value = guias.value.filter((g) => g.id !== id)
+    porEliminar.value = null
 }
 
 onMounted(cargarGuias)

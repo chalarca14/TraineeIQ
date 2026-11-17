@@ -65,6 +65,11 @@ return [
             'transport' => 'resend',
         ],
 
+        // Producción (Render): API HTTP de Brevo. El transporte se registra en AppServiceProvider
+        'brevo' => [
+            'transport' => 'brevo',
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),

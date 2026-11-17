@@ -10,18 +10,18 @@
         <div class="field-group">
             <label class="file-drop" :class="{ lleno: archivo }">
                 <FileUp :size="24" />
-                <span>{{ archivo ? archivo.name : 'Haz clic para elegir un PDF (máx. 10 MB)' }}</span>
-                <input type="file" accept="application/pdf" class="sr-only" @change="elegirArchivo" />
+                <span>{{ archivo ? archivo.name : 'Haz clic para elegir un PDF (máx. 10 MB) o un Excel .xlsx (máx. 2 MB)' }}</span>
+                <input type="file" :accept="TIPOS_ACEPTADOS" class="sr-only" @change="elegirArchivo" />
             </label>
-            <!-- Error de validación del archivo (falta, no es PDF, pesa de más o lo rechazó el backend).
+            <!-- Error de validación del archivo (falta, no es PDF ni Excel, pesa de más o lo rechazó el backend).
                  role="alert" hace que el lector de pantalla lo anuncie al aparecer. El <p> existe siempre
                  (vacío): un aviso que se inserta junto con su texto a veces no se anuncia. -->
             <p class="input-error" role="alert">{{ errores.archivo }}</p>
-            <!-- Se ve ANTES de subir: el aprendiz debe saber que el PDF original no se conserva
+            <!-- Se ve ANTES de subir: el aprendiz debe saber que el archivo original no se conserva
                  (el servidor no tiene disco persistente), para que guarde su propia copia -->
             <p class="aviso-pdf" role="note">
                 <Info :size="18" aria-hidden="true" />
-                <span>TraineeIQ guarda el texto de la guía, no el PDF original. Conserva tu copia del PDF.</span>
+                <span>TraineeIQ guarda el texto de la guía, no el archivo original. Conserva tu copia del PDF o del Excel.</span>
             </p>
         </div>
 
@@ -30,7 +30,7 @@
         <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando"
             @click="enviar">Reintentar</button>
 
-        <!-- Subir y dividir el PDF tarda hasta un par de minutos: la animación muestra que sigue trabajando -->
+        <!-- Subir y dividir la guía (PDF o Excel) tarda hasta un par de minutos: la animación muestra que sigue trabajando -->
         <AnimacionCarga v-if="cargando" tamano="sm" :pasos="PASOS_SUBIDA"
             detalle="Puede tardar hasta un par de minutos. No cierres esta página." />
 
@@ -51,10 +51,9 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import AnimacionCarga from '@/components/ui/AnimacionCarga.vue'
 import { subirGuia } from '@/services/guiaService'
 import { PASOS_SUBIDA } from '@/utils/pasosCarga'
+import { TIPOS_ACEPTADOS, errorDeArchivoGuia } from '@/utils/archivoGuia'
 
 const emit = defineEmits(['subida', 'cancelar'])
-
-const MAX_MB = 10
 
 const nombre = ref('')
 const archivo = ref(null)
@@ -65,7 +64,7 @@ const puedeReintentar = ref(false)
 
 function elegirArchivo(evento) {
     archivo.value = evento.target.files[0] ?? null
-    // Un error viejo ("Selecciona un archivo PDF.") no debe seguir visible después de elegir uno
+    // Un error viejo ("Selecciona un archivo.") no debe seguir visible después de elegir uno
     errores.value.archivo = ''
 }
 
@@ -77,14 +76,10 @@ function validar() {
         errores.value.nombre = 'Escribe un nombre para la guía.'
         esValido = false
     }
-    if (!archivo.value) {
-        errores.value.archivo = 'Selecciona un archivo PDF.'
-        esValido = false
-    } else if (archivo.value.type !== 'application/pdf') {
-        errores.value.archivo = 'El archivo debe ser un PDF.'
-        esValido = false
-    } else if (archivo.value.size > MAX_MB * 1024 * 1024) {
-        errores.value.archivo = `El PDF no puede pesar más de ${MAX_MB} MB.`
+    // Tipo (PDF o Excel) y peso: mismas reglas que "Asignar guía" del instructor
+    const errorArchivo = errorDeArchivoGuia(archivo.value)
+    if (errorArchivo) {
+        errores.value.archivo = errorArchivo
         esValido = false
     }
     return esValido
@@ -111,7 +106,7 @@ async function enviar() {
             errores.value.nombre = datos.errors.nombre?.[0] ?? ''
             errores.value.archivo = datos.errors.archivo?.[0] ?? ''
         } else if (status === 422) {
-            error.value = datos?.message ?? 'No pudimos leer texto en ese PDF.'
+            error.value = datos?.message ?? 'No pudimos leer texto en ese archivo.'
         } else if (status === 403) {
             error.value = 'No tienes permiso para hacer esto.'
         } else if (status === 503 || err.code === 'ECONNABORTED') {
