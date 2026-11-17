@@ -7,6 +7,9 @@
         </div>
         <p v-else class="vacio">Esta semana no trae texto de la guía.</p>
 
+        <!-- Guías de la semana que adjuntó el instructor, debajo de la planeación (solo lectura) -->
+        <MaterialesSemana :materiales="materiales" />
+
         <!-- El id fijo deja que la vista le devuelva el foco al volver de "Guía completa" -->
         <button id="btn-ver-guia-completa" type="button" class="btn btn-secundario btn-sm ver" @click="$emit('ver-completa')">
             <FileText :size="15" aria-hidden="true" /> Ver guía completa
@@ -17,9 +20,11 @@
 <script setup>
 import { FileText } from 'lucide-vue-next'
 import TextoGuia from '@/components/guias/TextoGuia.vue'
+import MaterialesSemana from '@/components/guias/MaterialesSemana.vue'
 
-// Pestaña "Guía": el contenido_texto de la semana elegida y el acceso a la guía completa
-defineProps({ texto: { type: String, default: '' } })
+// Pestaña "Guía": el texto de la semana elegida, sus guías de la semana y el acceso a la guía completa.
+// materiales: los que trae GET .../semanas/{n}; si no llegan (null), MaterialesSemana los pide
+defineProps({ texto: { type: String, default: '' }, materiales: { type: Array, default: null } })
 defineEmits(['ver-completa'])
 </script>
 

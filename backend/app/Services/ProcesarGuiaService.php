@@ -27,12 +27,10 @@ class ProcesarGuiaService
     private const TIEMPO_MAXIMO_SEGUNDOS = 180;
 
     /**
-     * Recibe los dos lectores de texto por inyeccion de dependencias.
+     * Recibe el lector de archivos (PDF o Excel) por inyeccion de dependencias.
      */
-    public function __construct(
-        private PdfTextExtractor $extractor,
-        private ExcelTextExtractor $extractorExcel,
-    ) {
+    public function __construct(private LectorArchivoGuia $lector)
+    {
     }
 
     /**
@@ -161,10 +159,7 @@ class ProcesarGuiaService
      */
     private function leerTexto(UploadedFile $archivo): string
     {
-        $esExcel = $archivo->guessExtension() === 'xlsx';
-        $lector = $esExcel ? $this->extractorExcel : $this->extractor;
-
-        $texto = mb_scrub((string) $lector->extraer($archivo->getRealPath()), 'UTF-8');
+        ['texto' => $texto, 'esExcel' => $esExcel] = $this->lector->leer($archivo);
 
         if (mb_strlen(trim($texto)) < self::MIN_CARACTERES) {
             throw new GuiaNoProcesableException($esExcel

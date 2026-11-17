@@ -63,4 +63,12 @@ class GuiaSemana extends Model
     {
         return $this->hasManyThrough(EntregaMiniProyecto::class, MiniProyecto::class, 'guia_semana_id', 'mini_proyecto_id');
     }
+
+    /**
+     * Guías detalladas que el instructor adjuntó a esta semana, en el orden en que las subió.
+     */
+    public function materiales()
+    {
+        return $this->hasMany(GuiaSemanaMaterial::class, 'guia_semana_id')->orderBy('created_at')->orderBy('id');
+    }
 }

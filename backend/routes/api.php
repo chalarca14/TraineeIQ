@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\GrupoController;
 use App\Http\Controllers\Api\GuiaController;
 use App\Http\Controllers\Api\GuiaSemanaController;
+use App\Http\Controllers\Api\MaterialSemanaController;
 use App\Http\Controllers\Api\MiniProyectoController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\AuthController;
@@ -92,6 +93,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ->whereNumber(['guiaId', 'numero']);
     Route::post('/guias/{guiaId}/semanas/{numero}/generar', [GuiaSemanaController::class, 'generar'])
         ->whereNumber(['guiaId', 'numero']);
+
+    // Guías de la semana: guías detalladas que el instructor adjunta a una semana. Ver y listar,
+    // quien lee la semana; agregar y quitar, solo el instructor del grupo (GuiaPolicy)
+    Route::get('/guias/{guiaId}/semanas/{numero}/materiales', [MaterialSemanaController::class, 'index'])
+        ->whereNumber(['guiaId', 'numero']);
+    Route::post('/guias/{guiaId}/semanas/{numero}/materiales', [MaterialSemanaController::class, 'store'])
+        ->whereNumber(['guiaId', 'numero'])->middleware('throttle:20,1');
+    Route::delete('/guias/{guiaId}/semanas/{numero}/materiales/{id}', [MaterialSemanaController::class, 'destroy'])
+        ->whereNumber(['guiaId', 'numero', 'id']);
 
     // Mini Proyectos: los genera la IA por semana, aqui solo se leen
     Route::get('/mini-proyectos/{id}', [MiniProyectoController::class, 'show'])->whereNumber('id');

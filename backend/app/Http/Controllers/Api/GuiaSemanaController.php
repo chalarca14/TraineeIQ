@@ -51,7 +51,8 @@ class GuiaSemanaController extends Controller
         $semana->makeVisible('contenido_texto');
 
         return response()->json([
-            'semana' => $semana->load(['recomendaciones', 'miniProyectos', 'temas']),
+            // materiales: las guías detalladas que el instructor adjuntó a esta semana
+            'semana' => $semana->load(['recomendaciones', 'miniProyectos', 'temas', 'materiales']),
         ], 200);
     }
 
@@ -112,6 +113,10 @@ class GuiaSemanaController extends Controller
             Gate::authorize('update', $guia);
         }
 
+        // Al regenerar una semana que ya tiene entregas, el servicio solo actualiza las
+        // recomendaciones: se avisa al frontend para que lo diga
+        $soloRecomendaciones = $forzar && GenerarContenidoSemanaService::tieneEntregas($semana);
+
         try {
             $semana = $servicio->generar($semana, $forzar);
         } catch (IaNoDisponibleException $e) {
@@ -130,7 +135,11 @@ class GuiaSemanaController extends Controller
             $semana->load(['recomendaciones', 'miniProyectos']);
         }
 
-        return response()->json(['semana' => $semana], 200);
+        return response()->json([
+            'semana'               => $semana,
+            // true si se regeneró una semana con entregas: los mini proyectos no cambiaron
+            'solo_recomendaciones' => $soloRecomendaciones && $semana->estado_generacion === 'listo',
+        ], 200);
     }
 
     /**

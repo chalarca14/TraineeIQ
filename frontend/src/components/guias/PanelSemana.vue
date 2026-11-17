@@ -20,7 +20,7 @@
 
                 <div :id="idPanel" role="tabpanel" :aria-labelledby="idPestana(pestana)" class="contenido-pestana">
                     <PestanaGuia v-if="pestana === 'guia'" :texto="contenido.contenido_texto ?? ''"
-                        @ver-completa="$emit('ver-completa')" />
+                        :materiales="contenido.materiales ?? null" @ver-completa="$emit('ver-completa')" />
                     <ContenidoSemana v-else :semana="contenido" :seccion="pestana" />
                 </div>
             </template>
@@ -77,6 +77,8 @@
             </p>
         </template>
 
+        <!-- Guías de la semana: el instructor las adjunta en cualquier estado, mejor antes de liberar -->
+        <MaterialesSemana v-if="esDueno && !esPersonal" :numero="semana.numero_semana" :estado="semana.estado_generacion" puede-gestionar />
         <NavegacionSemanas :anterior="anterior" :siguiente="siguiente" @ir="irA" />
     </section>
 </template>
@@ -93,6 +95,7 @@ import CabeceraSemana from '@/components/guias/CabeceraSemana.vue'
 import NavegacionSemanas from '@/components/guias/NavegacionSemanas.vue'
 import PestanaGuia from '@/components/guias/PestanaGuia.vue'
 import ContenidoSemana from '@/components/guias/ContenidoSemana.vue'
+import MaterialesSemana from '@/components/guias/MaterialesSemana.vue'
 
 // Anchos distintos para que las líneas del esqueleto parezcan un párrafo y no una tabla
 const ANCHOS_TEXTO = ['95%', '100%', '88%', '92%', '60%']
