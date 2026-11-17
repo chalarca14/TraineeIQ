@@ -33,6 +33,26 @@ class GeminiRespuestaTest extends TestCase
     }
 
     /**
+     * El chat pide pensamiento bajo (responde más rápido) y anota en el log los tokens que gastó.
+     */
+    public function test_el_chat_piensa_poco_y_anota_los_tokens(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response([
+            'candidates'    => [['finishReason' => 'STOP', 'content' => ['parts' => [['text' => 'Hola']]]]],
+            'usageMetadata' => ['promptTokenCount' => 120, 'candidatesTokenCount' => 30, 'thoughtsTokenCount' => 0, 'totalTokenCount' => 150],
+        ])]);
+
+        GeminiService::obtenerInstancia()->generarRespuestaChat('Hola');
+
+        Http::assertSent(fn ($peticion) => ($peticion['generationConfig']['thinkingConfig']['thinkingLevel'] ?? null) === 'low');
+        Log::shouldHaveReceived('info')
+            ->withArgs(fn ($mensaje, $datos) => $mensaje === 'Gemini uso de tokens'
+                && $datos['entrada'] === 120 && $datos['salida'] === 30 && $datos['pensamiento'] === 0)
+            ->once();
+    }
+
+    /**
      * Si Gemini corta la respuesta (por ejemplo, MAX_TOKENS), se anota en el log el motivo.
      */
     public function test_anota_en_el_log_si_gemini_corta_la_respuesta(): void
