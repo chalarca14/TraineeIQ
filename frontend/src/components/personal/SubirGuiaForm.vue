@@ -23,13 +23,16 @@
                 <Info :size="18" aria-hidden="true" />
                 <span>TraineeIQ guarda el texto de la guía, no el PDF original. Conserva tu copia del PDF.</span>
             </p>
-            <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando"
-                @click="enviar">Reintentar</button>
         </div>
 
+        <!-- Un solo "Reintentar", justo debajo del mensaje que explica por qué falló (antes había dos) -->
         <p class="input-error">{{ error }}</p>
         <button v-if="puedeReintentar" type="button" class="btn-cancelar" :disabled="cargando"
             @click="enviar">Reintentar</button>
+
+        <!-- Subir y dividir el PDF tarda hasta un par de minutos: la animación muestra que sigue trabajando -->
+        <AnimacionCarga v-if="cargando" tamano="sm" :pasos="PASOS_SUBIDA"
+            detalle="Puede tardar hasta un par de minutos. No cierres esta página." />
 
         <div class="acciones">
             <button type="button" class="btn-cancelar" :disabled="cargando" @click="$emit('cancelar')">Cancelar</button>
@@ -45,7 +48,9 @@ import { ref } from 'vue'
 import { FileUp, Info } from 'lucide-vue-next'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import AnimacionCarga from '@/components/ui/AnimacionCarga.vue'
 import { subirGuia } from '@/services/guiaService'
+import { PASOS_SUBIDA } from '@/utils/pasosCarga'
 
 const emit = defineEmits(['subida', 'cancelar'])
 

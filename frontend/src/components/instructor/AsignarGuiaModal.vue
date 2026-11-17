@@ -2,7 +2,9 @@
 import { ref, useId } from 'vue'
 import { FileUp, Info } from 'lucide-vue-next'
 import ModalBase from '@/components/ui/ModalBase.vue'
+import AnimacionCarga from '@/components/ui/AnimacionCarga.vue'
 import { asignarGuia } from '@/services/guiaService'
+import { PASOS_SUBIDA } from '@/utils/pasosCarga'
 
 // Asignar una guía (PDF) al grupo. El backend lee el PDF y lo divide en semanas; el contenido de
 // cada semana se genera DESPUÉS, al abrir la guía (cola de stores/contenido.js).
@@ -123,13 +125,17 @@ async function enviar() {
 
       <p v-if="error" class="error error--general" role="alert">{{ error }}</p>
 
+      <!-- Leer y dividir el PDF tarda hasta un par de minutos: la animación muestra que sigue trabajando
+           (reemplaza a la frase suelta "Esto puede tardar…", que ahora va como detalle) -->
+      <AnimacionCarga v-if="enviando" tamano="sm" :pasos="PASOS_SUBIDA"
+        detalle="Puede tardar hasta un par de minutos. No cierres esta ventana." />
+
       <div class="acciones">
         <button type="button" class="btn btn-secundario" :disabled="enviando" @click="emit('cerrar')">Cancelar</button>
         <button type="submit" class="btn btn-primario" :disabled="enviando">
           {{ enviando ? 'Leyendo el PDF…' : 'Asignar guía' }}
         </button>
       </div>
-      <p v-if="enviando" class="espera" role="status">Esto puede tardar hasta un par de minutos. No cierres esta ventana.</p>
     </form>
   </ModalBase>
 </template>
@@ -169,6 +175,8 @@ input[type='number'] {
   background: var(--color-background);
   color: var(--color-text);
   font: inherit;
+  /* inherit traería Puritan; los campos usan la fuente legible (ver variables.css) */
+  font-family: var(--fuente-campos);
 }
 
 input:focus {
@@ -258,19 +266,9 @@ input:focus {
   margin-top: var(--espacio-sm);
 }
 
-.espera {
-  color: var(--color-text-secondary);
-  font-size: .82rem;
-  text-align: right;
-}
-
 @media (max-width: 480px) {
   .acciones {
     flex-direction: column-reverse;
-  }
-
-  .espera {
-    text-align: center;
   }
 }
 </style>
