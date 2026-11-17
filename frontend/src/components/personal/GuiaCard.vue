@@ -17,18 +17,26 @@
             <li v-if="restantes > 0" class="mas">+{{ restantes }}</li>
         </ul>
 
-        <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn btn-secundario btn-sm">
-            Ver guía <ArrowRight :size="15" />
-        </RouterLink>
+        <div class="acciones">
+            <RouterLink :to="`/estudiante/guias/${guia.id}`" class="btn btn-secundario btn-sm">
+                Ver guía <ArrowRight :size="15" />
+            </RouterLink>
+            <!-- Solo avisa a la vista: la confirmación (EliminarGuiaModal) explica qué se pierde -->
+            <button type="button" class="borrar" :aria-label="`Eliminar la guía ${guia.nombre}`"
+                @click="$emit('eliminar', guia)">
+                <Trash2 :size="17" aria-hidden="true" />
+            </button>
+        </div>
     </article>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { BookOpen, Layers, CalendarDays, ArrowRight } from 'lucide-vue-next'
+import { BookOpen, Layers, CalendarDays, ArrowRight, Trash2 } from 'lucide-vue-next'
 import { formatearFecha } from '@/utils/fechas'
 
 const props = defineProps({ guia: { type: Object, required: true } })
+defineEmits(['eliminar'])
 
 const MAX_TEMAS_VISTA = 3
 
@@ -125,8 +133,33 @@ h3 {
     font-weight: 700;
 }
 
-.btn {
-    align-self: flex-start;
+/* "Ver guía" a la izquierda y la papelera a la derecha, siempre al fondo de la tarjeta */
+.acciones {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-sm);
     margin-top: auto;
+}
+
+/* Mismo botón de papelera que las tarjetas de grupo del instructor (GrupoInstructorCard) */
+.borrar {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--color-card);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: .2s;
+}
+
+.borrar:hover,
+.borrar:focus-visible {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
 }
 </style>

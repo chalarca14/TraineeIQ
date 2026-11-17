@@ -19,9 +19,12 @@
                 <div class="guias-grid"><EsqueletoTarjeta v-for="n in 3" :key="n" :lineas="3" alto="150px" /></div>
             </template>
             <div class="guias-grid">
-                <GuiaCard v-for="guia in guias" :key="guia.id" :guia="guia" />
+                <GuiaCard v-for="guia in guias" :key="guia.id" :guia="guia" @eliminar="porEliminar = $event" />
             </div>
         </EstadoVista>
+
+        <EliminarGuiaModal v-if="porEliminar" :guia="porEliminar" contexto="personal" @cerrar="porEliminar = null"
+            @eliminada="alEliminar" />
 
     </main>
 </template>
@@ -34,6 +37,7 @@ import EstadoVista from '@/components/ui/EstadoVista.vue'
 import EsqueletoTarjeta from '@/components/ui/EsqueletoTarjeta.vue'
 import GuiaCard from '@/components/personal/GuiaCard.vue'
 import SubirGuiaForm from '@/components/personal/SubirGuiaForm.vue'
+import EliminarGuiaModal from '@/components/guias/EliminarGuiaModal.vue'
 import { listarMisGuias } from '@/services/guiaService'
 
 const guias = ref([])
@@ -56,6 +60,14 @@ async function cargarGuias() {
 function alSubir(guia) {
     guias.value.unshift(guia)
     mostrarForm.value = false
+}
+
+// Guía que se va a eliminar (abre la confirmación). Al borrarla se quita sin recargar
+const porEliminar = ref(null)
+
+function alEliminar(id) {
+    guias.value = guias.value.filter((g) => g.id !== id)
+    porEliminar.value = null
 }
 
 onMounted(cargarGuias)
