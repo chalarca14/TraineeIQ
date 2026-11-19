@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\IaNoDisponibleException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\ConversacionIa;
 use App\Models\Guia;
 use App\Models\MensajeIa;
@@ -106,22 +108,31 @@ class ChatIaController extends Controller
             $conversacion = ConversacionIa::findOrFail($id);
             $this->verificarPropietario($conversacion);
 
-            $mensajeUsuario = MensajeIa::create([
-                'conversacion_id' => $conversacion->id,
-                'emisor'          => 'usuario',
-                'contenido'       => $request->contenido,
-            ]);
-
+            // Primero se pide la respuesta y solo después se guarda. Si la IA no responde, no
+            // queda en el historial ni la pregunta sin respuesta ni un falso mensaje de la IA, y
+            // el reintento del frontend no duplica la pregunta. Además, la pregunta actual no se
+            // cuela dos veces en el prompt (como historial y como pregunta)
             $estrategia = $this->resolverEstrategia($conversacion->tipo);
             $textoRespuesta = $estrategia->generarRespuesta($conversacion, $request->contenido);
 
-            $mensajeIa = MensajeIa::create([
-                'conversacion_id' => $conversacion->id,
-                'emisor'          => 'ia',
-                'contenido'       => $textoRespuesta,
-            ]);
+            // Los dos mensajes se guardan juntos: o quedan ambos o ninguno
+            [$mensajeUsuario, $mensajeIa] = DB::transaction(function () use ($conversacion, $request, $textoRespuesta) {
+                $mensajeUsuario = MensajeIa::create([
+                    'conversacion_id' => $conversacion->id,
+                    'emisor'          => 'usuario',
+                    'contenido'       => $request->contenido,
+                ]);
 
-            $conversacion->touch();
+                $mensajeIa = MensajeIa::create([
+                    'conversacion_id' => $conversacion->id,
+                    'emisor'          => 'ia',
+                    'contenido'       => $textoRespuesta,
+                ]);
+
+                $conversacion->touch();
+
+                return [$mensajeUsuario, $mensajeIa];
+            });
 
             return response()->json([
                 'mensaje_usuario' => $mensajeUsuario,
@@ -130,6 +141,11 @@ class ChatIaController extends Controller
 
         } catch (AuthorizationException $e) {
             return response()->json(['message' => $e->getMessage()], 403);
+        } catch (IaNoDisponibleException $e) {
+            // Ningún modelo de Gemini respondió a tiempo (Google saturado o sin cuota)
+            return response()->json([
+                'message' => 'La IA está muy ocupada en este momento. Intenta de nuevo en unos segundos.',
+            ], 503);
         } catch (\Exception $e) {
             Log::error('Error enviando mensaje de chat', ['mensaje' => $e->getMessage()]);
             return response()->json(['message' => 'Error al procesar el mensaje'], 500);
