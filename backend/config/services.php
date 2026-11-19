@@ -46,6 +46,10 @@ return [
     'fallback_model' => env('GEMINI_FALLBACK_MODEL', 'gemini-3.5-flash-lite'),
     // Modelo que evalúa el código primero: es donde más vale la precisión. Si falla, sigue el principal
     'modelo_evaluacion' => env('GEMINI_MODELO_EVALUACION', 'gemini-3.6-flash'),
+    // Modelos del chat, en orden, separados por coma. Sin valor: GEMINI_MODEL y luego GEMINI_FALLBACK_MODEL
+    'modelos_chat' => env('GEMINI_MODELOS_CHAT'),
+    // Segundos que el chat espera a un modelo antes de lanzar también el siguiente (carrera escalonada)
+    'chat_segundos_escalon' => (float) env('GEMINI_CHAT_SEGUNDOS_ESCALON', 6),
     // Una guia mas larga se rechaza con un mensaje claro, en vez de recortarla en silencio
     'max_caracteres_guia' => (int) env('GEMINI_MAX_CARACTERES_GUIA', 300000),
 ],

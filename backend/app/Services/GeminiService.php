@@ -4,7 +4,11 @@ namespace App\Services;
 
 use App\Exceptions\IaNoDisponibleException;
 use App\Exceptions\RespuestaIaInvalidaException;
+use GuzzleHttp\Handler\CurlMultiHandler;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\Promises\LazyPromise;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
@@ -46,18 +50,11 @@ class GeminiService
     // 14 s en total por modelo antes de pasar al de respaldo
     private const ESPERAS_REINTENTO_MS = [2000, 4000, 8000];
 
-    // Chat: alguien espera frente a la pantalla, así que no se insiste con un modelo que no
-    // responde. Cada intento espera como máximo esto antes de pasar al otro modelo
-    private const CHAT_SEGUNDOS_POR_INTENTO = 25;
-
     // Chat: tiempo total máximo buscando respuesta (el frontend corta a los 120 s)
     private const CHAT_SEGUNDOS_TOTALES = 60;
 
-    // Chat: un intento con menos tiempo que esto ya no alcanza a responder; no se lanza
-    private const CHAT_SEGUNDOS_MINIMOS = 5;
-
-    // Chat: pausa antes de la segunda vuelta, si los dos modelos fallaron rápido
-    private const CHAT_PAUSA_ENTRE_VUELTAS_MS = 2000;
+    // Chat: cada cuánto se revisan las peticiones en curso de la carrera (50 ms)
+    private const CHAT_REVISION_MS = 50;
 
     // Cantidad fija de recomendaciones por semana (contrato 2.2 de la Fase 0)
     private const TOTAL_RECOMENDACIONES = 4;
@@ -221,6 +218,9 @@ class GeminiService
     private string $modelo;
     private string $modeloRespaldo;
     private string $modeloEvaluacion;
+    /** @var string[] Modelos del chat, en el orden en que entran a la carrera */
+    private array $modelosChat;
+    private float $segundosEscalon;
 
     /**
      * Constructor privado para aplicar el patron Singleton.
@@ -232,6 +232,11 @@ class GeminiService
         $this->modelo = (string) config('services.gemini.model');
         $this->modeloRespaldo = (string) config('services.gemini.fallback_model');
         $this->modeloEvaluacion = (string) config('services.gemini.modelo_evaluacion');
+
+        // Lista separada por comas. Sin lista, el chat usa el principal y el de respaldo
+        $lista = array_filter(array_map('trim', explode(',', (string) config('services.gemini.modelos_chat'))));
+        $this->modelosChat = array_values(array_unique($lista ?: [$this->modelo, $this->modeloRespaldo]));
+        $this->segundosEscalon = (float) config('services.gemini.chat_segundos_escalon', 6);
     }
 
     /**
@@ -391,39 +396,147 @@ class GeminiService
     }
 
     /**
-     * Modo rápido del chat. A diferencia de llamarApi(), no reintenta el mismo modelo: si uno
-     * falla o tarda más de CHAT_SEGUNDOS_POR_INTENTO, pasa de inmediato al otro. Si los dos
-     * fallan, da una segunda vuelta tras una pausa corta, siempre dentro de CHAT_SEGUNDOS_TOTALES.
-     * Así, con Google saturado, el estudiante recibe respuesta o un aviso claro en menos de un
-     * minuto, en lugar de esperar varios minutos de reintentos.
+     * Carrera escalonada del chat: le pide la respuesta a los modelos de $modelosChat, en orden,
+     * y se queda con la primera respuesta buena que llegue.
+     * - Empieza con el primer modelo.
+     * - Lanza el siguiente de inmediato si el último lanzado falla (503, 429, sin conexión), o
+     *   si lleva $segundosEscalon sin responder. En ese caso NO cancela el anterior: los dos
+     *   siguen corriendo y gana el que responda primero.
+     * - Al tener una respuesta, cancela las demás peticiones.
+     * - Si en CHAT_SEGUNDOS_TOTALES nadie respondió, devuelve null (el controlador da 503).
+     * Con Google bien, solo se lanza el primer modelo: gasta una llamada, igual que antes.
+     *
+     * PHP normalmente espera cada petición hasta que termina. Para tener varias abiertas a la
+     * vez se usan peticiones asíncronas (promesas) y un CurlMultiHandler propio, que avanza
+     * todas las conexiones en cada tick(). Las pruebas siguen usando Http::fake.
      */
     private function llamarApiChat(array $cuerpo): ?string
     {
-        $inicio = microtime(true);
-        $modelos = array_values(array_unique([$this->modelo, $this->modeloRespaldo]));
+        // Se pide al contenedor de Laravel (y no con new) para que las pruebas puedan cambiarlo
+        // por uno que simula un modelo que nunca responde
+        $manejador = app()->make(CurlMultiHandler::class, ['options' => ['select_timeout' => self::CHAT_REVISION_MS / 1000]]);
+        $inicio = $this->milisegundosAhora();
+        $limiteMs = self::CHAT_SEGUNDOS_TOTALES * 1000;
+        $escalonMs = $this->segundosEscalon * 1000;
 
-        foreach ([1, 2] as $vuelta) {
-            if ($vuelta === 2) {
-                Sleep::usleep(self::CHAT_PAUSA_ENTRE_VUELTAS_MS * 1000);
+        $enCurso = [];          // modelo => ['promesa' => ..., 'lanzado' => ms]
+        $siguiente = 0;         // posición del próximo modelo por lanzar
+        $ultimoLanzamiento = 0; // ms en que se lanzó el último modelo
+        $lanzarYa = true;       // el primer modelo sale de una
+
+        while (true) {
+            $transcurrido = $this->milisegundosAhora() - $inicio;
+
+            // 1. Lanzar el siguiente modelo si toca: el anterior falló o ya pasó el escalón
+            $tocaPorTiempo = $transcurrido - $ultimoLanzamiento >= $escalonMs;
+            if (($lanzarYa || $tocaPorTiempo) && $siguiente < count($this->modelosChat)) {
+                $modelo = $this->modelosChat[$siguiente++];
+                $segundosRestantes = (int) max(1, ceil(($limiteMs - $transcurrido) / 1000));
+                $enCurso[$modelo] = [
+                    'promesa' => $this->lanzarPeticion($manejador, $modelo, $cuerpo, $segundosRestantes),
+                    'lanzado' => $transcurrido,
+                ];
+                $ultimoLanzamiento = $transcurrido;
+                $lanzarYa = false;
             }
 
-            foreach ($modelos as $modelo) {
-                // Al intento solo le toca el tiempo que queda del total
-                $restante = self::CHAT_SEGUNDOS_TOTALES - (microtime(true) - $inicio);
-                if ($restante < self::CHAT_SEGUNDOS_MINIMOS) {
-                    return null;
+            // 2. Avanzar todas las conexiones abiertas un poco (espera máximo CHAT_REVISION_MS)
+            $manejador->tick();
+
+            // 3. Revisar cuáles terminaron
+            foreach ($enCurso as $modelo => $peticion) {
+                if ($peticion['promesa']->getState() === PromiseInterface::PENDING) {
+                    continue;
                 }
 
-                $segundos = (int) min(self::CHAT_SEGUNDOS_POR_INTENTO, floor($restante));
-                $texto = $this->pedirAModelo($modelo, $cuerpo, $segundos, false);
+                unset($enCurso[$modelo]);
+                $segundos = ($this->milisegundosAhora() - $inicio - $peticion['lanzado']) / 1000;
+                $texto = $this->leerResultado($peticion['promesa'], $modelo, $segundos);
 
                 if ($texto !== null) {
+                    // Ganó este modelo: se cancelan los demás para no dejarlos abiertos
+                    $this->cancelarPeticiones($enCurso);
+                    Log::info('Chat respondido por', ['modelo' => $modelo, 'segundos_totales' => round(($this->milisegundosAhora() - $inicio) / 1000, 1)]);
                     return $texto;
                 }
+
+                // Falló: se lanza el siguiente en la próxima vuelta, sin esperar el escalón
+                $lanzarYa = true;
             }
+
+            // 4. Terminar si se acabó el tiempo, o si ya no queda nada en curso ni por lanzar
+            $sinNadaMas = $enCurso === [] && $siguiente >= count($this->modelosChat);
+            if ($sinNadaMas || $this->milisegundosAhora() - $inicio >= $limiteMs) {
+                $this->cancelarPeticiones($enCurso);
+                return null;
+            }
+
+            // Pausa corta para no ocupar la CPU mientras se espera
+            Sleep::usleep(self::CHAT_REVISION_MS * 1000);
+        }
+    }
+
+    /**
+     * Lanza la petición a un modelo sin esperar la respuesta y devuelve su promesa. La promesa
+     * se cumple con la Response (aunque sea un error HTTP) o con la excepción de conexión.
+     */
+    private function lanzarPeticion(CurlMultiHandler $manejador, string $modelo, array $cuerpo, int $segundosMaximos): PromiseInterface
+    {
+        $promesa = Http::setHandler($manejador)
+            ->async()
+            ->withHeaders(['x-goog-api-key' => $this->apiKey]) // La clave va por cabecera
+            ->timeout($segundosMaximos)
+            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", $cuerpo);
+
+        // Laravel 12 devuelve una promesa "perezosa" que no envía nada hasta construirla, y que
+        // no se puede cancelar. buildPromise() envía la petición ya (igual que hace Http::pool)
+        // y devuelve la promesa real de Guzzle, que sí se puede cancelar
+        return $promesa instanceof LazyPromise ? $promesa->buildPromise() : $promesa;
+    }
+
+    /**
+     * Lee una petición terminada de la carrera: devuelve el texto si fue exitosa, o null (y lo
+     * anota en el log) si falló.
+     */
+    private function leerResultado(PromiseInterface $promesa, string $modelo, float $segundos): ?string
+    {
+        try {
+            $resultado = $promesa->wait();
+        } catch (\Throwable $e) {
+            $resultado = $e;
         }
 
+        if ($resultado instanceof Response && $resultado->successful()) {
+            return $this->textoDeRespuesta($resultado->json() ?? [], $modelo, $segundos);
+        }
+
+        Log::warning('Gemini fallo con este modelo', [
+            'modelo'   => $modelo,
+            'status'   => $resultado instanceof Response ? $resultado->status() : null,
+            'segundos' => round($segundos, 1),
+            'error'    => $resultado instanceof Response ? $resultado->body() : $resultado->getMessage(),
+        ]);
+
         return null;
+    }
+
+    /**
+     * Cancela las peticiones que siguen abiertas (la carrera ya terminó).
+     */
+    private function cancelarPeticiones(array $enCurso): void
+    {
+        foreach ($enCurso as $peticion) {
+            $peticion['promesa']->cancel();
+        }
+    }
+
+    /**
+     * Hora actual en milisegundos. Usa la hora de Laravel (y no microtime) para que las pruebas
+     * puedan adelantar el reloj con Sleep::fake(syncWithCarbon: true) sin esperar de verdad.
+     */
+    private function milisegundosAhora(): float
+    {
+        return (float) now()->getPreciseTimestamp(3);
     }
 
     /**
@@ -441,7 +554,7 @@ class GeminiService
         $modelos ??= [$this->modelo, $this->modeloRespaldo];
 
         foreach ($modelos as $modelo) {
-            $texto = $this->pedirAModelo($modelo, $cuerpo, 60, true);
+            $texto = $this->pedirAModelo($modelo, $cuerpo);
 
             if ($texto !== null) {
                 return $texto;
@@ -478,31 +591,27 @@ class GeminiService
     }
 
     /**
-     * Hace la petición a UN modelo y devuelve su texto, o null si falló (error HTTP, tiempo
-     * agotado o sin conexión). Con $reintentar503, un 503 (Google saturado un momento) se
-     * reintenta con esperas que crecen (2, 4 y 8 s); el chat no lo usa, porque prefiere pasar
-     * de inmediato al otro modelo. 429 (sin cuota) nunca se reintenta: la cuota no vuelve en
-     * segundos. Cada intento queda en el log con su duración, para ver dónde se va el tiempo.
+     * Hace la petición a UN modelo (máximo 60 s) y devuelve su texto, o null si falló (error
+     * HTTP, tiempo agotado o sin conexión). Un 503 (Google saturado un momento) se reintenta
+     * con esperas que crecen (2, 4 y 8 s). 429 (sin cuota) no se reintenta: la cuota no vuelve
+     * en segundos. Cada intento queda en el log con su duración, para ver dónde se va el tiempo.
      */
-    private function pedirAModelo(string $modelo, array $cuerpo, int $segundosMaximos, bool $reintentar503): ?string
+    private function pedirAModelo(string $modelo, array $cuerpo): ?string
     {
         $inicio = microtime(true);
 
         try {
-            $peticion = Http::withHeaders([
+            $respuesta = Http::withHeaders([
                 'x-goog-api-key' => $this->apiKey, // La clave va por cabecera, no en la URL
-            ])->timeout($segundosMaximos);
-
-            if ($reintentar503) {
-                $peticion->retry(
+            ])
+                ->timeout(60)
+                ->retry(
                     self::ESPERAS_REINTENTO_MS,
                     throw: false,
                     when: fn ($excepcion) => $excepcion instanceof RequestException
                         && $excepcion->response->status() === 503,
-                );
-            }
-
-            $respuesta = $peticion->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", $cuerpo);
+                )
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", $cuerpo);
 
             if ($respuesta->failed()) {
                 Log::warning('Gemini fallo con este modelo', [
@@ -516,7 +625,7 @@ class GeminiService
 
             return $this->textoDeRespuesta($respuesta->json() ?? [], $modelo, microtime(true) - $inicio);
         } catch (\Exception $e) {
-            // Incluye el tiempo agotado: Gemini no respondió en $segundosMaximos
+            // Incluye el tiempo agotado: Gemini no respondió en 60 s
             Log::error('Excepcion en GeminiService', [
                 'modelo'   => $modelo,
                 'segundos' => round(microtime(true) - $inicio, 1),
