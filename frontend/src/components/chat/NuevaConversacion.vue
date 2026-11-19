@@ -11,7 +11,8 @@ const emit = defineEmits(['cerrar'])
 const modoStore = useModoStore()
 
 const idSelect = useId()
-const tipo = ref('libre')
+// v-model:tipo: el panel lo lee para que "Borrar historial" borre el tipo de chat elegido aquí
+const tipo = defineModel('tipo', { type: String, default: 'libre' })
 const guias = ref([])
 const guiaId = ref(null)
 const cargando = ref(true)

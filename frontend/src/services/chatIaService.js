@@ -65,3 +65,24 @@ export async function enviarMensaje(conversacionId, contenido) {
   )
   return data
 }
+
+// Cuántas conversaciones de un tipo ('libre' o 'guiada') tiene el aprendiz. Sale del campo `total`
+// del paginador de Laravel, así no hace falta traerlas todas: la ventana de "Borrar historial"
+// lo usa para decir cuántas se borrarán.
+export async function contarConversaciones(tipo) {
+  const { data } = await api.get('/conversaciones', { params: { tipo } })
+  return data.total ?? (data.data ?? []).length
+}
+
+// Borra una conversación (y sus mensajes). El backend responde 403 si no es del aprendiz.
+export async function eliminarConversacion(id) {
+  const { data } = await api.delete(`/conversaciones/${id}`)
+  return data
+}
+
+// Borra todo el historial de un tipo de chat ('libre' o 'guiada'); sin tipo, el de los dos.
+// Devuelve cuántas se borraron (`eliminadas`).
+export async function eliminarHistorial(tipo = null) {
+  const { data } = await api.delete('/conversaciones', { params: tipo ? { tipo } : {} })
+  return data.eliminadas ?? 0
+}
