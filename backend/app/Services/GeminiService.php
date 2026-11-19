@@ -7,6 +7,7 @@ use App\Exceptions\RespuestaIaInvalidaException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Sleep;
 
 /**
  * Servicio centralizado (patron Singleton) para toda comunicacion con la API de Gemini.
@@ -44,6 +45,19 @@ class GeminiService
     // Esperas entre reintentos cuando Gemini responde 503 (saturado): 3 reintentos más, unos
     // 14 s en total por modelo antes de pasar al de respaldo
     private const ESPERAS_REINTENTO_MS = [2000, 4000, 8000];
+
+    // Chat: alguien espera frente a la pantalla, así que no se insiste con un modelo que no
+    // responde. Cada intento espera como máximo esto antes de pasar al otro modelo
+    private const CHAT_SEGUNDOS_POR_INTENTO = 25;
+
+    // Chat: tiempo total máximo buscando respuesta (el frontend corta a los 120 s)
+    private const CHAT_SEGUNDOS_TOTALES = 60;
+
+    // Chat: un intento con menos tiempo que esto ya no alcanza a responder; no se lanza
+    private const CHAT_SEGUNDOS_MINIMOS = 5;
+
+    // Chat: pausa antes de la segunda vuelta, si los dos modelos fallaron rápido
+    private const CHAT_PAUSA_ENTRE_VUELTAS_MS = 2000;
 
     // Cantidad fija de recomendaciones por semana (contrato 2.2 de la Fase 0)
     private const TOTAL_RECOMENDACIONES = 4;
@@ -358,26 +372,91 @@ class GeminiService
      * Metodo generico de bajo nivel: envia cualquier prompt ya armado a Gemini y
      * retorna texto plano (no JSON). Lo usaran GuiadaStrategy y LibreStrategy,
      * porque cada una arma su propio prompt segun sus propias reglas de negocio.
+     *
+     * @throws IaNoDisponibleException Si ningún modelo respondió a tiempo.
      */
     public function generarRespuestaChat(string $prompt): string
     {
         // Pensamiento bajo: el chat explica temas de programación de nivel aprendiz y debe
         // responder rápido. No limita el largo de la respuesta
-        $texto = $this->llamarApi($prompt, null, 'low');
+        $texto = $this->llamarApiChat($this->armarCuerpo($prompt, null, 'low'));
 
+        // Sin respuesta se lanza excepción en vez de devolver un texto de error: así el
+        // controlador responde 503 y no guarda un falso mensaje de la IA en el historial
         if ($texto === null) {
-            return 'No fue posible generar una respuesta en este momento. Intenta nuevamente.';
+            throw new IaNoDisponibleException('Gemini no respondio en el chat.');
         }
 
         return trim($texto);
     }
 
     /**
+     * Modo rápido del chat. A diferencia de llamarApi(), no reintenta el mismo modelo: si uno
+     * falla o tarda más de CHAT_SEGUNDOS_POR_INTENTO, pasa de inmediato al otro. Si los dos
+     * fallan, da una segunda vuelta tras una pausa corta, siempre dentro de CHAT_SEGUNDOS_TOTALES.
+     * Así, con Google saturado, el estudiante recibe respuesta o un aviso claro en menos de un
+     * minuto, en lugar de esperar varios minutos de reintentos.
+     */
+    private function llamarApiChat(array $cuerpo): ?string
+    {
+        $inicio = microtime(true);
+        $modelos = array_values(array_unique([$this->modelo, $this->modeloRespaldo]));
+
+        foreach ([1, 2] as $vuelta) {
+            if ($vuelta === 2) {
+                Sleep::usleep(self::CHAT_PAUSA_ENTRE_VUELTAS_MS * 1000);
+            }
+
+            foreach ($modelos as $modelo) {
+                // Al intento solo le toca el tiempo que queda del total
+                $restante = self::CHAT_SEGUNDOS_TOTALES - (microtime(true) - $inicio);
+                if ($restante < self::CHAT_SEGUNDOS_MINIMOS) {
+                    return null;
+                }
+
+                $segundos = (int) min(self::CHAT_SEGUNDOS_POR_INTENTO, floor($restante));
+                $texto = $this->pedirAModelo($modelo, $cuerpo, $segundos, false);
+
+                if ($texto !== null) {
+                    return $texto;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Llama a la API REST de Gemini con un prompt ya construido.
      * Reintenta si Gemini esta saturado y usa un modelo de respaldo si el principal falla.
-     * Centraliza el manejo de errores HTTP para no repetir try-catch en cada metodo publico.
+     * Lo usan dividir guías, generar semanas y evaluar código, donde nadie espera frente a la
+     * pantalla y vale más insistir que responder rápido. El chat usa llamarApiChat().
      */
     private function llamarApi(string $prompt, ?array $esquema = null, ?string $nivelPensamiento = null, ?array $modelos = null): ?string
+    {
+        $cuerpo = $this->armarCuerpo($prompt, $esquema, $nivelPensamiento);
+
+        // Orden de intento: el que pida quien llama (la evaluación) o, por defecto, primero el
+        // modelo principal y luego el de respaldo
+        $modelos ??= [$this->modelo, $this->modeloRespaldo];
+
+        foreach ($modelos as $modelo) {
+            $texto = $this->pedirAModelo($modelo, $cuerpo, 60, true);
+
+            if ($texto !== null) {
+                return $texto;
+            }
+        }
+
+        // Ningun modelo respondio: los metodos publicos ya manejan el null
+        return null;
+    }
+
+    /**
+     * Arma el cuerpo de la petición a Gemini: el prompt y, si se piden, el esquema JSON de la
+     * respuesta y el nivel de pensamiento.
+     */
+    private function armarCuerpo(string $prompt, ?array $esquema, ?string $nivelPensamiento): array
     {
         $cuerpo = ['contents' => [['parts' => [['text' => $prompt]]]]];
 
@@ -395,47 +474,56 @@ class GeminiService
             $cuerpo['generationConfig']['thinkingConfig'] = ['thinkingLevel' => $nivelPensamiento];
         }
 
-        // Orden de intento: el que pida quien llama (la evaluación) o, por defecto, primero el
-        // modelo principal y luego el de respaldo
-        $modelos ??= [$this->modelo, $this->modeloRespaldo];
+        return $cuerpo;
+    }
 
-        foreach ($modelos as $modelo) {
-            try {
-                $respuesta = Http::withHeaders([
-                    'x-goog-api-key' => $this->apiKey, // La clave va por cabecera, no en la URL
-                ])
-                    ->timeout(60)
-                    // 503 = Google saturado un momento: se reintenta con esperas que crecen (2, 4 y
-                    // 8 s). 429 (sin cuota) no se reintenta: la cuota no vuelve en segundos, así que
-                    // se pasa de una al modelo de respaldo, que tiene la suya
-                    ->retry(
-                        self::ESPERAS_REINTENTO_MS,
-                        throw: false,
-                        when: fn ($excepcion) => $excepcion instanceof RequestException
-                            && $excepcion->response->status() === 503,
-                    )
-                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", $cuerpo);
+    /**
+     * Hace la petición a UN modelo y devuelve su texto, o null si falló (error HTTP, tiempo
+     * agotado o sin conexión). Con $reintentar503, un 503 (Google saturado un momento) se
+     * reintenta con esperas que crecen (2, 4 y 8 s); el chat no lo usa, porque prefiere pasar
+     * de inmediato al otro modelo. 429 (sin cuota) nunca se reintenta: la cuota no vuelve en
+     * segundos. Cada intento queda en el log con su duración, para ver dónde se va el tiempo.
+     */
+    private function pedirAModelo(string $modelo, array $cuerpo, int $segundosMaximos, bool $reintentar503): ?string
+    {
+        $inicio = microtime(true);
 
-                if ($respuesta->failed()) {
-                    Log::warning('Gemini fallo con este modelo', [
-                        'modelo' => $modelo,
-                        'status' => $respuesta->status(),
-                        'body'   => $respuesta->body(),
-                    ]);
-                    continue; // Pasa al siguiente modelo de la lista
-                }
+        try {
+            $peticion = Http::withHeaders([
+                'x-goog-api-key' => $this->apiKey, // La clave va por cabecera, no en la URL
+            ])->timeout($segundosMaximos);
 
-                return $this->textoDeRespuesta($respuesta->json() ?? [], $modelo);
-            } catch (\Exception $e) {
-                Log::error('Excepcion en GeminiService', [
-                    'modelo'  => $modelo,
-                    'mensaje' => $e->getMessage(),
-                ]);
+            if ($reintentar503) {
+                $peticion->retry(
+                    self::ESPERAS_REINTENTO_MS,
+                    throw: false,
+                    when: fn ($excepcion) => $excepcion instanceof RequestException
+                        && $excepcion->response->status() === 503,
+                );
             }
-        }
 
-        // Ningun modelo respondio: los metodos publicos ya manejan el null
-        return null;
+            $respuesta = $peticion->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent", $cuerpo);
+
+            if ($respuesta->failed()) {
+                Log::warning('Gemini fallo con este modelo', [
+                    'modelo'   => $modelo,
+                    'status'   => $respuesta->status(),
+                    'segundos' => round(microtime(true) - $inicio, 1),
+                    'body'     => $respuesta->body(),
+                ]);
+                return null; // Quien llama pasa al siguiente modelo
+            }
+
+            return $this->textoDeRespuesta($respuesta->json() ?? [], $modelo, microtime(true) - $inicio);
+        } catch (\Exception $e) {
+            // Incluye el tiempo agotado: Gemini no respondió en $segundosMaximos
+            Log::error('Excepcion en GeminiService', [
+                'modelo'   => $modelo,
+                'segundos' => round(microtime(true) - $inicio, 1),
+                'mensaje'  => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -445,7 +533,7 @@ class GeminiService
      * la respuesta y se saltan. Si Gemini terminó por otra razón que no sea STOP (por ejemplo,
      * MAX_TOKENS), se anota en el log para saber por qué una respuesta salió incompleta.
      */
-    private function textoDeRespuesta(array $cuerpo, string $modelo): ?string
+    private function textoDeRespuesta(array $cuerpo, string $modelo, float $segundos): ?string
     {
         $candidato = $cuerpo['candidates'][0] ?? [];
         $motivo = $candidato['finishReason'] ?? null;
@@ -463,6 +551,7 @@ class GeminiService
             'salida'      => $uso['candidatesTokenCount'] ?? null,
             'pensamiento' => $uso['thoughtsTokenCount'] ?? null,
             'total'       => $uso['totalTokenCount'] ?? null,
+            'segundos'    => round($segundos, 1),
         ]);
 
         $textos = [];
