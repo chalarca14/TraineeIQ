@@ -1,10 +1,14 @@
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import { listarConversaciones } from '@/services/chatIaService'
 
 // Lógica del panel lateral de conversaciones: la lista y el cajón que lo abre en pantallas
 // angostas. Vive aparte de la vista para que ChatIA.vue se concentre en la conversación
 // (y para no pasar de las 300 líneas por archivo).
-export function usePanelConversaciones() {
+// Recibe el id y el tipo de la conversación abierta (refs de la vista) para saber, al borrar,
+// si hay que dejar el chat vacío.
+export function usePanelConversaciones({ conversacionId, tipo } = {}) {
+  const router = useRouter()
   const conversaciones = ref([])
   const cargandoLista = ref(true)
   const errorLista = ref(false)
@@ -27,6 +31,21 @@ export function usePanelConversaciones() {
 
   function reintentarLista() {
     cargandoLista.value = true
+    cargarLista()
+  }
+
+  // Se borró una conversación (la ventana ya llamó al backend). Si era la abierta, se vuelve al chat
+  // vacío; replace y no push, para que "atrás" no lleve a una conversación que ya no existe.
+  // El watcher de la ruta en ChatIA.vue reinicia la pantalla. Si era otra, la vista no cambia.
+  function alEliminarConversacion(id) {
+    if (id === conversacionId?.value) router.replace({ name: 'ChatIA' })
+    cargarLista()
+  }
+
+  // Se borró el historial de un tipo de chat: si la conversación abierta era de ese tipo, ya no
+  // existe y se vuelve al chat vacío. Un chat nuevo que aún no se envió (sin id) no se toca.
+  function alBorrarHistorial(tipoBorrado) {
+    if (conversacionId?.value && (!tipoBorrado || tipoBorrado === tipo?.value)) router.replace({ name: 'ChatIA' })
     cargarLista()
   }
 
@@ -58,6 +77,6 @@ export function usePanelConversaciones() {
 
   return {
     conversaciones, cargandoLista, errorLista, panelAbierto, panel, encabezado,
-    cargarLista, reintentarLista, abrirPanel, cerrarPanel
+    cargarLista, reintentarLista, abrirPanel, cerrarPanel, alEliminarConversacion, alBorrarHistorial
   }
 }

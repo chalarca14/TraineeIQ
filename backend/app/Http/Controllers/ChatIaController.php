@@ -15,6 +15,7 @@ use App\Traits\VerificaAccesoAGuia;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 
 class ChatIaController extends Controller
@@ -59,16 +60,25 @@ class ChatIaController extends Controller
 
     /**
      * Lista las conversaciones del estudiante autenticado, mas recientes primero.
+     * Con ?tipo=libre o ?tipo=guiada trae solo las de ese tipo: el panel del chat lo usa para
+     * saber cuantas se borrarian (campo "total" del paginador) antes de pedir confirmacion.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $conversaciones = ConversacionIa::where('estudiante_id', auth::id())
+            $request->validate([
+                'tipo' => 'nullable|in:guiada,libre',
+            ]);
+
+            $conversaciones = ConversacionIa::where('estudiante_id', Auth::id())
+                ->when($request->filled('tipo'), fn ($consulta) => $consulta->where('tipo', $request->tipo))
                 ->orderBy('updated_at', 'desc')
                 ->paginate(15);
 
             return response()->json($conversaciones, 200);
 
+        } catch (ValidationException $e) {
+            throw $e; // Laravel responde 422 con el detalle del campo
         } catch (\Exception $e) {
             Log::error('Error listando conversaciones', ['mensaje' => $e->getMessage()]);
             return response()->json(['message' => 'Error al obtener las conversaciones'], 500);
@@ -170,6 +180,37 @@ class ChatIaController extends Controller
         } catch (\Exception $e) {
             Log::error('Error eliminando conversacion', ['mensaje' => $e->getMessage()]);
             return response()->json(['message' => 'Error al eliminar la conversacion'], 500);
+        }
+    }
+
+    /**
+     * Borra todo el historial de chats del estudiante autenticado. Con "tipo" (libre o guiada)
+     * borra solo las de ese tipo; sin el, todas. Nunca toca las de otro usuario, porque el filtro
+     * por estudiante_id va siempre. Los mensajes se borran solos por la llave foranea con cascade
+     * de mensajes_ia. Responde cuantas conversaciones se borraron.
+     */
+    public function destroyTodas(Request $request)
+    {
+        try {
+            $request->validate([
+                'tipo' => 'nullable|in:guiada,libre',
+            ]);
+
+            // Un solo DELETE con WHERE (Query Builder de Eloquent, sin SQL concatenado)
+            $eliminadas = ConversacionIa::where('estudiante_id', Auth::id())
+                ->when($request->filled('tipo'), fn ($consulta) => $consulta->where('tipo', $request->tipo))
+                ->delete();
+
+            return response()->json([
+                'message'    => $eliminadas === 1 ? 'Se borro 1 conversacion' : "Se borraron {$eliminadas} conversaciones",
+                'eliminadas' => $eliminadas,
+            ], 200);
+
+        } catch (ValidationException $e) {
+            throw $e; // Laravel responde 422 con el detalle del campo
+        } catch (\Exception $e) {
+            Log::error('Error borrando el historial de conversaciones', ['mensaje' => $e->getMessage()]);
+            return response()->json(['message' => 'Error al borrar el historial'], 500);
         }
     }
 

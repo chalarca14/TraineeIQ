@@ -50,5 +50,11 @@ export function useHistorial() {
     }
   }
 
-  return { entradas, cargando, error, hayMas, cargandoMas, errorMas, cargar, cargarMas }
+  // Quita de la lista una conversación que ya se borró en el backend, sin volver a pedir las páginas
+  // (así no se pierde lo que se cargó con "Cargar más")
+  function quitar(id) {
+    lista.value = lista.value.filter((e) => e.id !== id)
+  }
+
+  return { entradas, cargando, error, hayMas, cargandoMas, errorMas, cargar, cargarMas, quitar }
 }

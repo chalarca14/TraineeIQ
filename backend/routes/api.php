@@ -66,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversaciones', [ChatIaController::class, 'store']);
     Route::get('/conversaciones/{id}', [ChatIaController::class, 'show']);
     Route::post('/conversaciones/{id}/mensajes', [ChatIaController::class, 'enviarMensaje']);
+    // Borrar todo el historial del usuario (opcional ?tipo=libre o ?tipo=guiada)
+    Route::delete('/conversaciones', [ChatIaController::class, 'destroyTodas']);
     Route::delete('/conversaciones/{id}', [ChatIaController::class, 'destroy']);
 
     // Grupos

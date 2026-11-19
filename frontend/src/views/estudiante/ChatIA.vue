@@ -51,11 +51,11 @@ const guiado = computed(() => tipo.value === 'guiada')
 // descarta en vez de pintarse en una conversación que el usuario ya no está viendo.
 let generacion = 0
 
-// --- Panel de conversaciones (lista + cajón móvil): ver composables/usePanelConversaciones.js ---
+// --- Panel de conversaciones (lista, cajón móvil y borrado): ver composables/usePanelConversaciones.js ---
 const {
   conversaciones, cargandoLista, errorLista, panelAbierto, panel, encabezado,
-  cargarLista, reintentarLista, abrirPanel, cerrarPanel
-} = usePanelConversaciones()
+  cargarLista, reintentarLista, abrirPanel, cerrarPanel, alEliminarConversacion, alBorrarHistorial
+} = usePanelConversaciones({ conversacionId, tipo })
 
 // Baja el scroll hasta el último mensaje (esperamos a que Vue pinte primero)
 async function bajarScroll() {
@@ -198,7 +198,8 @@ watch(() => [route.params.conversacionId, route.query.guiaId], () => {
       <div v-if="panelAbierto" class="chat__fondo" @click="cerrarPanel"></div>
 
       <PanelConversaciones ref="panel" :conversaciones="conversaciones" :cargando="cargandoLista" :error="errorLista"
-        :activa-id="conversacionId" :abierto="panelAbierto" @cerrar="cerrarPanel" @reintentar="reintentarLista" />
+        :activa-id="conversacionId" :abierto="panelAbierto" @cerrar="cerrarPanel" @reintentar="reintentarLista"
+        @eliminada="alEliminarConversacion" @historial-borrado="alBorrarHistorial" />
 
       <div class="chat__principal">
         <div ref="contenedor" class="chat__mensajes" aria-live="polite">
@@ -281,7 +282,6 @@ watch(() => [route.params.conversacionId, route.query.guiaId], () => {
 }
 
 .chat__estado--error { color: var(--color-danger); }
-
 .chat__fondo { display: none; }
 
 /* Celular y tablet: una sola columna; el panel pasa a ser un cajón (ver PanelConversaciones) */

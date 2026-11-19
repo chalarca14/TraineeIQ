@@ -1,14 +1,15 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { X, MessageSquare, BookOpen, History } from 'lucide-vue-next'
+import { X, History, Trash2 } from 'lucide-vue-next'
 import NuevaConversacion from './NuevaConversacion.vue'
-import { fechaRelativa, horaCorta } from '@/utils/fechas'
+import ItemConversacion from './ItemConversacion.vue'
+import BorrarConversacionModal from './BorrarConversacionModal.vue'
 import CargaEsqueleto from '@/components/ui/CargaEsqueleto.vue'
 import EsqueletoLista from '@/components/ui/EsqueletoLista.vue'
 
 // Panel lateral de conversaciones (como el de ChatGPT). En escritorio es una columna fija;
-// en pantallas angostas es un cajón que abre y cierra la vista (props/eventos), por eso este
-// componente no guarda estado propio: solo muestra lo que recibe.
+// en pantallas angostas es un cajón que abre y cierra la vista (props/eventos). La lista llega por
+// props; lo único propio es qué ventana de borrado está abierta y el tipo de chat elegido arriba.
 const props = defineProps({
   conversaciones: { type: Array, default: () => [] },
   cargando: { type: Boolean, default: false },
@@ -16,15 +17,26 @@ const props = defineProps({
   activaId: { type: Number, default: null },
   abierto: { type: Boolean, default: false }
 })
-defineEmits(['cerrar', 'reintentar'])
+const emit = defineEmits(['cerrar', 'reintentar', 'eliminada', 'historial-borrado'])
 
 const MAX_VISIBLES = 10
 const visibles = computed(() => props.conversaciones.slice(0, MAX_VISIBLES))
 
-// El backend hoy guarda el mismo título para todas las libres ("Conversacion libre"); si llega
-// vacío usamos uno genérico. La fecha y la hora bajo el título son lo que las distingue.
-const tituloDe = (c) => c.titulo || (c.tipo === 'guiada' ? 'Conversación guiada' : 'Chat libre')
-const metaDe = (c) => [fechaRelativa(c.updated_at), horaCorta(c.updated_at)].filter(Boolean).join(' · ')
+// Tipo elegido arriba (Chat libre / Chat guía): "Borrar historial" borra solo las de ese tipo,
+// y solo aparece si en la lista hay alguna de ese tipo
+const tipoChat = ref('libre')
+const hayDelTipo = computed(() => props.conversaciones.some((c) => c.tipo === tipoChat.value))
+const nombreTipo = computed(() => (tipoChat.value === 'guiada' ? 'chat guía' : 'chat libre'))
+
+// Qué se va a borrar: { conversacion } (una) o { tipo } (todo el historial). null = ventana cerrada
+const aBorrar = ref(null)
+
+// La ventana ya borró en el backend: se cierra y se avisa a la vista para que refresque la lista
+function alBorrar({ id, tipo }) {
+  aBorrar.value = null
+  if (id) emit('eliminada', id)
+  else emit('historial-borrado', tipo)
+}
 
 // La vista llama a esto al abrir el cajón para llevar el foco adentro (accesibilidad con teclado)
 const nueva = ref(null)
@@ -41,7 +53,7 @@ defineExpose({ enfocar: () => nueva.value?.enfocar() })
     </header>
 
     <!-- Elegir Chat libre o Chat guía (y la guía) antes de empezar: ver NuevaConversacion.vue -->
-    <NuevaConversacion ref="nueva" @cerrar="$emit('cerrar')" />
+    <NuevaConversacion ref="nueva" v-model:tipo="tipoChat" @cerrar="$emit('cerrar')" />
 
     <!-- Filas con título y fecha, como las conversaciones reales (sin ícono: el panel es angosto) -->
     <CargaEsqueleto v-if="cargando" texto="Cargando conversaciones…">
@@ -57,25 +69,26 @@ defineExpose({ enfocar: () => nueva.value?.enfocar() })
 
     <ul v-else class="panel__lista">
       <li v-for="c in visibles" :key="c.id">
-        <RouterLink :to="{ name: 'ChatIAConversacion', params: { conversacionId: c.id } }" class="item"
-          :class="{ activa: c.id === activaId }" :aria-current="c.id === activaId ? 'page' : undefined"
-          @click="$emit('cerrar')">
-          <component :is="c.tipo === 'guiada' ? BookOpen : MessageSquare" :size="16" class="item__icono" />
-          <span class="item__texto">
-            <span class="item__titulo" :title="tituloDe(c)">{{ tituloDe(c) }}</span>
-            <span class="item__meta">
-              <span class="etiqueta" :class="c.tipo">{{ c.tipo === 'guiada' ? 'Guiada' : 'Libre' }}</span>
-              {{ metaDe(c) }}
-            </span>
-          </span>
-        </RouterLink>
+        <ItemConversacion :conversacion="c" :activa="c.id === activaId" @abrir="$emit('cerrar')"
+          @borrar="aBorrar = { conversacion: c }" />
       </li>
     </ul>
 
     <!-- Al navegar se cierra el cajón (en celular) igual que con las conversaciones de la lista -->
-    <RouterLink :to="{ name: 'Historial' }" class="panel__historial" @click="$emit('cerrar')">
-      <History :size="15" /> Ver todo el historial
-    </RouterLink>
+    <div class="panel__pie">
+      <RouterLink :to="{ name: 'Historial' }" class="panel__historial" @click="$emit('cerrar')">
+        <History :size="15" /> Ver todo el historial
+      </RouterLink>
+      <!-- Borra las del tipo elegido arriba; la ventana dice cuántas son antes de confirmar -->
+      <button v-if="hayDelTipo" type="button" class="panel__borrar" :aria-label="`Borrar el historial del ${nombreTipo}`"
+        :title="`Borrar el historial del ${nombreTipo}`" @click="aBorrar = { tipo: tipoChat }">
+        <Trash2 :size="15" aria-hidden="true" /> Borrar historial
+      </button>
+    </div>
+
+    <!-- Se pinta en <body> (Teleport de ModalBase), así el cajón no la recorta -->
+    <BorrarConversacionModal v-if="aBorrar" :conversacion="aBorrar.conversacion ?? null" :tipo="aBorrar.tipo ?? null"
+      @cerrar="aBorrar = null" @borrado="alBorrar" />
   </aside>
 </template>
 
@@ -126,7 +139,7 @@ h2 { font-size: .95rem; }
   color: var(--color-danger);
 }
 
-/* Solo la lista hace scroll: el botón de arriba y el enlace de abajo se quedan fijos */
+/* Solo la lista hace scroll: el botón de arriba y el pie de abajo se quedan fijos */
 .panel__lista {
   flex: 1;
   min-height: 0;
@@ -137,75 +150,24 @@ h2 { font-size: .95rem; }
   list-style: none;
 }
 
-.item {
-  display: flex;
-  align-items: flex-start;
-  gap: .6rem;
-  padding: .55rem .6rem;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  color: var(--color-text);
-  text-decoration: none;
-  transition: background-color .2s, border-color .2s;
-}
-
-.item:hover { background: color-mix(in srgb, var(--color-primary) 10%, transparent); }
-
-/* La conversación abierta va resaltada */
-.item.activa {
-  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
-  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
-}
-
-.item__icono {
-  flex-shrink: 0;
-  margin-top: .15rem;
-  color: var(--color-primary-light);
-}
-
-.item__texto {
-  display: flex;
-  flex-direction: column;
-  gap: .2rem;
-  min-width: 0;
-}
-
-.item__titulo {
-  overflow: hidden;
-  font-size: .85rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.item__meta {
+/* "Ver todo el historial" a la izquierda y "Borrar historial" a la derecha, sobre la misma línea.
+   margin-top: auto lo deja abajo del panel aunque la lista esté vacía */
+.panel__pie {
+  margin-top: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .4rem;
-  color: var(--color-text-secondary);
-  font-size: .72rem;
+  justify-content: space-between;
+  gap: .4rem .8rem;
+  padding-top: .7rem;
+  border-top: 1px solid var(--color-border);
 }
 
-.etiqueta {
-  padding: .05rem .45rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-info) 18%, transparent);
-  color: var(--color-info);
-  font-size: .66rem;
-  font-weight: 600;
-}
-
-.etiqueta.guiada {
-  background: color-mix(in srgb, var(--color-success) 18%, transparent);
-  color: var(--color-success);
-}
-
-.panel__historial {
+.panel__historial,
+.panel__borrar {
   display: flex;
   align-items: center;
   gap: .4rem;
-  padding-top: .7rem;
-  border-top: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   font-size: .8rem;
   text-decoration: none;
@@ -214,6 +176,21 @@ h2 { font-size: .95rem; }
 
 .panel__historial:hover {
   color: var(--color-text);
+}
+
+/* Enlace discreto, como "Ver todo el historial": el rojo solo aparece al apuntarlo */
+.panel__borrar {
+  padding: .25rem 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: .8rem;
+  cursor: pointer;
+}
+
+.panel__borrar:hover,
+.panel__borrar:focus-visible {
+  color: var(--color-danger);
 }
 
 /* Cajón: bajo 900 px el panel no cabe junto al chat, así que sale desde la izquierda.

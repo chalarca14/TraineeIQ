@@ -4,7 +4,7 @@
 // que esperan la lista y los filtros, así la vista no conoce el formato del backend.
 //
 // Forma de una entrada:
-//   { clave, categoria: 'libre' | 'guiada', titulo, descripcion, etiqueta, fecha, ruta }
+//   { clave, id, categoria: 'libre' | 'guiada', titulo, descripcion, etiqueta, fecha, ruta }
 import { listarConversacionesPagina } from './chatIaService'
 
 const PREFIJO_GUIADA = 'Conversacion sobre '
@@ -21,6 +21,8 @@ export function entradaDeConversacion(c) {
   const guia = guiada ? nombreDeGuia(c.titulo) : ''
   return {
     clave: `conv-${c.id}`,
+    // id de la conversación: la papelera del Historial lo necesita para borrarla
+    id: c.id,
     // La categoría es el tipo de chat: así las pestañas "Chats libres" y "Guiados" filtran por ella
     categoria: guiada ? 'guiada' : 'libre',
     titulo: 'Conversación con la IA',
