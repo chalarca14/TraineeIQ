@@ -9,6 +9,7 @@ use App\Models\MensajeIa;
 use App\Services\GeminiService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 
 /**
@@ -100,24 +101,69 @@ class LibreStrategy implements ChatStrategy
             ->whereIn('guia_id', $idsGuiasDelEstudiante)
             ->get();
 
+        // Se elige el tema que comparte MÁS palabras clave con la pregunta, no el primero que
+        // comparta alguna. Si empatan, gana el que aparece primero (orden de la base)
+        $mejorTema = null;
+        $mejorCoincidencias = 0;
+
         foreach ($temas as $tema) {
             $palabrasTema = $this->extraerPalabrasClave($tema->nombre_tema);
-            if (count(array_intersect($palabrasPregunta, $palabrasTema)) > 0) {
-                return $tema;
+            $coincidencias = count(array_intersect($palabrasPregunta, $palabrasTema));
+
+            if ($coincidencias > $mejorCoincidencias) {
+                $mejorTema = $tema;
+                $mejorCoincidencias = $coincidencias;
             }
         }
 
-        return null;
+        return $mejorTema;
     }
 
+    /**
+     * Saca las palabras que de verdad dicen de qué trata un texto, para comparar la pregunta
+     * con los nombres de los temas:
+     * - pasa a minúsculas y quita las tildes ("básicas" → "basicas"); antes las tildes se
+     *   borraban junto con la letra y la palabra quedaba partida ("b" y "sicas");
+     * - acepta palabras desde 3 letras, para que cuenten siglas como "git", "php" o "css";
+     * - ignora las palabras comunes (PALABRAS_IGNORADAS), que no dicen nada del tema: antes
+     *   "¿Qué es Git y para qué sirve?" se relacionaba con "Estructuras básicas para datos"
+     *   solo por la palabra "para".
+     */
     private function extraerPalabrasClave(string $texto): array
     {
-        $texto = strtolower($texto);
+        $texto = Str::lower(Str::ascii($texto));
         $texto = preg_replace('/[^a-z0-9\s]/', ' ', $texto);
-        $palabras = array_filter(explode(' ', $texto), fn ($p) => strlen($p) > 3);
+
+        $palabras = array_filter(
+            explode(' ', $texto),
+            fn ($p) => strlen($p) >= 3 && ! in_array($p, self::PALABRAS_IGNORADAS, true)
+        );
 
         return array_values(array_unique($palabras));
     }
+
+    /**
+     * Palabras frecuentes en las preguntas y en los nombres de los temas que no sirven para
+     * saber de qué tema se habla (van sin tildes, porque se comparan ya normalizadas).
+     */
+    private const PALABRAS_IGNORADAS = [
+        // Artículos, preposiciones, conectores y pronombres
+        'los', 'las', 'del', 'con', 'por', 'para', 'sin', 'una', 'uno', 'unos', 'unas', 'que',
+        'cual', 'cuales', 'como', 'cuando', 'donde', 'entre', 'sobre', 'desde', 'hasta', 'hacia',
+        'segun', 'pero', 'porque', 'pues', 'tambien', 'ademas', 'mas', 'muy', 'solo', 'esto',
+        'esta', 'este', 'estos', 'estas', 'eso', 'esa', 'ese', 'esos', 'esas', 'aqui', 'algo',
+        'todo', 'toda', 'todos', 'todas', 'cada', 'otro', 'otra', 'otros', 'otras', 'mis', 'tus',
+        'sus', 'nos', 'les', 'ellos', 'ellas', 'usted', 'ustedes', 'mismo', 'misma', 'bien', 'mal',
+        // Verbos y palabras típicas de una pregunta
+        'son', 'hay', 'ser', 'estar', 'tiene', 'tienen', 'tengo', 'hace', 'hacer', 'hago', 'puede',
+        'pueden', 'puedo', 'quiero', 'necesito', 'sirve', 'sirven', 'servir', 'usar', 'uso',
+        'utiliza', 'utilizar', 'funciona', 'funcionan', 'explica', 'explicame', 'explicar', 'dame',
+        'dime', 'muestra', 'muestrame', 'ayuda', 'ayudame', 'ejemplo', 'ejemplos', 'diferencia',
+        'diferencias', 'significa', 'hola', 'gracias', 'favor', 'porfa', 'sencillo', 'facil',
+        // Palabras genéricas de los nombres de temas
+        'tema', 'temas', 'guia', 'semana', 'introduccion', 'concepto', 'conceptos', 'basico',
+        'basica', 'basicos', 'basicas', 'general', 'generales', 'parte',
+    ];
 
     private function formatearHistorial(ConversacionIa $conversacion): string
     {
