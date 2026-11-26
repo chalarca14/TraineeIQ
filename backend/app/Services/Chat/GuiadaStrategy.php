@@ -3,14 +3,17 @@
 namespace App\Services\Chat;
 
 use App\Models\ConversacionIa;
+use App\Models\Guia;
 use App\Models\GuiaTema;
 use App\Models\MensajeIa;
 use App\Services\GeminiService;
+use Illuminate\Support\Collection;
 
 /**
  * Estrategia para el modo GUIADO: la conversacion queda condicionada al
- * contenido de guia_temas de UNA guia especifica (conversacion->guia_id).
- * Si la pregunta se sale de ese alcance, se rechaza y se sugiere el modo libre.
+ * contenido de UNA guia especifica (conversacion->guia_id): su nombre, sus
+ * semanas y sus temas. Si la pregunta se sale de ese alcance, se rechaza y se
+ * sugiere el modo libre.
  */
 class GuiadaStrategy implements ChatStrategy
 {
@@ -24,16 +27,19 @@ class GuiadaStrategy implements ChatStrategy
         $this->geminiService = GeminiService::obtenerInstancia();
     }
 
+    /**
+     * Arma el prompt con el contenido de la guia, pide la respuesta a Gemini y la
+     * valida en dos capas antes de devolverla.
+     */
     public function generarRespuesta(ConversacionIa $conversacion, string $mensajeUsuario): string
     {
+        $guia = Guia::find($conversacion->guia_id);
+        $semanas = $guia ? $guia->semanas()->get(['numero_semana', 'titulo', 'resumen']) : collect();
         $temas = GuiaTema::where('guia_id', $conversacion->guia_id)
             ->orderBy('orden')
             ->get();
 
-        $contenidoGuia = $temas
-            ->map(fn ($t) => "- {$t->nombre_tema}: {$t->descripcion}")
-            ->implode("\n");
-
+        $contenidoGuia = $this->formatearContenidoGuia($guia, $semanas, $temas);
         $historial = $this->formatearHistorial($conversacion);
         $prompt = $this->construirPrompt($contenidoGuia, $historial, $mensajeUsuario);
 
@@ -45,10 +51,9 @@ class GuiadaStrategy implements ChatStrategy
         }
 
         // Capa 2: validacion real de backend, no solo confiar en el marcador del modelo.
-        // Si la respuesta no comparte ninguna palabra significativa con los temas de la
-        // guia, se trata como sospechosa y se redirige igual, aunque el modelo no haya
-        // usado el marcador.
-        if ($this->pareceFueraDeAlcance($respuesta, $temas)) {
+        // Si la respuesta no comparte ninguna palabra significativa con la guia, se trata
+        // como sospechosa y se redirige igual, aunque el modelo no haya usado el marcador.
+        if ($this->pareceFueraDeAlcance($respuesta, $guia, $semanas, $temas)) {
             return self::MENSAJE_REDIRECCION;
         }
 
@@ -56,19 +61,49 @@ class GuiadaStrategy implements ChatStrategy
     }
 
     /**
-     * Arma el prompt restringido: incluye SOLO el contenido de los temas de
-     * esta guia y le exige al modelo usar el marcador si la pregunta no
-     * corresponde a ese contenido.
+     * Junta en texto plano lo que la IA puede usar: el nombre de la guia, sus semanas
+     * (titulo y resumen) y sus temas. Antes solo iban los temas, y la IA no sabia ni
+     * como se llamaba la guia, asi que "¿de que trata la guia?" le parecia ajeno.
+     */
+    private function formatearContenidoGuia(?Guia $guia, Collection $semanas, Collection $temas): string
+    {
+        $partes = ['Nombre de la guia: ' . ($guia?->nombre ?? 'sin nombre')];
+
+        if ($semanas->isNotEmpty()) {
+            $partes[] = "Semanas de la guia:\n" . $semanas
+                ->map(fn ($s) => "- Semana {$s->numero_semana}: {$s->titulo}. {$s->resumen}")
+                ->implode("\n");
+        }
+
+        if ($temas->isNotEmpty()) {
+            $partes[] = "Temas de la guia:\n" . $temas
+                ->map(fn ($t) => "- {$t->nombre_tema}: {$t->descripcion}")
+                ->implode("\n");
+        }
+
+        return implode("\n\n", $partes);
+    }
+
+    /**
+     * Arma el prompt restringido: incluye SOLO el contenido de esta guia y le exige
+     * al modelo usar el marcador si la pregunta no corresponde a ese contenido. Las
+     * preguntas sobre la guia misma (de que trata, que se aprende, que semanas tiene)
+     * se declaran validas de forma explicita, porque el modelo las rechazaba.
      */
     private function construirPrompt(string $contenidoGuia, string $historial, string $mensajeUsuario): string
     {
         return "Eres el asistente academico de TraineeIQ en modo GUIADO.
         " . self::CONTEXTO_TRAINEEIQ . "
-        Tu conocimiento en esta conversacion esta limitado UNICAMENTE al siguiente contenido:
+        Tu conocimiento en esta conversacion esta limitado UNICAMENTE al siguiente contenido de la guia:
         {$contenidoGuia}
 
         Historial reciente de la conversacion:
         {$historial}
+
+        Las preguntas sobre la guia misma SIEMPRE tienen relacion con el contenido: de que trata,
+        cual es su objetivo, que se va a aprender, que temas o semanas tiene, o un resumen.
+        Respondelas explicando la guia con su nombre, sus semanas y sus temas. No hables de la
+        plataforma TraineeIQ salvo que el estudiante pregunte por ella.
 
         Si la pregunta del estudiante NO tiene relacion con el contenido anterior, responde
         EXACTAMENTE con: \"" . self::MARCADOR_FUERA_DE_ALCANCE . "\" seguido de una razon breve.
@@ -78,36 +113,28 @@ class GuiadaStrategy implements ChatStrategy
     }
 
     /**
-     * Verificacion de backend (capa 2): compara palabras significativas de la
-     * respuesta contra las palabras de los temas de la guia. No es un analisis
-     * semantico real, pero es una validacion en PHP y no depende de que el
-     * modelo obedezca el marcador (cumple RNF-17).
+     * Verificacion de backend (capa 2): compara las palabras clave de la respuesta con
+     * las de la guia (nombre, semanas y temas con su descripcion). No es un analisis
+     * semantico real, pero es una validacion en PHP y no depende de que el modelo
+     * obedezca el marcador (cumple RNF-17).
+     * Antes solo miraba los nombres de los temas y partia las palabras con tilde, asi que
+     * podia tumbar una respuesta buena. Si la guia no tiene semanas ni temas, no hay contra
+     * que comparar y se rechaza, como antes.
      */
-    private function pareceFueraDeAlcance(string $respuesta, $temas): bool
+    private function pareceFueraDeAlcance(string $respuesta, ?Guia $guia, Collection $semanas, Collection $temas): bool
     {
-        if ($temas->isEmpty()) {
+        if ($semanas->isEmpty() && $temas->isEmpty()) {
             return true;
         }
 
-        $palabrasTemas = $this->extraerPalabrasClave($temas->pluck('nombre_tema')->implode(' '));
-        $palabrasRespuesta = $this->extraerPalabrasClave($respuesta);
+        $textoGuia = collect([$guia?->nombre])
+            ->merge($semanas->map(fn ($s) => "{$s->titulo} {$s->resumen}"))
+            ->merge($temas->map(fn ($t) => "{$t->nombre_tema} {$t->descripcion}"))
+            ->implode(' ');
 
-        $interseccion = array_intersect($palabrasTemas, $palabrasRespuesta);
+        $interseccion = array_intersect(PalabrasClave::extraer($textoGuia), PalabrasClave::extraer($respuesta));
 
         return count($interseccion) === 0;
-    }
-
-    /**
-     * Extrae palabras de mas de 3 letras, en minuscula, sin acentos ni
-     * puntuacion, para comparar contenido de forma tolerante.
-     */
-    private function extraerPalabrasClave(string $texto): array
-    {
-        $texto = strtolower($texto);
-        $texto = preg_replace('/[^a-z0-9\s]/', ' ', $texto);
-        $palabras = array_filter(explode(' ', $texto), fn ($p) => strlen($p) > 3);
-
-        return array_values(array_unique($palabras));
     }
 
     /**
